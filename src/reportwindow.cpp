@@ -59,12 +59,12 @@
 ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     QMainWindow(pParent),
     ui(new Ui::ReportWindow),
+    vehiclesGroupBoxLayout(nullptr),
     statusBarLabel(new QLabel(this)),
     report(),
     boatLogPtr(report.boatLog()),
     unsavedChanges(false),
     unappliedBoatDriveChanges(false),
-    revertingDriveSelection(false),
     exporting(false),
     exportPersonnelTableMaxLength(15),
     loadedStation(""),
@@ -84,12 +84,11 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     /*
      * Lambda expression for adding a spin box (plus label and "fill document" notice label) for
      * rescue operation type \p pRescue to \p pGroupBox with \p pGroupBoxLayout. Additional pointers to
-     * spin boxes and notice labels are added to \p pRescueSpinBoxes and \p pRescueDocumentNoticeLabels.
+     * spin boxes and notice labels are added to \p pRescuesTableRows.
      * To be executed for each available 'RescueOperation'.
      */
     auto tRescueFunc = [](Report::RescueOperation pRescue, QGroupBox *const pGroupBox, QGridLayout *const pGroupBoxLayout,
-                          std::map<Report::RescueOperation, QSpinBox *const>& pRescueSpinBoxes,
-                          std::map<Report::RescueOperation, QLabel *const>& pRescueDocumentNoticeLabels) -> void
+                          std::map<Report::RescueOperation, const RescueOperationsRow>& pRescuesTableRows) -> void
     {
         //Create widgets
         QLabel* tLabel = new QLabel(Report::rescueOperationToLabel(pRescue), pGroupBox);
@@ -105,23 +104,21 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
         pGroupBoxLayout->addWidget(tSpinBox, row, 1);
         pGroupBoxLayout->addWidget(tLabel2, row, 2);
 
-        //Add pointers to maps
-        pRescueSpinBoxes.insert({pRescue, tSpinBox});
-        pRescueDocumentNoticeLabels.insert({pRescue, tLabel2});
+        //Add pointers to map
+        pRescuesTableRows.insert({pRescue, {tSpinBox, tLabel2}});
     };
 
     //Add spin boxes to layout
-    Report::iterateRescueOperations(tRescueFunc, ui->rescues_groupBox, tRescuesGroupBoxLayout,
-                                    rescuesSpinBoxes, rescuesFillDocNoticeLabels);
+    Report::iterateRescueOperations(tRescueFunc, ui->rescues_groupBox, tRescuesGroupBoxLayout, rescuesTableRows);
 
     //Set the layout
     ui->rescues_groupBox->setLayout(tRescuesGroupBoxLayout);
 
     //Connect 'valueChanged' signal of each spin box to a single, parameterized slot
-    for (const auto& it : rescuesSpinBoxes)
+    for (const auto& it : rescuesTableRows)
     {
         Report::RescueOperation tRescue = it.first;
-        const QSpinBox *const tSpinBox = it.second;
+        const QSpinBox *const tSpinBox = it.second.spinBox;
 
         connect(tSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
                 [this, tRescue](int pValue) -> void {
@@ -157,6 +154,9 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
 
     //Set the layout
     ui->documents_groupBox->setLayout(tDocsGroupBoxLayout);
+
+    //Get layout of vehicles table group box
+    vehiclesGroupBoxLayout = dynamic_cast<QGridLayout*>(ui->vehicles_groupBox->layout());
 
     //Add combo box items from available enum class values of 'DutyPurpose'/'Precipitation'/'Cloudiness'/'WindStrength'
 
@@ -252,6 +252,11 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     connect(clockTimer, SIGNAL(timeout()), this, SLOT(on_updateClocksTimerTimeout()));
     clockTimer->start(1000);
 
+    //Set timer to auto-save the report every 10 minutes
+    QTimer* autoSaveTimer = new QTimer(this);
+    connect(autoSaveTimer, SIGNAL(timeout()), this, SLOT(on_autoSaveTimerTimeout()));
+    autoSaveTimer->start(10 * 60 * 1000);
+
     //Add shortcut to record the current time and display it in a non-modal message box
     QShortcut* timestampShortcut = new QShortcut(QKeySequence("Ctrl+T"), this);
     connect(timestampShortcut, SIGNAL(activated()), this, SLOT(on_timestampShortcutActivated()));
@@ -311,6 +316,10 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
 
     //Fill the widgets with report's data
     loadReportData();
+
+    //If no vehicle added from loaded report, add one empty row to vehicles table so that user can start filling the table
+    if (vehiclesTableRows.empty())
+        addVehiclesTableRow("", report.getBeginTime(), report.getBeginTime());
 }
 
 /*!
@@ -524,13 +533,16 @@ void ReportWindow::loadReportData()
 
     setBoatHoursCarry(boatLogPtr->getBoatMinutesCarry());
 
-    for (const auto& it : rescuesSpinBoxes)
+    for (const auto& it : rescuesTableRows)
     {
         Report::RescueOperation tRescue = it.first;
-        QSpinBox *const tSpinBox = it.second;
+        QSpinBox *const tSpinBox = it.second.spinBox;
 
         tSpinBox->setValue(report.getRescueOperationCtr(tRescue));
     }
+
+    for (const auto& it : report.getVehicles())
+        addVehiclesTableRow(it.first, it.second.first, it.second.second);
 
     ui->assignmentNumber_lineEdit->setText(report.getAssignmentNumber());
 
@@ -571,7 +583,7 @@ void ReportWindow::loadReportData()
  *
  * Similarly the user is also warned about and asked how to handle (ignore or abort) possible invalid values (see checkInvalidValues()).
  *
- * If writing the file was successful, the displayed file name is updated and the unsaved changes switch is reset.
+ * If writing the file was successful, the displayed file name is updated and the 'unsaved changes' switch is reset.
  * Also, if an automatic export on save is configured in the settings, autoExport() will be called at the end of the function.
  *
  * \param pFileName Path to write the report file to.
@@ -581,11 +593,16 @@ void ReportWindow::saveReport(const QString& pFileName)
     //Not include newest boat drive changes?
     if (unappliedBoatDriveChanges)
     {
-        QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
-                           "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nTrotzdem speichern?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
-        if (msgBox.exec() != QMessageBox::Yes)
-            return;
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            on_applyBoatDriveChanges_pushButton_pressed();
+        else
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nTrotzdem speichern?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
+            if (msgBox.exec() != QMessageBox::Yes)
+                return;
+        }
     }
 
     //Ask the user, if invalid values shall be ignored
@@ -626,6 +643,40 @@ void ReportWindow::saveReport(const QString& pFileName)
 }
 
 /*!
+ * \brief Save the report to a standard location (as backup).
+ *
+ * Silently saves the report to file "report-autosave.wbr" in a subdirectory ("Wachdienst-Manager-autosave")
+ * of QStandardPaths::AppLocalDataLocation (typically itself a subdirectory of "%AppData%\Local" on Windows).
+ *
+ * See also Report::save().
+ *
+ * The internal file name of Report will not be changed. Also, contrary to saveReport(), there is no additional logic.
+ *
+ * Note: Any errors that occur while saving the file are simply ignored.
+ */
+void ReportWindow::autoSave()
+{
+    //Try to silently auto-save to an OS specific application data directory; ignore all errors
+
+    QStringList standardPaths = QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation);
+
+    if (standardPaths.size() == 0)
+        return;
+    QDir localDir(standardPaths[0]);
+
+    if (!localDir.cd("Wachdienst-Manager-autosave"))
+    {
+        if (!localDir.mkpath("Wachdienst-Manager-autosave"))
+            return;
+
+        if (!localDir.cd("Wachdienst-Manager-autosave"))
+            return;
+    }
+
+    report.save(localDir.filePath("report-autosave.wbr"), true);
+}
+
+/*!
  * \brief Export the report.
  *
  * Exports the report to file \p pFileName. See also PDFExporter::exportPDF().
@@ -659,11 +710,16 @@ void ReportWindow::exportReport(const QString& pFileName, bool pAskOverwrite)
 
     if (unappliedBoatDriveChanges)
     {
-        QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
-                           "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nTrotzdem exportieren?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
-        if (msgBox.exec() != QMessageBox::Yes)
-            return;
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            on_applyBoatDriveChanges_pushButton_pressed();
+        else
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nTrotzdem exportieren?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
+            if (msgBox.exec() != QMessageBox::Yes)
+                return;
+        }
     }
 
     //Ask the user, if invalid and implausible values shall be ignored
@@ -738,6 +794,9 @@ void ReportWindow::setUnsavedChanges(bool pValue)
 void ReportWindow::setUnappliedBoatDriveChanges(bool pValue)
 {
     unappliedBoatDriveChanges = pValue;
+
+    ui->applyBoatDriveChanges_pushButton->setEnabled(pValue);
+    ui->discardBoatDriveChanges_pushButton->setEnabled(pValue);
 
     updateWindowTitle();
 }
@@ -1205,8 +1264,10 @@ void ReportWindow::updateBoatDrivesTable()
     {
         ui->boatDrives_tableWidget->insertRow(rowCount);
 
-        ui->boatDrives_tableWidget->setItem(rowCount, 0, new QTableWidgetItem("Fahrt #" + QString::number(rowCount+1) +
-                                                                              " [" + tDrive.getPurpose() + "]"));
+        ui->boatDrives_tableWidget->setItem(rowCount, 0, new QTableWidgetItem("#" + QString::number(rowCount+1) + " [" +
+                                                                              tDrive.getBeginTime().toString("hh:mm") + " - " +
+                                                                              tDrive.getEndTime().toString("hh:mm") +
+                                                                              "] - " + tDrive.getPurpose()));
 
         ++rowCount;
     }
@@ -1227,9 +1288,11 @@ void ReportWindow::updateBoatDrivesTable()
  */
 void ReportWindow::updateBoatDriveAvailablePersons()
 {
-    //Remember selected boatman and unapplied boat drive changes state and restore at end of function
-    bool tDriveChanges = unappliedBoatDriveChanges;
+    //Remember selected boatman and restore at end of function
     QString tBoatmanIdent = selectedBoatmanIdent;
+
+    //Temporarily block signals to prevent handling of transient wrong boatman selection while updating combo box items
+    ui->boatDriveBoatman_comboBox->blockSignals(true);
 
     ui->boatDriveBoatman_comboBox->clear();
     ui->boatCrewMember_comboBox->clear();
@@ -1250,7 +1313,93 @@ void ReportWindow::updateBoatDriveAvailablePersons()
 
     ui->boatDriveBoatman_comboBox->setCurrentIndex(ui->boatDriveBoatman_comboBox->findText(tBoatmanLabel));
 
-    setUnappliedBoatDriveChanges(tDriveChanges);
+    //Stop temporary blocking of signals again
+    ui->boatDriveBoatman_comboBox->blockSignals(false);
+}
+
+/*!
+ * \brief Set report vehicles list according to vehicles entered in UI table.
+ *
+ * The list of all vehicles (with non-empty name field) currently
+ * entered in the dynamic UI table is written to the report.
+ *
+ * Sets the 'unsaved changes' switch, if new list differs from old list.
+ */
+void ReportWindow::updateReportVehiclesList()
+{
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehicles;
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehiclesOld = report.getVehicles();
+
+    for (const auto& row : vehiclesTableRows)
+    {
+        if (row.vehicleNameLineEdit->text().trimmed() == "")    //Skip rows without vehicle name
+            continue;
+
+        vehicles.push_back({row.vehicleNameLineEdit->text().trimmed(), {row.arriveTimeEdit->time(), row.leaveTimeEdit->time()}});
+    }
+
+    if (vehicles != vehiclesOld)
+    {
+        report.setVehicles(vehicles);
+        setUnsavedChanges();
+    }
+}
+
+/*!
+ * \brief Apply changed boat drive data to specified boat drive in report.
+ *
+ * The drive data is applied to the drive corresponding to the boat drives table row \p pRow.
+ * Note: Returns immediately, if \p pRow == -1.
+ *
+ * Then the boat drives table is updated (see updateBoatDrivesTable()) to display the new drive purpose in case this has changed.
+ *
+ * Resets setUnappliedBoatDriveChanges().
+ *
+ * Sets setUnsavedChanges() (if \p pRow was not -1).
+ *
+ * \param pRow Boat drive number to which to apply the changed data.
+ */
+void ReportWindow::applyBoatDriveChanges(int pRow)
+{
+    if (pRow == -1)
+        return;
+
+    BoatDrive& tDrive = boatLogPtr->getDrive(pRow);
+
+    tDrive.setPurpose(ui->boatDrivePurpose_comboBox->currentText());
+    tDrive.setBeginTime(ui->boatDriveBegin_timeEdit->time());
+    tDrive.setEndTime(ui->boatDriveEnd_timeEdit->time());
+    tDrive.setFuel(ui->boatDriveFuel_spinBox->value());
+    tDrive.setComments(ui->boatDriveComments_plainTextEdit->toPlainText());
+
+    if (ui->boatDriveBoatman_comboBox->currentText() != "")
+        tDrive.setBoatman(personIdentFromLabel(ui->boatDriveBoatman_comboBox->currentText()));
+    else
+        tDrive.setBoatman("");
+
+    tDrive.clearCrew();
+
+    for (int row = 0; row < ui->boatCrew_tableWidget->rowCount(); ++row)
+    {
+        QString tIdent = ui->boatCrew_tableWidget->item(row, 3)->text();
+
+        //Double-check that person is still part of personnel (because of "table widget cache")
+        if (!report.personExists(tIdent))
+            continue;
+
+        Person::BoatFunction tBoatFunction = Person::labelToBoatFunction(ui->boatCrew_tableWidget->item(row, 2)->text());
+
+        //Double-check that person's qualifications still allow the function (might have changed; because of "table widget cache")
+        if (!QualificationChecker::checkBoatFunction(tBoatFunction, report.getPerson(tIdent).getQualifications()))
+            continue;
+
+        tDrive.addCrewMember(tIdent, tBoatFunction);
+    }
+
+    setUnappliedBoatDriveChanges(false);
+    setUnsavedChanges();
+
+    updateBoatDrivesTable();
 }
 
 //
@@ -1271,6 +1420,71 @@ void ReportWindow::insertBoatCrewTableRow(const Person& pPerson, Person::BoatFun
     ui->boatCrew_tableWidget->setItem(rowCount, 1, new QTableWidgetItem(pPerson.getFirstName()));
     ui->boatCrew_tableWidget->setItem(rowCount, 2, new QTableWidgetItem(Person::boatFunctionToLabel(pFunction)));
     ui->boatCrew_tableWidget->setItem(rowCount, 3, new QTableWidgetItem(pPerson.getIdent()));
+}
+
+/*!
+ * \brief Add a vehicles table row for a new vehicle.
+ *
+ * Adds a new row to the dynamic vehicles UI table (adds push button, line edit, label, two time edits)
+ * with pre-filled vehicle (radio call) name \p pName, arrival time \p pArrivalTime and leaving time \p pLeavingTime.
+ * The time edits are disabled, if (trimmed) \p pName is empty.
+ *
+ * Note: Connects a number of slots to widgets' signals, which can/will be
+ * disconnected again by one of those slots, on_vehicleRemovePushButtonPressed().
+ *
+ * \param pName Radio call name of the vehicle.
+ * \param pArrivalTime Arrival time.
+ * \param pLeavingTime Leaving time.
+ */
+void ReportWindow::addVehiclesTableRow(QString pName, QTime pArrivalTime, QTime pLeavingTime)
+{
+    //Create widgets
+    QPushButton* tPushButton = new QPushButton("x", ui->vehicles_groupBox);
+    QLineEdit* tLineEdit = new QLineEdit(pName.trimmed(), ui->vehicles_groupBox);
+    QTimeEdit* tArrivalTimeEdit = new QTimeEdit(pArrivalTime, ui->vehicles_groupBox);
+    QTimeEdit* tLeavingTimeEdit = new QTimeEdit(pLeavingTime, ui->vehicles_groupBox);
+    QLabel* tLabel = new QLabel("-", ui->vehicles_groupBox);
+
+    tPushButton->setMaximumWidth(30);
+    tLineEdit->setValidator(new QRegularExpressionValidator(Aux::radioCallNamesValidator.regularExpression(), tLineEdit));
+    tArrivalTimeEdit->setEnabled(pName.trimmed() != "");
+    tLeavingTimeEdit->setEnabled(pName.trimmed() != "");
+
+    //Add widgets to new layout row
+    int row = vehiclesGroupBoxLayout->rowCount();
+    vehiclesGroupBoxLayout->addWidget(tPushButton, row, 0);
+    vehiclesGroupBoxLayout->addWidget(tLineEdit, row, 1);
+    vehiclesGroupBoxLayout->addWidget(tArrivalTimeEdit, row, 2);
+    vehiclesGroupBoxLayout->addWidget(tLabel, row, 3);
+    vehiclesGroupBoxLayout->addWidget(tLeavingTimeEdit, row, 4);
+
+    //Connect signals to slots
+
+    std::vector<QMetaObject::Connection> connections {
+        connect(tPushButton, &QPushButton::pressed, this,
+                [this, tPushButton]() -> void {
+                    this->on_vehicleRemovePushButtonPressed(tPushButton);
+                }),
+        connect(tLineEdit, &QLineEdit::textEdited, this,
+                [this, tPushButton](const QString&) -> void {
+                    this->on_vehicleLineEditTextEdited(tPushButton);
+                }),
+        connect(tLineEdit, &QLineEdit::returnPressed, this,
+                [this, tPushButton]() -> void {
+                    this->on_vehicleLineEditReturnPressed(tPushButton);
+                }),
+        connect(tArrivalTimeEdit, &QTimeEdit::timeChanged, this,
+                [this, tPushButton]() -> void {
+                    this->on_vehicleTimeEditTimeChanged(tPushButton);
+                }),
+        connect(tLeavingTimeEdit, &QTimeEdit::timeChanged, this,
+                [this, tPushButton]() -> void {
+                    this->on_vehicleTimeEditTimeChanged(tPushButton);
+                })
+    };
+
+    //Add pointers to list
+    vehiclesTableRows.push_back({tPushButton, tLineEdit, tArrivalTimeEdit, tLeavingTimeEdit, tLabel, std::move(connections)});
 }
 
 //
@@ -1532,9 +1746,9 @@ void ReportWindow::on_rescueOperationSpinBoxValueChanged(int pValue, Report::Res
 
     //Show "fill document" notice, if count is non-zero
     if (pValue > 0)
-        rescuesFillDocNoticeLabels.at(pRescue)->setText(Report::rescueOperationToDocNotice(pRescue));
+        rescuesTableRows.at(pRescue).fillDocNoticeLabel->setText(Report::rescueOperationToDocNotice(pRescue));
     else
-        rescuesFillDocNoticeLabels.at(pRescue)->setText("");
+        rescuesTableRows.at(pRescue).fillDocNoticeLabel->setText("");
 
     //Set maximum number of _MORTAL_DANGER spin box to sum of all other rescue operations since it just describes a subset of those
 
@@ -1548,11 +1762,11 @@ void ReportWindow::on_rescueOperationSpinBoxValueChanged(int pValue, Report::Res
         tNumRescues += it.second;
     }
 
-    for (const auto& it : rescuesSpinBoxes)
+    for (const auto& it : rescuesTableRows)
     {
         if (it.first == Report::RescueOperation::_MORTAL_DANGER)
         {
-            it.second->setMaximum(tNumRescues);
+            it.second.spinBox->setMaximum(tNumRescues);
             break;
         }
     }
@@ -1579,6 +1793,162 @@ void ReportWindow::on_openDocumentPushButtonPressed(const QString& pDocFile)
 }
 
 /*!
+ * \brief Remove a rescue vehicle from the list.
+ *
+ * Removes the UI table row (widgets and corresponding signal-slot connections),
+ * whose remove button is \p pRemoveButton. Calls updateReportVehiclesList(),
+ * which then removes the corresponding vehicle from the report vehicles list.
+ *
+ * If the row is the last remaining row, the row will not be removed but instead the vehicle's
+ * name field will be reset (such that new vehicles can still be added). The effect on the
+ * report vehicles list stays the same (see also on_vehicleLineEditTextEdited()).
+ *
+ * \param pRemoveRowButton "Remove row" button of the row that is to be removed (no index available).
+ */
+void ReportWindow::on_vehicleRemovePushButtonPressed(QPushButton* pRemoveRowButton)
+{
+    for (auto it = vehiclesTableRows.begin(); it != vehiclesTableRows.end(); ++it)
+    {
+        if ((*it).removeRowPushButton == pRemoveRowButton)
+        {
+            if (vehiclesTableRows.size() < 2)   //Keep one empty row, just remove name (vehicle list then updated below)
+            {
+                (*it).vehicleNameLineEdit->setText("");
+                on_vehicleLineEditTextEdited(pRemoveRowButton);
+
+                //Can skip update step below (called by slot already)
+                return;
+            }
+            else
+            {
+                //Disconnect all slots
+                for (const QMetaObject::Connection& conn : (*it).connections)
+                    disconnect(conn);
+
+                //Remove widgets from layout
+                vehiclesGroupBoxLayout->removeWidget((*it).removeRowPushButton);
+                vehiclesGroupBoxLayout->removeWidget((*it).vehicleNameLineEdit);
+                vehiclesGroupBoxLayout->removeWidget((*it).arriveTimeEdit);
+                vehiclesGroupBoxLayout->removeWidget((*it).leaveTimeEdit);
+                vehiclesGroupBoxLayout->removeWidget((*it).timesSepLabel);
+
+                //Delete widgets
+                delete (*it).removeRowPushButton;
+                delete (*it).vehicleNameLineEdit;
+                delete (*it).arriveTimeEdit;
+                delete (*it).leaveTimeEdit;
+                delete (*it).timesSepLabel;
+
+                //Erase pointers
+                vehiclesTableRows.erase(it);
+            }
+
+            updateReportVehiclesList();
+
+            return;
+        }
+    }
+}
+
+/*!
+ * \brief Change the radio call name of a rescue vehicle.
+ *
+ * Updates the report vehicles list (see updateReportVehiclesList()).
+ * The time edits in the row whose remove button is \p pRemoveButton (should refer to the edited row)
+ * are reset and disabled, if the row's (trimmed) radio call name is empty (no vehicle), and enabled otherwise.
+ *
+ * Note: The row's radio call name (the line edit text) will be reset, if it contains only whitespaces.
+ *
+ * \param pRemoveRowButton "Remove row" button of the edited row (no index available).
+ */
+void ReportWindow::on_vehicleLineEditTextEdited(QPushButton* pRemoveRowButton)
+{
+    for (const auto& row : vehiclesTableRows)
+    {
+        if (row.removeRowPushButton == pRemoveRowButton)
+        {
+            //Disable/reset time edits, if vehicle name removed
+            if (row.vehicleNameLineEdit->text().trimmed() == "")
+            {
+                //Trim text
+                if (row.vehicleNameLineEdit->text() != "")
+                    row.vehicleNameLineEdit->setText("");
+
+                row.arriveTimeEdit->setEnabled(false);
+                row.leaveTimeEdit->setEnabled(false);
+
+                row.arriveTimeEdit->setTime(QTime(0, 0));
+                row.leaveTimeEdit->setTime(QTime(0, 0));
+            }
+            else
+            {
+                row.arriveTimeEdit->setEnabled(true);
+                row.leaveTimeEdit->setEnabled(true);
+            }
+
+            updateReportVehiclesList();
+
+            return;
+        }
+    }
+}
+
+/*!
+ * \brief Add an empty row for another rescue vehicle.
+ *
+ * Adds an empty UI table row (widgets and corresponding signal-slot connections) for entering
+ * another vehicle, if 'return' was pressed in the \e last \e row's line edit (determined by
+ * row of \p pRemoveRowButton), and if last row's line edit already represents
+ * a vehicle (i.e. is not empty). See also addVehiclesTableRow().
+ *
+ * \param pRemoveRowButton "Remove row" button of the row in which 'return' was pressed (no index available).
+ */
+void ReportWindow::on_vehicleLineEditReturnPressed(QPushButton* pRemoveRowButton)
+{
+    for (auto it = vehiclesTableRows.begin(); it != vehiclesTableRows.end(); ++it)
+    {
+        if ((*it).removeRowPushButton == pRemoveRowButton)
+        {
+            //Only add row, if return pressed in last row's line edit and if this row's name is not empty
+            if (it != --(vehiclesTableRows.end()) || (*it).vehicleNameLineEdit->text().trimmed() == "")
+                return;
+
+            QTime tTime = Aux::roundQuarterHour(QTime::currentTime());
+
+            addVehiclesTableRow("", tTime, tTime);
+
+            (--vehiclesTableRows.end())->vehicleNameLineEdit->setFocus();
+
+            return;
+        }
+    }
+}
+
+/*!
+ * \brief Change a vehicle's arrival/leaving times.
+ *
+ * Updates the report vehicles list (see updateReportVehiclesList()), if the (trimmed)
+ * radio call name in the row of \p pRemoveRowButton is not empty (an actual vehicle entry).
+ *
+ * \param pRemoveRowButton "Remove row" button of the edited row (no index available).
+ */
+void ReportWindow::on_vehicleTimeEditTimeChanged(QPushButton* pRemoveRowButton)
+{
+    for (const auto& row : vehiclesTableRows)
+    {
+        if (row.removeRowPushButton == pRemoveRowButton)
+        {
+            if (row.vehicleNameLineEdit->text().trimmed() != "")
+                updateReportVehiclesList();
+
+            return;
+        }
+    }
+}
+
+//
+
+/*!
  * \brief Update the time displayed in every tab.
  */
 void ReportWindow::on_updateClocksTimerTimeout()
@@ -1588,6 +1958,19 @@ void ReportWindow::on_updateClocksTimerTimeout()
     ui->reportTabTime_lcdNumber->display(timeText);
     ui->boatTabTime_lcdNumber->display(timeText);
     ui->rescueTabTime_lcdNumber->display(timeText);
+}
+
+/*!
+ * \brief Auto-save the report.
+ *
+ * See autoSave().
+ *
+ * Only calls autoSave() if there are unsaved changes.
+ */
+void ReportWindow::on_autoSaveTimerTimeout()
+{
+    if (unsavedChanges)
+        autoSave();
 }
 
 /*!
@@ -2122,6 +2505,57 @@ void ReportWindow::on_windStrength_comboBox_currentTextChanged(const QString& ar
 {
     report.setWindStrength(Aux::labelToWindStrength(arg1));
     setUnsavedChanges();
+}
+
+/*!
+ * \brief Show a tooltip elucidating the wind strengths.
+ *
+ * Displays short descriptions of effects that can be observed at different wind strengths,
+ * which should help determine the approximate wind strength without an anemometer.
+ *
+ * \param pos Position of the context menu request in the widget's coordinate system.
+ */
+void ReportWindow::on_windStrength_comboBox_customContextMenuRequested(const QPoint& pos)
+{
+    const static std::map<int, std::pair<QString, QString>> windStrengthExplanations {
+        { 0, {"Keine Luftbewegung.",
+                "Spiegelglatte See."}},
+        { 1, {"Kaum merklich.",
+                "Leichte Kräuselwellen."}},
+        { 2, {"Blätter rascheln;<br>Wind im Gesicht spürbar.",
+                "Kleine kurze Wellen;<br>Oberfläche glasig."}},
+        { 3, {"Blätter und dünne Zweige bewegen sich; Wimpel werden gestreckt.",
+                "Anfänge der Schaumbildung."}},
+        { 4, {"Zweige bewegen sich; loses Papier wird vom Boden gehoben.",
+                "Kleine länger werdende Wellen; regelmäßige Schaumköpfe."}},
+        { 5, {"Größere Zweige und Bäume<br>bewegen sich; Wind deutlich hörbar.",
+                "Mäßige lange Wellen;<br>überall Schaumköpfe."}},
+        { 6, {"Dicke Äste bewegen sich;<br>hörbares Pfeifen an Drahtseilen.",
+                "Größere Wellen mit brechenden Köpfen; überall weiße Schaumflecken."}},
+        { 7, {"Bäume schwanken;<br>Widerstand beim Gehen.",
+                "Weißer Schaum legt sich in<br>Schaumstreifen in die Windrichtung."}},
+        { 8, {"Große Bäume schwanken;<br>Zweige brechen ab;<br>große Behinderung beim Gehen.",
+                "Höhere Wellenberge, deren Köpfe<br>verweht werden; überall Schaumstreifen."}},
+        { 9, {"Äste brechen; Ziegel heben<br>von Dächern ab; Gartenmöbel<br>werden umgeworfen.",
+                "Hohe Wellen mit verwehter Gischt."}},
+        {10, {"Bäume werden entwurzelt; Baumstämme brechen;<br>Gartenmöbel werden weggeweht.",
+                "Sehr hohe Wellen;<br>weiße Flecken auf dem Wasser;<br>überbrechende Kämme."}},
+        {11, {"Schwere Waldschäden;<br>Dächer werden abgedeckt;<br>Gehen unmöglich.",
+                "Wasser wird waagerecht weggeweht;<br>starke Sichtverminderung."}},
+        {12, {"Schwerste Sturmschäden<br>und Verwüstungen.",
+                "See völlig weiß; Luft mit Schaum und Gischt gefüllt; keine Sicht mehr."}}
+    };
+
+    QString toolTipText = "<table cellspacing=\"5\">";
+    for (const auto& it : windStrengthExplanations)
+    {
+        toolTipText.append("<tr><td style=\"text-align: right;\"> <span style=\"font-weight: bold;\">" +
+                           QString::number(it.first) + " Bft:</span> </td><td>" +
+                           it.second.first + "</td><td>" + it.second.second + "</td></tr>");
+    }
+    toolTipText.append("</table>");
+
+    QToolTip::showText(ui->windStrength_comboBox->mapToGlobal(pos), toolTipText, ui->windStrength_comboBox, {}, 30000);
 }
 
 /*!
@@ -2927,33 +3361,38 @@ void ReportWindow::on_fuelEndOfDuty_spinBox_valueChanged(int arg1)
  * Note: Has to reset setUnappliedBoatDriveChanges() again after setting/changing all the boat drive widget contents.
  *
  * If, before the selection changed, there were not yet applied changes to the selected drive,
- * the user is asked whether to discard these changes or to stop selecting the new drive (i.e. revert the selection again).
+ * the user is asked whether to discard these changes or to skip selecting the new drive (i.e. revert the selection again).
  *
- * If the selection shall be reverted, the selected row is simply set to \p previousRow. Because that triggers this slot again,
- * a switch is temporarily set in order to skip the following execution of the slot, which then only resets this switch.
+ * If the selection shall be reverted, the selected row is simply set to \p previousRow. For this purpose
+ * the table widget's signals will be temporarily blocked since that would otherwise trigger this slot again.
  *
  * \param currentRow Number of newly selected drive (or -1).
  * \param previousRow Number of previously selected drive (or -1).
  */
 void ReportWindow::on_boatDrives_tableWidget_currentCellChanged(int currentRow, int, int previousRow, int)
 {
-    if (revertingDriveSelection)    //Ignore slot call if triggered by reverting selection due to unapplied changes (see below)
+    if (unappliedBoatDriveChanges)
     {
-        revertingDriveSelection = false;
-        return;
-    }
-    if (unappliedBoatDriveChanges)  //Ask before discarding unapplied changes of previously selected drive
-    {
-        QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
-                           "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
-
-        if (msgBox.exec() != QMessageBox::Yes)
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            applyBoatDriveChanges(previousRow);
+        else
         {
-            //Disable this slot by setting switch and then set previous selection again
-            revertingDriveSelection = true;
-            ui->boatDrives_tableWidget->setCurrentCell(previousRow, 0);
-            return;
+            //Ask before discarding unapplied changes of previously selected drive
+
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
+
+            if (msgBox.exec() != QMessageBox::Yes)
+            {
+                //Set previous selection again; temporarily block signals to prevent repeated call of this slot
+
+                ui->boatDrives_tableWidget->blockSignals(true);
+                ui->boatDrives_tableWidget->setCurrentCell(previousRow, 0);
+                ui->boatDrives_tableWidget->blockSignals(false);
+
+                return;
+            }
         }
     }
 
@@ -3051,12 +3490,17 @@ void ReportWindow::on_addBoatDrive_pushButton_pressed()
 {
     if (unappliedBoatDriveChanges)
     {
-        QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
-                           "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            on_applyBoatDriveChanges_pushButton_pressed();
+        else
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
 
-        if (msgBox.exec() != QMessageBox::Yes)
-            return;
+            if (msgBox.exec() != QMessageBox::Yes)
+                return;
+        }
     }
 
     BoatDrive tDrive;
@@ -3128,12 +3572,17 @@ void ReportWindow::on_moveBoatDriveUp_pushButton_pressed()
 
     if (unappliedBoatDriveChanges)
     {
-        QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
-                           "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            on_applyBoatDriveChanges_pushButton_pressed();
+        else
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
 
-        if (msgBox.exec() != QMessageBox::Yes)
-            return;
+            if (msgBox.exec() != QMessageBox::Yes)
+                return;
+        }
     }
 
     boatLogPtr->swapDrives(tSelectedRow, tSelectedRow-1);
@@ -3168,12 +3617,17 @@ void ReportWindow::on_moveBoatDriveDown_pushButton_pressed()
 
     if (unappliedBoatDriveChanges)
     {
-        QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
-                           "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            on_applyBoatDriveChanges_pushButton_pressed();
+        else
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
 
-        if (msgBox.exec() != QMessageBox::Yes)
-            return;
+            if (msgBox.exec() != QMessageBox::Yes)
+                return;
+        }
     }
 
     boatLogPtr->swapDrives(tSelectedRow, tSelectedRow+1);
@@ -3235,12 +3689,17 @@ void ReportWindow::on_splitBoatDrive_pushButton_pressed()
 
     if (unappliedBoatDriveChanges)
     {
-        QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
-                           "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            on_applyBoatDriveChanges_pushButton_pressed();
+        else
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
 
-        if (msgBox.exec() != QMessageBox::Yes)
-            return;
+            if (msgBox.exec() != QMessageBox::Yes)
+                return;
+        }
     }
 
     //Set end time of to be continued drive to current time
@@ -3270,53 +3729,12 @@ void ReportWindow::on_splitBoatDrive_pushButton_pressed()
 /*!
  * \brief Apply changed boat drive data to selected boat drive in report.
  *
- * Then updates the boat drives table (see updateBoatDrivesTable()) to display the new drive purpose in case this has changed.
- *
- * Resets setUnappliedBoatDriveChanges().
- *
- * Sets setUnsavedChanges(), if drive is selected.
+ * Applies the drive data to the drive corresponding to the currently selected boat drives table row.
+ * See applyBoatDriveChanges().
  */
 void ReportWindow::on_applyBoatDriveChanges_pushButton_pressed()
 {
-    if (ui->boatDrives_tableWidget->currentRow() == -1)
-        return;
-
-    BoatDrive& tDrive = boatLogPtr->getDrive(ui->boatDrives_tableWidget->currentRow());
-
-    tDrive.setPurpose(ui->boatDrivePurpose_comboBox->currentText());
-    tDrive.setBeginTime(ui->boatDriveBegin_timeEdit->time());
-    tDrive.setEndTime(ui->boatDriveEnd_timeEdit->time());
-    tDrive.setFuel(ui->boatDriveFuel_spinBox->value());
-    tDrive.setComments(ui->boatDriveComments_plainTextEdit->toPlainText());
-
-    if (ui->boatDriveBoatman_comboBox->currentText() != "")
-        tDrive.setBoatman(personIdentFromLabel(ui->boatDriveBoatman_comboBox->currentText()));
-    else
-        tDrive.setBoatman("");
-
-    tDrive.clearCrew();
-
-    for (int row = 0; row < ui->boatCrew_tableWidget->rowCount(); ++row)
-    {
-        QString tIdent = ui->boatCrew_tableWidget->item(row, 3)->text();
-
-        //Double-check that person is still part of personnel (because of "table widget cache")
-        if (!report.personExists(tIdent))
-            continue;
-
-        Person::BoatFunction tBoatFunction = Person::labelToBoatFunction(ui->boatCrew_tableWidget->item(row, 2)->text());
-
-        //Double-check that person's qualifications still allow the function (might have changed; because of "table widget cache")
-        if (!QualificationChecker::checkBoatFunction(tBoatFunction, report.getPerson(tIdent).getQualifications()))
-            continue;
-
-        tDrive.addCrewMember(tIdent, tBoatFunction);
-    }
-
-    setUnappliedBoatDriveChanges(false);
-    setUnsavedChanges();
-
-    updateBoatDrivesTable();
+    applyBoatDriveChanges(ui->boatDrives_tableWidget->currentRow());
 }
 
 /*!

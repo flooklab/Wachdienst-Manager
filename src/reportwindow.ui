@@ -516,6 +516,9 @@
                    <pointsize>8</pointsize>
                   </font>
                  </property>
+                 <property name="contextMenuPolicy">
+                  <enum>Qt::CustomContextMenu</enum>
+                 </property>
                 </widget>
                </item>
                <item row="4" column="1">
@@ -2230,6 +2233,12 @@
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
                  <property name="font">
                   <font>
                    <family>Tahoma</family>
@@ -2258,7 +2267,7 @@
                   <widget class="QPushButton" name="setBoatDriveTimeEndNow_pushButton">
                    <property name="maximumSize">
                     <size>
-                     <width>39</width>
+                     <width>53</width>
                      <height>16777215</height>
                     </size>
                    </property>
@@ -2269,6 +2278,18 @@
                  </item>
                  <item row="0" column="1">
                   <widget class="QPushButton" name="moveBoatDriveUp_pushButton">
+                   <property name="minimumSize">
+                    <size>
+                     <width>108</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string>Rauf</string>
                    </property>
@@ -2278,7 +2299,7 @@
                   <widget class="QPushButton" name="setBoatDriveTimeBeginNow_pushButton">
                    <property name="maximumSize">
                     <size>
-                     <width>39</width>
+                     <width>53</width>
                      <height>16777215</height>
                     </size>
                    </property>
@@ -2289,6 +2310,18 @@
                  </item>
                  <item row="0" column="0">
                   <widget class="QPushButton" name="addBoatDrive_pushButton">
+                   <property name="minimumSize">
+                    <size>
+                     <width>108</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string>Hinzufügen</string>
                    </property>
@@ -2296,6 +2329,18 @@
                  </item>
                  <item row="1" column="0">
                   <widget class="QPushButton" name="removeBoatDrive_pushButton">
+                   <property name="minimumSize">
+                    <size>
+                     <width>108</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string>Entfernen</string>
                    </property>
@@ -2303,6 +2348,18 @@
                  </item>
                  <item row="1" column="1">
                   <widget class="QPushButton" name="moveBoatDriveDown_pushButton">
+                   <property name="minimumSize">
+                    <size>
+                     <width>108</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string>Runter</string>
                    </property>
@@ -2310,6 +2367,18 @@
                  </item>
                  <item row="1" column="2" colspan="2">
                   <widget class="QPushButton" name="splitBoatDrive_pushButton">
+                   <property name="minimumSize">
+                    <size>
+                     <width>108</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string>Splitten</string>
                    </property>
@@ -3319,6 +3388,143 @@
           </item>
           <item>
            <spacer name="rescueTabExpand_horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="rescueTab_verticalLayout_2">
+          <item>
+           <layout class="QHBoxLayout" name="vehicles_horizontalLayout">
+            <item>
+             <spacer name="vehicles_horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Expanding</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="vehicles_groupBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>425</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Einsatzfahrzeuge an der Station</string>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_3">
+               <item row="1" column="1">
+                <widget class="QLabel" name="vehiclesName_label">
+                 <property name="text">
+                  <string>Funkrufname</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="2">
+                <widget class="QLabel" name="vehiclesArrivalTime_label">
+                 <property name="text">
+                  <string>Von</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <spacer name="vehicles_horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Ignored</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="3">
+                <spacer name="vehicles_horizontalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Ignored</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="0" colspan="6">
+                <spacer name="vehiclesExpand_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>10000</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="4" colspan="2">
+                <widget class="QLabel" name="vehiclesLeavingTime_label">
+                 <property name="text">
+                  <string>Bis</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="rescueTab_verticalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <spacer name="rescueTabExpand_horizontalSpacer_2">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>

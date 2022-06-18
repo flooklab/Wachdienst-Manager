@@ -42,15 +42,15 @@ const QString Aux::programVersionStringPretty = QString::number(Aux::programVers
                                                      ("." + QString::number(Aux::programVersionPatch)) : "");
 //
 const QRegularExpressionValidator Aux::locationsValidator =
-        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\-\\/]+"));
+        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\-\\/\\(\\)]+"));
 const QRegularExpressionValidator Aux::namesValidator =
-        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/]+"));
+        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/\\(\\)]+"));
 const QRegularExpressionValidator Aux::personNamesValidator =
         QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\-]+"));
 const QRegularExpressionValidator Aux::stationItentifiersValidator =
-        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\-\\/]+%[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/]+"));
+    QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\-\\/\\(\\)]+%[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/\\(\\)]+"));
 const QRegularExpressionValidator Aux::radioCallNamesValidator =
-        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/]+"));
+        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/\\(\\)]+"));
 const QRegularExpressionValidator Aux::boatAcronymsValidator =
         QRegularExpressionValidator(QRegularExpression("[A-ZÄÖÜßÆÅØ]{3}\\d \\- RTB\\d"));
 const QRegularExpressionValidator Aux::fuelTypesValidator =
@@ -144,6 +144,49 @@ bool Aux::parseProgramVersion(QString pVersion, int& pMajor, int& pMinor, int& p
         return false;
 
     return true;
+}
+
+/*!
+ * \brief Check, if two program versions are equal or if one version is earlier/later.
+ *
+ * Compares A <=> B for two program versions A and B. Patch numbers are not compared, if \p pIgnorePatch is true.
+ *
+ * \param pMajorA Major program version A.
+ * \param pMinorA Minor program version A.
+ * \param pPatchA Patch number A.
+ * \param pMajorB Major program version B.
+ * \param pMinorB Minor program version B.
+ * \param pPatchB Patch number B.
+ * \param pIgnorePatch Do not compare patch numbers?
+ * \return -1 / 0 / +1, if A<B / A==B / A>B.
+ */
+int Aux::compareProgramVersions(int pMajorA, int pMinorA, int pPatchA, int pMajorB, int pMinorB, int pPatchB, bool pIgnorePatch)
+{
+    if (pMajorA < pMajorB)
+        return -1;
+    else if (pMajorA > pMajorB)
+        return 1;
+    else
+    {
+        if (pMinorA < pMinorB)
+            return -1;
+        else if (pMinorA > pMinorB)
+            return 1;
+        else
+        {
+            if (pIgnorePatch)
+                return 0;
+            else
+            {
+                if (pPatchA < pPatchB)
+                    return -1;
+                else if (pPatchA > pPatchB)
+                    return 1;
+                else
+                    return 0;
+            }
+        }
+    }
 }
 
 //

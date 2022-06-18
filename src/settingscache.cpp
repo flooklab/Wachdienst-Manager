@@ -84,6 +84,8 @@ int SettingsCache::getIntSetting(const QString& pSetting, bool pNoMsgBox)
         return getDefaultStation(pNoMsgBox);
     else if (pSetting == "app_default_boat")
         return getDefaultBoat(pNoMsgBox);
+    else if (pSetting == "app_reportWindow_autoApplyBoatDriveChanges")
+        return getAutoApplyBoatDriveChanges(pNoMsgBox);
     else
         throw std::invalid_argument("Invalid integer type setting \"" + pSetting.toStdString() + "\"");
 }
@@ -116,6 +118,8 @@ bool SettingsCache::setIntSetting(const QString& pSetting, int pValue)
         return setDefaultStation(pValue);
     else if (pSetting == "app_default_boat")
         return setDefaultBoat(pValue);
+    else if (pSetting == "app_reportWindow_autoApplyBoatDriveChanges")
+        return setAutoApplyBoatDriveChanges(pValue);
     else
         throw std::invalid_argument("Invalid integer type setting \"" + pSetting.toStdString() + "\"");
 
@@ -602,6 +606,45 @@ bool SettingsCache::setPDFFont(const QString& pValue)
         QMessageBox(QMessageBox::Warning, "Warnung", "Schriftart-Feld ist leer!", QMessageBox::Ok).exec();
     }
     return DatabaseCache::setSetting("app_export_fontFamily", pValue);
+}
+
+//
+
+/*!
+ * \brief Read "app_reportWindow_autoApplyBoatDriveChanges" setting from database cache (defines default value).
+ *
+ * Sets (and returns) default value of 1, if setting is not set.
+ *
+ * Shows a warning message box, if writing not set setting to database fails.
+ *
+ * \param pNoMsgBox Suppress warning message boxes.
+ * \return Value of the setting.
+ */
+int SettingsCache::getAutoApplyBoatDriveChanges(bool pNoMsgBox)
+{
+    int tValue = 0;
+    if (!DatabaseCache::getSetting("app_reportWindow_autoApplyBoatDriveChanges", tValue, 1, true))  //Default: auto-apply changes
+    {
+        if (!pNoMsgBox)
+        {
+            QMessageBox(QMessageBox::Critical, "Fehler", "Fehler beim Schreiben der Konfigurations-Datenbank!", QMessageBox::Ok).exec();
+        }
+    }
+    return tValue;
+}
+
+/*!
+ * \brief Write "app_reportWindow_autoApplyBoatDriveChanges" setting to database cache.
+ *
+ * Sets the cached value and also writes it to the configuration database.
+ * If writing to the database fails, the cached value will not be changed.
+ *
+ * \param pValue New value for the setting.
+ * \return If writing to database was successful.
+ */
+bool SettingsCache::setAutoApplyBoatDriveChanges(int pValue)
+{
+    return DatabaseCache::setSetting("app_reportWindow_autoApplyBoatDriveChanges", pValue);
 }
 
 //

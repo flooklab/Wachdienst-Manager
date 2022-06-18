@@ -61,6 +61,10 @@ public:
     static bool parseProgramVersion(QString pVersion, int& pMajor, int& pMinor,
                                     int& pPatch, char& pType);                  ///< \brief Check format of program version string and
                                                                                 ///  extract major/minor versions, patch and type.
+    static int compareProgramVersions(int pMajorA, int pMinorA, int pPatchA,
+                                      int pMajorB, int pMinorB, int pPatchB, bool pIgnorePatch = false);    ///< \brief Check, if two
+                                                                                                    /// program versions are equal or
+                                                                                                    /// if one version is earlier/later.
     //
     static bool checkPassword(const QString& pHash, const QString& pSalt,
                               QWidget *const pParent);                  ///< Prompt for a password and check if hash matches reference.

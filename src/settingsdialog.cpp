@@ -171,6 +171,8 @@ void SettingsDialog::readDatabase()
     ui->autoExportAskFilename_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_autoOnSave_askForFileName"));
     ui->twoSidedPrint_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_twoSidedPrint"));
 
+    ui->boatDriveAutoApplyChanges_checkBox->setChecked(SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"));
+
     //Password
 
     QString hash = SettingsCache::getStrSetting("app_auth_hash");
@@ -348,6 +350,12 @@ bool SettingsDialog::writeDatabase() const
 
     if (!SettingsCache::setBoolSetting("app_export_twoSidedPrint", ui->twoSidedPrint_checkBox->isChecked()))
         return false;
+
+    if (!SettingsCache::setBoolSetting("app_reportWindow_autoApplyBoatDriveChanges",
+                                       ui->boatDriveAutoApplyChanges_checkBox->isChecked()))
+    {
+        return false;
+    }
 
     //Password
 

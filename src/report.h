@@ -42,6 +42,7 @@
 #include <QDate>
 #include <QTime>
 #include <QFile>
+#include <QSaveFile>
 #include <QIODevice>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -72,7 +73,7 @@ public:
     Report();                                                       ///< Constructor.
     //
     bool open(const QString& pFileName);                            ///< Load report from file.
-    bool save(const QString& pFileName);                            ///< Save report to file.
+    bool save(const QString& pFileName, bool pTempFile = false);    ///< Save report to file.
     //
     QString getFileName() const;                                    ///< Get the file name of opened/saved report file.
     //
@@ -150,6 +151,10 @@ public:
     //
     QString getAssignmentNumber() const;                                ///< Get the assignment number of the rescue directing center.
     void setAssignmentNumber(QString pNumber);                          ///< Set the assignment number of the rescue directing center.
+    //
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> getVehicles(bool pSorted = false) const;
+                                                                                            ///< Get the list of vehicles at the station.
+    void setVehicles(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pVehicles);   ///< Set the list of vehicles at the station.
     //
     static QString dutyPurposeToLabel(DutyPurpose pPurpose);                ///< Get the label for a duty purpose.
     static DutyPurpose labelToDutyPurpose(const QString& pPurpose);         ///< Get the duty purpose from its label.
@@ -317,6 +322,8 @@ private:
     std::map<RescueOperation, int> rescueOperationsCounts;  //Counts of different types of rescue operations
     //
     QString assignmentNumber;                               //Assignment number from rescue directing center
+    //
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehicles;  //List of present vehicles with their arrival/leaving times
 };
 
 #endif // REPORT_H

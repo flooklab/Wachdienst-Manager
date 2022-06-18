@@ -46,6 +46,7 @@
 #include <QKeySequence>
 #include <QCloseEvent>
 #include <QDesktopServices>
+#include <QStandardPaths>
 #include <QFileInfo>
 #include <QDir>
 #include <QUrl>
@@ -61,6 +62,7 @@
 #include <QSpinBox>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QComboBox>
 #include <QCheckBox>
 #include <QTableWidget>
 #include <QPlainTextEdit>
@@ -73,6 +75,7 @@
 #include <QCalendarWidget>
 #include <QItemSelectionModel>
 #include <QModelIndexList>
+#include <QToolTip>
 
 namespace Ui {
 class ReportWindow;
@@ -122,6 +125,7 @@ private:
     void loadReportData();                                                      ///< Fill all widgets with the report data.
     //
     void saveReport(const QString& pFileName);                                  ///< Save the report.
+    void autoSave();                                                            ///< Save the report to a standard location (as backup).
     void exportReport(const QString& pFileName, bool pAskOverwrite);            ///< Export the report.
     void autoExport();                                      ///< Export to automatic or manual file name depending on setting.
     //
@@ -140,8 +144,12 @@ private:
     void updateBoatDrivesHours();                           ///< Update the accumulated boat drive hours display.
     void updateBoatDrivesTable();                           ///< Update the boat drives table widget (and fuel and boat drive hours).
     void updateBoatDriveAvailablePersons();                 ///< Update the list of persons selectable as boatman or crew member.
+    void updateReportVehiclesList();                        ///< Set report vehicles list according to vehicles entered in UI table.
+    void applyBoatDriveChanges(int pRow);                   ///< Apply changed boat drive data to specified boat drive in report.
     //
     void insertBoatCrewTableRow(const Person& pPerson, Person::BoatFunction pFunction); ///< Add a person to the crew member table.
+    void addVehiclesTableRow(QString pName = "", QTime pArrivalTime = QTime(0, 0),
+                                                 QTime pLeavingTime = QTime(0, 0));     ///< Add a vehicles table row for a new vehicle.
     //
     void checkPersonInputs();                       ///< Check entered person name and update selectable identifiers list accordingly.
     //
@@ -161,7 +169,13 @@ private slots:
     void on_rescueOperationSpinBoxValueChanged(int pValue,
                                                Report::RescueOperation pRescue);    ///< Set report rescue operation counter.
     void on_openDocumentPushButtonPressed(const QString& pDocFile);                 ///< Open one of the important documents.
+    void on_vehicleRemovePushButtonPressed(QPushButton* pRemoveRowButton);          ///< Remove a rescue vehicle from the list.
+    void on_vehicleLineEditTextEdited(QPushButton* pRemoveRowButton);               ///< Change the radio call name of a rescue vehicle.
+    void on_vehicleLineEditReturnPressed(QPushButton* pRemoveRowButton);            ///< Add an empty row for another rescue vehicle.
+    void on_vehicleTimeEditTimeChanged(QPushButton* pRemoveRowButton);              ///< Change a vehicle's arrival/leaving times.
+    //
     void on_updateClocksTimerTimeout();                                             ///< Update the time displayed in every tab.
+    void on_autoSaveTimerTimeout();                                                 ///< Auto-save the report.
     void on_timestampShortcutActivated();                                           ///< Show (non-modal) message box with current time.
     void on_exportFailed();                                                         ///< Show message box explaining that export failed.
     //
@@ -196,6 +210,7 @@ private slots:
     void on_precipitation_comboBox_currentTextChanged(const QString& arg1);         ///< Set the report precipitation type.
     void on_cloudiness_comboBox_currentTextChanged(const QString& arg1);            ///< Set the report level of cloudiness.
     void on_windStrength_comboBox_currentTextChanged(const QString& arg1);          ///< Set the report wind strength.
+    void on_windStrength_comboBox_customContextMenuRequested(const QPoint& pos);    ///< Show a tooltip elucidating the wind strengths.
     void on_weatherComments_plainTextEdit_textChanged();                            ///< Set the report weather comments.
     //
     void on_operationProtocolsCtr_spinBox_valueChanged(int arg1);           ///< Set the report number of enclosed operation protocols.
@@ -276,8 +291,35 @@ signals:
 private:
     Ui::ReportWindow *ui;   //UI
     //
-    std::map<Report::RescueOperation, QSpinBox *const> rescuesSpinBoxes;            //Pointers to a spin box for each rescue type
-    std::map<Report::RescueOperation, QLabel *const> rescuesFillDocNoticeLabels;    //Pointers to a label for each rescue type
+    /*!
+     * \brief A row of the rescue operations table.
+     *
+     * Groups pointers to widgets of the same row of a rescue operations counting table for later access.
+     */
+    struct RescueOperationsRow
+    {
+        QSpinBox *const spinBox;            ///< Pointer to a spin box for counting a specific rescue type.
+        QLabel *const fillDocNoticeLabel;   ///< Pointer to a label for indicating that a document has to be filled.
+    };
+    std::map<Report::RescueOperation, const RescueOperationsRow> rescuesTableRows;  //Pointers to dyn. added widgets for each rescue type
+    //
+    /*!
+     * \brief A row of the vehicles table.
+     *
+     * Groups pointers to widgets of the same row of a vehicles table for later access.
+     * Also contains a list of the widget's signal-slot connections (for later disconnection before possible widget removal).
+     */
+    struct VehiclesRow
+    {
+        QPushButton* removeRowPushButton;   ///< Pointer to a push button for removing the row.
+        QLineEdit* vehicleNameLineEdit;     ///< Pointer to a line edit for entering the vehicle's (radio call) name.
+        QTimeEdit* arriveTimeEdit;          ///< Pointer to a time edit for entering the vehicle's arrival time.
+        QTimeEdit* leaveTimeEdit;           ///< Pointer to a time edit for entering the vehicle's leaving time.
+        QLabel* timesSepLabel;              ///< Pointer to a label separating the time edits.
+        std::vector<QMetaObject::Connection> connections;   ///< Signal-slot connections for this struct's widgets.
+    };
+    std::list<VehiclesRow> vehiclesTableRows;   //Pointers to dyn. added widgets for each vehicle
+    QGridLayout* vehiclesGroupBoxLayout;        //Layout of group box containing vehicles table
     //
     QLabel* statusBarLabel;                     //Permanent label in the status bar
     //
@@ -289,8 +331,6 @@ private:
     //
     bool unsavedChanges;                        //Any changes not saved to file yet?
     bool unappliedBoatDriveChanges;             //Any not applied changes to currently selected boat drive?
-    //
-    bool revertingDriveSelection;               //Switch to help reverting selected boat drive table row in case of unapplied changes
     //
     std::atomic_bool exporting;                 //Export thread currently running?
     //

@@ -149,14 +149,15 @@ bool Report::open(const QString& pFileName)
     {
         //TODO: add other, more complex checks/logic here for later versions, if document format changes or is extended
 
-        if (tVerMaj < Aux::programVersionMajor)
+        if (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 0, 0) < 0)
         {
             std::cerr<<"ERROR: Report was saved with incompatible (older) program version!"<<std::endl;
             return false;
         }
-        else if (tVerMaj > Aux::programVersionMajor)
+        else if (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch,
+                                             Aux::programVersionMajor, Aux::programVersionMinor, Aux::programVersionPatch, true) > 0)
         {
-            std::cerr<<"ERROR: Report was saved with incompatible (newer) program version!"<<std::endl;
+            std::cerr<<"ERROR: Report was saved with newer (incompatible?) program version!"<<std::endl;
             return false;
         }
     }
@@ -308,6 +309,60 @@ bool Report::open(const QString& pFileName)
     {
         std::cerr<<"ERROR: Wrong assignment number format!"<<std::endl;
         return false;
+    }
+
+    //List of present vehicles  with their arrival/leaving times
+
+    if (!reportObj.contains("vehicles") || !reportObj.value("vehicles").isObject())
+    {
+        if (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 1, 0) < 0)
+        {
+            std::cerr<<"WARNING: Report was saved with a program version before 1.1.0 "
+                       "and does not contain a list of present vehicles. Ignore."<<std::endl;
+        }
+        else
+        {
+            std::cerr<<"ERROR: Report does not contain list of present vehicles!"<<std::endl;
+            return false;
+        }
+    }
+    else
+    {
+        QJsonObject vehiclesObj = reportObj.value("vehicles").toObject();
+
+        if (!vehiclesObj.contains("vehiclesList") || !vehiclesObj.value("vehiclesList").isArray())
+        {
+            std::cerr<<"ERROR: Broken vehicles list!"<<std::endl;
+            return false;
+        }
+
+        QJsonArray vehiclesArray = vehiclesObj.value("vehiclesList").toArray();
+
+        //Fill vehicles list
+        for (QJsonArray::iterator it = vehiclesArray.begin(); it != vehiclesArray.end(); ++it)
+        {
+            if (!(*it).isObject())
+            {
+                std::cerr<<"ERROR: Broken vehicle entry!"<<std::endl;
+                return false;
+            }
+
+            QJsonObject vehicleObj = (*it).toObject();
+
+            QString tName = vehicleObj.value("radioCallName").toString("");
+            QTime tArrive = QTime::fromString(vehicleObj.value("arrive").toString(), "hh:mm");
+            QTime tLeave = QTime::fromString(vehicleObj.value("leave").toString(), "hh:mm");
+
+            //Check formatting
+            if (Aux::radioCallNamesValidator.validate(tName, tmpInt) != QValidator::State::Acceptable || tName.trimmed() != tName ||
+                !tArrive.isValid() || !tLeave.isValid())
+            {
+                std::cerr<<"ERROR: Wrong vehicle data formatting!"<<std::endl;
+                return false;
+            }
+
+            vehicles.push_back({tName, {tArrive, tLeave}});
+        }
     }
 
     //Personnel
@@ -664,6 +719,7 @@ bool Report::open(const QString& pFileName)
  *
  * Saves all report data to the file \p pFileName as a JSON document.
  * If writing to file is successful, the report file name (see getFileName()) is set to \p pFileName.
+ * The report file name will not be changed, if \p pTempFile is true.
  *
  * Approximate document structure:
  * - Main object
@@ -682,16 +738,16 @@ bool Report::open(const QString& pFileName)
  * removed from and added to the loaded report again.
  *
  * \param pFileName Path to the file to write the report to.
+ * \param pTempFile Do not change the report file name.
  * \return If successful.
  */
-bool Report::save(const QString& pFileName)
+bool Report::save(const QString& pFileName, bool pTempFile)
 {
     //Open file
-    QFile file(pFileName);
+    QSaveFile file(pFileName);
     if (!file.open(QIODevice::WriteOnly))
     {
         std::cerr<<"ERROR: Could not open file for writing!"<<std::endl;
-        file.close();
         return false;
     }
 
@@ -732,6 +788,21 @@ bool Report::save(const QString& pFileName)
     reportObj.insert("rescueOperations", rescueOperationsObj);
 
     reportObj.insert("assignmentNumber", assignmentNumber);
+
+    QJsonArray vehiclesArray;
+    for (const auto& it : vehicles)
+    {
+        QJsonObject vehicleObj;
+
+        vehicleObj.insert("radioCallName", it.first);
+        vehicleObj.insert("arrive", it.second.first.toString("hh:mm"));
+        vehicleObj.insert("leave", it.second.second.toString("hh:mm"));
+
+        vehiclesArray.append(vehicleObj);
+    }
+    QJsonObject vehiclesObj;
+    vehiclesObj.insert("vehiclesList", vehiclesArray);
+    reportObj.insert("vehicles", vehiclesObj);
 
     reportObj.insert("personnelMinutesCarry", personnelMinutesCarry);
 
@@ -880,14 +951,14 @@ bool Report::save(const QString& pFileName)
     //Create JSON document and write it to the file
     QJsonDocument jsonDoc;
     jsonDoc.setObject(jsonObj);
-    if (file.write(jsonDoc.toJson()) == -1)
+    if (file.write(jsonDoc.toJson()) == -1 || !file.commit())
     {
         std::cerr<<"ERROR: Could not write report to file!"<<std::endl;
         return false;
     }
-    file.close();
 
-    fileName = pFileName;
+    if (!pTempFile)
+        fileName = pFileName;
 
     return true;
 }
@@ -1753,6 +1824,73 @@ QString Report::getAssignmentNumber() const
 void Report::setAssignmentNumber(QString pNumber)
 {
     assignmentNumber = std::move(pNumber);
+}
+
+//
+
+/*!
+ * \brief Get the list of vehicles at the station.
+ *
+ * Returns a list of vehicles (their (radio call) names) present at the station together with their arrival and leaving times.
+ * If \p pSorted is true, the returned vector is sorted by arrival time (before (radio call) name, before leaving time).
+ *
+ * \param pSorted Get a sorted vector.
+ * \return Vector of vehicles as {{NAME, {T_ARRIVE, T_LEAVE}}, ...}.
+ */
+std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getVehicles(bool pSorted) const
+{
+    if (!pSorted)
+        return vehicles;
+
+    //Define lambda to compare/sort vehicles by arrival time, then name, then leaving time
+    auto cmp = [](const std::pair<QString, std::pair<QTime, QTime>>& pA,
+                  const std::pair<QString, std::pair<QTime, QTime>>& pB) -> bool
+    {
+        if (pA.second.first.secsTo(pB.second.first) > 0)
+            return true;
+        else if (pA.second.first.secsTo(pB.second.first) < 0)
+            return false;
+        else
+        {
+            if (QString::localeAwareCompare(pA.first, pB.first) < 0)
+                return true;
+            else if (QString::localeAwareCompare(pA.first, pB.first) > 0)
+                return false;
+            else
+            {
+                if (pA.second.second.secsTo(pB.second.second) > 0)
+                    return true;
+                else
+                    return false;
+            }
+        }
+    };
+
+    //Use temporary set to sort vehicles using above custom sort lambda
+
+    std::set<std::pair<QString, std::pair<QTime, QTime>>, decltype(cmp)> tSet(cmp);
+
+    for (const auto& it : vehicles)
+        tSet.insert(it);
+
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehiclesSorted;
+
+    for (const auto& it : tSet)
+        vehiclesSorted.push_back(it);
+
+    return vehiclesSorted;
+}
+
+/*!
+ * \brief Set the list of vehicles at the station.
+ *
+ * Sets a list of vehicles (their (radio call) names) present at the station together with their arrival and leaving times.
+ *
+ * \param pVehicles New vehicles list as vector {{NAME, {T_ARRIVE, T_LEAVE}}, ...}.
+ */
+void Report::setVehicles(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pVehicles)
+{
+    vehicles.swap(pVehicles);
 }
 
 //

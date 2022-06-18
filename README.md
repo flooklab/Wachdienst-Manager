@@ -28,7 +28,7 @@ Wachdienst-Manager ist ein Verwaltungsprogramm für DLRG-Wachdienstberichte.
   - Inhalt von ".\deploy" nach ".\installer\installer\packages\org.dlrg.wachdienstmanager\data\Wachdienst-Manager" kopieren
   - ".\resources\icons\application-icon.ico" nach ".\installer\installer\packages\org.dlrg.wachdienstmanager\data\Wachdienst-Manager" kopieren
   - In Verzeichnis ".\installer" wechseln
-  - `...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\binarycreator.exe --offline-only -t ...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\installerbase.exe -p installer\packages -c installer\config\config.xml Wachdienst-Manager-1.0.0_Setup.exe` ausführen (ggf. Version anpassen)
+  - `...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\binarycreator.exe --offline-only -t ...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\installerbase.exe -p installer\packages -c installer\config\config.xml Wachdienst-Manager-1.1.0_Setup.exe` ausführen (ggf. Version anpassen)
 
 - *Optionale* Quellcode-Dokumentation (benötigt [Doxygen](https://github.com/doxygen/doxygen)):
   - In Verzeichnis ".\doc" wechseln

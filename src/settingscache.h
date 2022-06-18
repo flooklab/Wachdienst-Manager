@@ -93,6 +93,10 @@ private:
                                                                 ///  from database cache (defines default value).
     static bool setPDFFont(const QString& pValue);              ///< Write "app_export_fontFamily" setting to database cache.
     //
+    static int getAutoApplyBoatDriveChanges(bool pNoMsgBox = false);    ///< \brief Read "app_export_twoSidedPrint" setting from
+                                                                        ///  database cache (defines default value).
+    static bool setAutoApplyBoatDriveChanges(int pValue);               ///< Write "app_export_twoSidedPrint" setting to database cache.
+    //
     static QString getPasswordHash(bool pNoMsgBox = false);     ///< \brief Read "app_auth_hash" setting from database cache
                                                                 ///  (defines default value).
     static bool setPasswordHash(const QString& pValue);         ///< Write "app_auth_hash" setting to database cache.

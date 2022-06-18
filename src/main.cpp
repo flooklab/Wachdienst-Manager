@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
     //Create application configuration directory at OS specific path if it does not exist
 
-    QStringList standardPaths = QStandardPaths::standardLocations(QStandardPaths::ConfigLocation);
+    QStringList standardPaths = QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation);
     if (standardPaths.size() == 0)
     {
         std::cerr<<"ERROR: Could not obtain standard configuration location!"<<std::endl;
