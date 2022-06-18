@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>Wachdienst-Manager</Name>
+    <Version>1.0.0</Version>
+    <Title>Wachdienst-Manager</Title>
+    <Publisher>...</Publisher>
+    <StartMenuDir>DLRG/Wachdienst-Manager</StartMenuDir>
+    <AllowSpaceInPath>true</AllowSpaceInPath>
+</Installer>

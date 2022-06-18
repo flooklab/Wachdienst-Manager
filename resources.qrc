@@ -1,0 +1,8 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource>
+    <file>resources/images/dlrg-logo.png</file>
+    <file>resources/icons/application-icon_raw.png</file>
+    <file>resources/icons/application-icon_512x512.png</file>
+</qresource>
+</RCC>

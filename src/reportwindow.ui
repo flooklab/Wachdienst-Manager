@@ -1,0 +1,3645 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ReportWindow</class>
+ <widget class="QMainWindow" name="ReportWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1294</width>
+    <height>679</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1294</width>
+    <height>679</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Wachbericht</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTabWidget" name="report_tabWidget">
+      <property name="font">
+       <font>
+        <family>Tahoma</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="report_tab">
+       <attribute name="title">
+        <string>Wachbericht</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <layout class="QVBoxLayout" name="reportTab_verticalLayout">
+          <item>
+           <layout class="QHBoxLayout" name="reportTab_horizontalLayout">
+            <item>
+             <widget class="QGroupBox" name="reportGeneral_groupBox">
+              <property name="maximumSize">
+               <size>
+                <width>525</width>
+                <height>320</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Generelles</string>
+              </property>
+              <layout class="QGridLayout" name="gridLayout">
+               <item row="2" column="0">
+                <widget class="QLabel" name="stationRadioCallName_label">
+                 <property name="text">
+                  <string>Funkrufname</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QLineEdit" name="dutyPurposeComment_lineEdit">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="maxLength">
+                  <number>100</number>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Kommentar</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="0">
+                <widget class="QLabel" name="reportComments_label">
+                 <property name="text">
+                  <string>Bemerkungen</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2" rowspan="7">
+                <spacer name="reportGeneral_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Expanding</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>10000</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="6" column="0">
+                <widget class="QLabel" name="dutyTimes_label">
+                 <property name="text">
+                  <string>Beginn - Ende</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="reportNumber_label">
+                 <property name="text">
+                  <string>Laufende Nummer</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QComboBox" name="stationRadioCallName_comboBox">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <spacer name="dutyPurposeComment_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="6" column="1">
+                <layout class="QHBoxLayout" name="dutyTimes_horizontalLayout">
+                 <item>
+                  <widget class="QTimeEdit" name="dutyTimesBegin_timeEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="dutyTimes_label_2">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>-</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QTimeEdit" name="dutyTimesEnd_timeEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="station_comboBox">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QComboBox" name="dutyPurpose_comboBox">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <layout class="QHBoxLayout" name="reportNumber_horizontalLayout">
+                 <item>
+                  <widget class="QLCDNumber" name="reportNumber_lcdNumber">
+                   <property name="digitCount">
+                    <number>3</number>
+                   </property>
+                   <property name="segmentStyle">
+                    <enum>QLCDNumber::Flat</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="reportNumberDecr_radioButton">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="text">
+                    <string>&amp;Zurück</string>
+                   </property>
+                   <property name="autoExclusive">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QRadioButton" name="reportNumberIncr_radioButton">
+                   <property name="text">
+                    <string>&amp;Vor</string>
+                   </property>
+                   <property name="autoExclusive">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item row="7" column="1" colspan="2">
+                <widget class="QPlainTextEdit" name="reportComments_plainTextEdit">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>65</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="plainText">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="reportDate_label">
+                 <property name="text">
+                  <string>Datum</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QDateEdit" name="reportDate_dateEdit">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="station_label">
+                 <property name="text">
+                  <string>Wachstation</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="dutyPurpose_label">
+                 <property name="text">
+                  <string>Einsatzzweck</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="0" colspan="3">
+                <spacer name="reportGeneral_horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>10000</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="reportTab_horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="weather_groupBox">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>320</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Wetter</string>
+              </property>
+              <layout class="QFormLayout" name="formLayout">
+               <item row="0" column="0">
+                <widget class="QLabel" name="temperatures_label">
+                 <property name="text">
+                  <string>Temperatur</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="precipitation_label">
+                 <property name="text">
+                  <string>Niederschlag</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="cloudiness_label">
+                 <property name="text">
+                  <string>Bewölkung</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="windStrength_label">
+                 <property name="text">
+                  <string>Wind</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="weatherComments_label">
+                 <property name="text">
+                  <string>Bemerkungen</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <layout class="QHBoxLayout" name="temperatures_horizontalLayout">
+                 <item>
+                  <widget class="QLabel" name="temperatureAir_label">
+                   <property name="text">
+                    <string>Luft</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="temperatureAir_spinBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>55</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>55</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> °C</string>
+                   </property>
+                   <property name="minimum">
+                    <number>-273</number>
+                   </property>
+                   <property name="maximum">
+                    <number>100</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="temperatures_horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>0</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="temperatureWater_label">
+                   <property name="text">
+                    <string>Wasser</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="temperatureWater_spinBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>55</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>55</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> °C</string>
+                   </property>
+                   <property name="minimum">
+                    <number>-273</number>
+                   </property>
+                   <property name="maximum">
+                    <number>100</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="precipitation_comboBox">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QComboBox" name="cloudiness_comboBox">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QComboBox" name="windStrength_comboBox">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QPlainTextEdit" name="weatherComments_plainTextEdit">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="reportTab_horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="reportOther_groupBox">
+              <property name="title">
+               <string>Weiteres</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_6">
+               <item>
+                <widget class="QLabel" name="enclosures_label">
+                 <property name="text">
+                  <string>Anlagen:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QFormLayout" name="enclosures_formLayout">
+                 <property name="verticalSpacing">
+                  <number>1</number>
+                 </property>
+                 <item row="0" column="0">
+                  <widget class="QCheckBox" name="operationProtocols_checkBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>Einsatzprotokoll</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QCheckBox" name="patientRecords_checkBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>Patientenprotokoll</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QCheckBox" name="radioCallLogs_checkBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>Funktagebuch</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QCheckBox" name="otherEnclosures_checkBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>135</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Sonstige Anlagen:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QSpinBox" name="operationProtocolsCtr_spinBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>42</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>99</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QSpinBox" name="patientRecordsCtr_spinBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>42</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>99</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QSpinBox" name="radioCallLogsCtr_spinBox">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>42</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>99</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <spacer name="otherEnclosures_horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>0</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="otherEnclosures_lineEdit">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="maxLength">
+                  <number>1000</number>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Kommagetrennte Liste</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QScrollArea" name="otherEnclosures_scrollArea">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">background-color: transparent;</string>
+                 </property>
+                 <property name="frameShape">
+                  <enum>QFrame::NoFrame</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Plain</enum>
+                 </property>
+                 <property name="horizontalScrollBarPolicy">
+                  <enum>Qt::ScrollBarAlwaysOff</enum>
+                 </property>
+                 <property name="sizeAdjustPolicy">
+                  <enum>QAbstractScrollArea::AdjustToContents</enum>
+                 </property>
+                 <property name="widgetResizable">
+                  <bool>true</bool>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                 </property>
+                 <widget class="QWidget" name="otherEnclosures_scrollAreaWidgetContents">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>185</width>
+                    <height>127</height>
+                   </rect>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_7">
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>5</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>3</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>5</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>5</number>
+                   </property>
+                   <item>
+                    <widget class="QLabel" name="otherEnclosures_label">
+                     <property name="font">
+                      <font>
+                       <family>Tahoma</family>
+                       <pointsize>8</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                     <property name="wordWrap">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="otherEnclosures_verticalSpacer">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="reportTab_horizontalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="personnel_groupBox">
+            <property name="title">
+             <string>Personal</string>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <spacer name="personnel_verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Expanding</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>0</width>
+                 <height>10000</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="personnelTable_verticalLayout">
+               <item>
+                <layout class="QGridLayout" name="personnelTableInput_gridLayout">
+                 <item row="0" column="5">
+                  <widget class="QLabel" name="personTimeBegin_label">
+                   <property name="text">
+                    <string>Von</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLineEdit" name="personLastName_lineEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="maxLength">
+                    <number>100</number>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Nachname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="5">
+                  <widget class="QTimeEdit" name="personTimeBegin_timeEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="personFunction_label">
+                   <property name="text">
+                    <string>Funktion</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="personIdent_label">
+                   <property name="text">
+                    <string>ID</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="personLastName_label">
+                   <property name="text">
+                    <string>Nachname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QLineEdit" name="personFirstName_lineEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="maxLength">
+                    <number>100</number>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Vorname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="6">
+                  <widget class="QTimeEdit" name="personTimeEnd_timeEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QLabel" name="personFirstName_label">
+                   <property name="text">
+                    <string>Vorname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="4">
+                  <widget class="QComboBox" name="personFunction_comboBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="2">
+                  <widget class="QComboBox" name="personIdent_comboBox">
+                   <property name="minimumSize">
+                    <size>
+                     <width>100</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="6">
+                  <widget class="QLabel" name="personTimeEnd_label">
+                   <property name="text">
+                    <string>Bis</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="3" rowspan="2">
+                  <widget class="Line" name="personnelTableInput_line">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QTableWidget" name="personnel_tableWidget">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>Nachname</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Vorname</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Funktion</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Von</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Bis</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>ID</string>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="personnelButtons_verticalLayout">
+               <property name="spacing">
+                <number>3</number>
+               </property>
+               <item>
+                <spacer name="personnelButtons_verticalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>21</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="addPerson_pushButton">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="text">
+                  <string>Hinzufügen</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="addExtPerson_pushButton">
+                 <property name="text">
+                  <string>Extern</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="updatePerson_pushButton">
+                 <property name="text">
+                  <string>Ändern</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="removePerson_pushButton">
+                 <property name="text">
+                  <string>Entfernen</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="personnelButtons_verticalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::MinimumExpanding</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>10</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="setPersonTimesBeginEnd_label">
+                 <property name="text">
+                  <string>Beginn / Ende</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="setPersonTimesBeginEnd_horizontalLayout">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QPushButton" name="setPersonTimeBegin_pushButton">
+                   <property name="maximumSize">
+                    <size>
+                     <width>39</width>
+                     <height>16</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>|&lt;-</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="setPersonTimeEnd_pushButton">
+                   <property name="maximumSize">
+                    <size>
+                     <width>39</width>
+                     <height>16</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>-&gt;|</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <spacer name="personnelButtons_verticalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Maximum</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>5</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="setPersonTimesNow_label">
+                 <property name="text">
+                  <string>Jetzt an / ab</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="setPersonTimesNow_horizontalLayout">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QPushButton" name="setPersonTimeBeginNow_pushButton">
+                   <property name="maximumSize">
+                    <size>
+                     <width>39</width>
+                     <height>16</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>&lt;-</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="setPersonTimeEndNow_pushButton">
+                   <property name="maximumSize">
+                    <size>
+                     <width>39</width>
+                     <height>16</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>-&gt;</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <spacer name="personnelButtons_verticalSpacer_4">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="reportTabExpand_horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10000</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="reportTab_line">
+          <property name="font">
+           <font>
+            <family>Tahoma</family>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="reportTabSidebar_verticalLayout">
+          <item>
+           <widget class="QLabel" name="reportTabApplicationLogo_label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>339</width>
+              <height>136</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>339</width>
+              <height>136</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="pixmap">
+             <pixmap resource="../resources.qrc">:/resources/icons/application-icon_raw.png</pixmap>
+            </property>
+            <property name="scaledContents">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="reportTabCalendar_groupBox">
+            <property name="title">
+             <string>Kalender</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_2">
+             <item>
+              <widget class="QLCDNumber" name="reportTabTime_lcdNumber">
+               <property name="digitCount">
+                <number>8</number>
+               </property>
+               <property name="segmentStyle">
+                <enum>QLCDNumber::Flat</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCalendarWidget" name="reportTab_calendarWidget">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>315</width>
+                 <height>185</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>315</width>
+                 <height>185</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="Line" name="reportTabSidebar_line">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="reportTabSidebar_verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="personnelHours_groupBox">
+            <property name="title">
+             <string>Einsatzstunden</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_2">
+             <item row="0" column="0">
+              <widget class="QLabel" name="personnelHours_label">
+               <property name="text">
+                <string>Einsatzstunden</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="personnelHoursCarry_label">
+               <property name="text">
+                <string>+ Übertrag</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="personnelHoursTotal_label">
+               <property name="text">
+                <string>= Gesamt</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="personnelHours_horizontalLayout">
+               <item>
+                <spacer name="personnelHours_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="personnelHoursHours_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>60</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>60</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> h</string>
+                 </property>
+                 <property name="maximum">
+                  <number>9999</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="personnelHours_label_2">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="personnelHoursMinutes_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> m</string>
+                 </property>
+                 <property name="maximum">
+                  <number>59</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="personnelHoursCarry_horizontalLayout">
+               <item>
+                <spacer name="personnelHoursCarry_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="personnelHoursCarryHours_spinBox">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>60</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>60</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> h</string>
+                 </property>
+                 <property name="maximum">
+                  <number>9999</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="personnelHoursCarry_label_2">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="personnelHoursCarryMinutes_spinBox">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> m</string>
+                 </property>
+                 <property name="maximum">
+                  <number>59</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="2" column="1">
+              <layout class="QHBoxLayout" name="personnelHoursTotal_horizontalLayout">
+               <item>
+                <spacer name="personnelHoursTotal_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="personnelHoursTotalHours_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>60</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>60</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> h</string>
+                 </property>
+                 <property name="maximum">
+                  <number>9999</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="personnelHoursTotal_label_2">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="personnelHoursTotalMinutes_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> m</string>
+                 </property>
+                 <property name="maximum">
+                  <number>59</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="boat_tab">
+       <attribute name="title">
+        <string>Bootstagebuch</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <layout class="QVBoxLayout" name="boatTab_verticalLayout">
+          <item>
+           <layout class="QHBoxLayout" name="boatTab_horizontalLayout">
+            <item>
+             <widget class="QGroupBox" name="boatGeneral_groupBox">
+              <property name="title">
+               <string>Generelles</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_3">
+               <item>
+                <layout class="QFormLayout" name="boatGeneral_formLayout">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="boat_label">
+                   <property name="text">
+                    <string>Boot</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="boatRadioCallName_label">
+                   <property name="text">
+                    <string>Funkrufname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QComboBox" name="boat_comboBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QComboBox" name="boatRadioCallName_comboBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="Line" name="boatGeneral_line">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="boatSlipped_horizontalLayout">
+                 <item>
+                  <widget class="QLabel" name="boatSlipped_label">
+                   <property name="text">
+                    <string>Boot geslipt?</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="boatSlippedBeginOfDuty_checkBox">
+                   <property name="text">
+                    <string>Bei Dienstanfang</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="boatSlippedEndOfDuty_checkBox">
+                   <property name="text">
+                    <string>Bei Dienstende</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <spacer name="boatGeneral_verticalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Maximum</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>10</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="boatReadiness_horizontalLayout">
+                 <item>
+                  <widget class="QLabel" name="boatReadiness_label">
+                   <property name="text">
+                    <string>Einsatzbereit im Wasser von</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QTimeEdit" name="boatReadyFrom_timeEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="boatReadiness_label_2">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>bis</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QTimeEdit" name="boatReadyUntil_timeEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <spacer name="boatGeneral_verticalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="boatTab_horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <layout class="QGridLayout" name="boatTab_gridLayout">
+              <item row="1" column="0">
+               <widget class="QGroupBox" name="engineHours_groupBox">
+                <property name="title">
+                 <string>Betriebsstundenzähler</string>
+                </property>
+                <layout class="QFormLayout" name="formLayout_4">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="engineHoursBeginOfDuty_label">
+                   <property name="text">
+                    <string>Bei Dienstanfang</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="engineHoursEndOfDuty_label">
+                   <property name="text">
+                    <string>Bei Dienstende</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="engineHoursDiff_label">
+                   <property name="text">
+                    <string>Differenz</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QDoubleSpinBox" name="engineHoursBeginOfDuty_doubleSpinBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> h</string>
+                   </property>
+                   <property name="decimals">
+                    <number>1</number>
+                   </property>
+                   <property name="minimum">
+                    <double>0.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>10000.000000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QDoubleSpinBox" name="engineHoursEndOfDuty_doubleSpinBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> h</string>
+                   </property>
+                   <property name="decimals">
+                    <number>1</number>
+                   </property>
+                   <property name="minimum">
+                    <double>0.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>10000.000000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QDoubleSpinBox" name="engineHoursDiff_doubleSpinBox">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> h</string>
+                   </property>
+                   <property name="decimals">
+                    <number>1</number>
+                   </property>
+                   <property name="minimum">
+                    <double>-10000.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>10000.000000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QGroupBox" name="fuel_groupBox">
+                <property name="title">
+                 <string>Getankt?</string>
+                </property>
+                <layout class="QFormLayout" name="formLayout_5">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="fuelBeginOfDuty_label">
+                   <property name="text">
+                    <string>Bei Dienstanfang</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="fuelAfterDrives_label">
+                   <property name="text">
+                    <string>Nach Fahrten</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="fuelEndOfDuty_label">
+                   <property name="text">
+                    <string>Bei Dienstende</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QLabel" name="fuelTotal_label">
+                   <property name="text">
+                    <string>Gesamt</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QSpinBox" name="fuelBeginOfDuty_spinBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> L</string>
+                   </property>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>100</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QSpinBox" name="fuelAfterDrives_spinBox">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> L</string>
+                   </property>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>100</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QSpinBox" name="fuelEndOfDuty_spinBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> L</string>
+                   </property>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>100</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QSpinBox" name="fuelTotal_spinBox">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="suffix">
+                    <string> L</string>
+                   </property>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>100</number>
+                   </property>
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="0" column="0" colspan="2">
+               <widget class="QGroupBox" name="boatComments_groupBox">
+                <property name="title">
+                 <string>Bemerkungen</string>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_8">
+                 <item>
+                  <widget class="QPlainTextEdit" name="boatComments_plainTextEdit">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>65</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="boatTab_horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="boatDrives_groupBox">
+            <property name="title">
+             <string>Fahrten</string>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
+             <item>
+              <spacer name="boatDrives_verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>0</width>
+                 <height>10000</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="boatDrivesTable_verticalLayout">
+               <property name="spacing">
+                <number>2</number>
+               </property>
+               <item>
+                <widget class="QTableWidget" name="boatDrives_tableWidget">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <attribute name="horizontalHeaderStretchLastSection">
+                  <bool>true</bool>
+                 </attribute>
+                 <attribute name="verticalHeaderVisible">
+                  <bool>false</bool>
+                 </attribute>
+                 <column>
+                  <property name="text">
+                   <string>Fahrt</string>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+               <item>
+                <layout class="QGridLayout" name="boatDrivesTableButtons_gridLayout">
+                 <property name="spacing">
+                  <number>2</number>
+                 </property>
+                 <item row="0" column="3">
+                  <widget class="QPushButton" name="setBoatDriveTimeEndNow_pushButton">
+                   <property name="maximumSize">
+                    <size>
+                     <width>39</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>-&gt;</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QPushButton" name="moveBoatDriveUp_pushButton">
+                   <property name="text">
+                    <string>Rauf</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QPushButton" name="setBoatDriveTimeBeginNow_pushButton">
+                   <property name="maximumSize">
+                    <size>
+                     <width>39</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>&lt;-</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QPushButton" name="addBoatDrive_pushButton">
+                   <property name="text">
+                    <string>Hinzufügen</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QPushButton" name="removeBoatDrive_pushButton">
+                   <property name="text">
+                    <string>Entfernen</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QPushButton" name="moveBoatDriveDown_pushButton">
+                   <property name="text">
+                    <string>Runter</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="2" colspan="2">
+                  <widget class="QPushButton" name="splitBoatDrive_pushButton">
+                   <property name="text">
+                    <string>Splitten</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="boatDrive_verticalLayout">
+               <property name="spacing">
+                <number>2</number>
+               </property>
+               <item>
+                <widget class="QScrollArea" name="boatDrive_scrollArea">
+                 <property name="minimumSize">
+                  <size>
+                   <width>610</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="widgetResizable">
+                  <bool>true</bool>
+                 </property>
+                 <widget class="QWidget" name="boatDrive_scrollAreaWidgetContents">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>591</width>
+                    <height>259</height>
+                   </rect>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_2">
+                   <item row="0" column="2">
+                    <layout class="QVBoxLayout" name="boatDriveComments_verticalLayout">
+                     <property name="spacing">
+                      <number>10</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>5</number>
+                     </property>
+                     <item>
+                      <widget class="QLabel" name="boatDriveComments_label">
+                       <property name="text">
+                        <string>Bemerkungen:</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPlainTextEdit" name="boatDriveComments_plainTextEdit">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>81</height>
+                        </size>
+                       </property>
+                       <property name="font">
+                        <font>
+                         <family>Tahoma</family>
+                         <pointsize>8</pointsize>
+                        </font>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item row="0" column="0">
+                    <layout class="QFormLayout" name="boatDriveGeneral_formLayout">
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="boatDrivePurpose_label">
+                       <property name="text">
+                        <string>Zweck</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="boatDriveTimes_label">
+                       <property name="text">
+                        <string>Beginn - Ende</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="0">
+                      <widget class="QLabel" name="boatDriveFuel_label">
+                       <property name="text">
+                        <string>Getankt?</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="3" column="0">
+                      <widget class="QLabel" name="boatDriveBoatman_label">
+                       <property name="text">
+                        <string>Bootsführer</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QComboBox" name="boatDrivePurpose_comboBox">
+                       <property name="font">
+                        <font>
+                         <family>Tahoma</family>
+                         <pointsize>8</pointsize>
+                        </font>
+                       </property>
+                       <property name="editable">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <layout class="QHBoxLayout" name="boatDriveTimes_horizontalLayout">
+                       <item>
+                        <widget class="QTimeEdit" name="boatDriveBegin_timeEdit">
+                         <property name="font">
+                          <font>
+                           <family>Tahoma</family>
+                           <pointsize>8</pointsize>
+                          </font>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QLabel" name="boatDriveTimes_label_2">
+                         <property name="sizePolicy">
+                          <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                           <horstretch>0</horstretch>
+                           <verstretch>0</verstretch>
+                          </sizepolicy>
+                         </property>
+                         <property name="text">
+                          <string>-</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QTimeEdit" name="boatDriveEnd_timeEdit">
+                         <property name="font">
+                          <font>
+                           <family>Tahoma</family>
+                           <pointsize>8</pointsize>
+                          </font>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </item>
+                     <item row="2" column="1">
+                      <widget class="QSpinBox" name="boatDriveFuel_spinBox">
+                       <property name="font">
+                        <font>
+                         <family>Tahoma</family>
+                         <pointsize>8</pointsize>
+                        </font>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="3" column="1">
+                      <widget class="QComboBox" name="boatDriveBoatman_comboBox">
+                       <property name="minimumSize">
+                        <size>
+                         <width>215</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="font">
+                        <font>
+                         <family>Tahoma</family>
+                         <pointsize>8</pointsize>
+                        </font>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="Line" name="boatDrive_line_2">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0" colspan="3">
+                    <widget class="Line" name="boatDrive_line">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="0" colspan="3">
+                    <widget class="QLabel" name="boatCrew_label">
+                     <property name="text">
+                      <string>Besatzung:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="2">
+                    <widget class="QTableWidget" name="boatCrew_tableWidget">
+                     <property name="font">
+                      <font>
+                       <family>Tahoma</family>
+                       <pointsize>8</pointsize>
+                      </font>
+                     </property>
+                     <column>
+                      <property name="text">
+                       <string>Nachname</string>
+                      </property>
+                     </column>
+                     <column>
+                      <property name="text">
+                       <string>Vorname</string>
+                      </property>
+                     </column>
+                     <column>
+                      <property name="text">
+                       <string>Funktion</string>
+                      </property>
+                     </column>
+                     <column>
+                      <property name="text">
+                       <string>ID</string>
+                      </property>
+                     </column>
+                    </widget>
+                   </item>
+                   <item row="3" column="1">
+                    <spacer name="boatCrew_verticalSpacer">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item row="3" column="0">
+                    <layout class="QVBoxLayout" name="boatCrew_verticalLayout">
+                     <item>
+                      <spacer name="boatCrew_verticalSpacer_3">
+                       <property name="orientation">
+                        <enum>Qt::Vertical</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>20</width>
+                         <height>10000</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <layout class="QFormLayout" name="boatCrew_formLayout">
+                       <item row="0" column="0">
+                        <widget class="QLabel" name="boatCrewMember_label">
+                         <property name="text">
+                          <string>Bootsgast</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="0" column="1">
+                        <widget class="QComboBox" name="boatCrewMember_comboBox">
+                         <property name="font">
+                          <font>
+                           <family>Tahoma</family>
+                           <pointsize>8</pointsize>
+                          </font>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="1" column="0">
+                        <widget class="QLabel" name="boatCrewMemberFunction_label">
+                         <property name="text">
+                          <string>Funktion</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="1" column="1">
+                        <widget class="QComboBox" name="boatCrewMemberFunction_comboBox">
+                         <property name="font">
+                          <font>
+                           <family>Tahoma</family>
+                           <pointsize>8</pointsize>
+                          </font>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </item>
+                     <item>
+                      <layout class="QHBoxLayout" name="boatCrewButtons_horizontalLayout">
+                       <item>
+                        <widget class="QPushButton" name="addBoatCrewMember_pushButton">
+                         <property name="text">
+                          <string>Hinzufügen</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QPushButton" name="removeBoatCrewMember_pushButton">
+                         <property name="text">
+                          <string>Entfernen</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </item>
+                     <item>
+                      <spacer name="boatCrew_verticalSpacer_2">
+                       <property name="orientation">
+                        <enum>Qt::Vertical</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>20</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="boatDriveButtons_horizontalLayout">
+                 <item>
+                  <widget class="QPushButton" name="applyBoatDriveChanges_pushButton">
+                   <property name="text">
+                    <string>Übernehmen</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="discardBoatDriveChanges_pushButton">
+                   <property name="text">
+                    <string>Verwerfen</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="boatTabExpand_horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10000</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="boatTab_line">
+          <property name="font">
+           <font>
+            <family>Tahoma</family>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="boatTabSidebar_verticalLayout">
+          <item>
+           <widget class="QLabel" name="boatTabApplicationLogo_label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>339</width>
+              <height>136</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>339</width>
+              <height>136</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="pixmap">
+             <pixmap resource="../resources.qrc">:/resources/icons/application-icon_raw.png</pixmap>
+            </property>
+            <property name="scaledContents">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="boatTabCalendar_groupBox">
+            <property name="title">
+             <string>Kalender</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <item>
+              <widget class="QLCDNumber" name="boatTabTime_lcdNumber">
+               <property name="digitCount">
+                <number>8</number>
+               </property>
+               <property name="segmentStyle">
+                <enum>QLCDNumber::Flat</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCalendarWidget" name="boatTab_calendarWidget">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>315</width>
+                 <height>185</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>315</width>
+                 <height>185</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="Line" name="boatTabSidebar_line">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="boatTabSidebar_verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="boatHours_groupBox">
+            <property name="title">
+             <string>Bootsstunden</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_3">
+             <item row="0" column="0">
+              <widget class="QLabel" name="boatHours_label">
+               <property name="text">
+                <string>Einsatzstunden</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="boatHoursCarry_label">
+               <property name="text">
+                <string>+ Übertrag</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="boatHoursTotal_label">
+               <property name="text">
+                <string>= Gesamt</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="boatHours_horizontalLayout">
+               <item>
+                <spacer name="boatHours_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="boatHoursHours_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>60</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>60</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> h</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>9999</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="boatHours_label_2">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="boatHoursMinutes_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> m</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>59</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="boatHoursCarry_horizontalLayout">
+               <item>
+                <spacer name="boatHoursCarry_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="boatHoursCarryHours_spinBox">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>60</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>60</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> h</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>9999</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="boatHoursCarry_label_2">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="boatHoursCarryMinutes_spinBox">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> m</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>59</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="2" column="1">
+              <layout class="QHBoxLayout" name="boatHoursTotal_horizontalLayout">
+               <item>
+                <spacer name="boatHoursTotal_horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="boatHoursTotalHours_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>60</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>60</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> h</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>9999</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="boatHoursTotal_label_2">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="boatHoursTotalMinutes_spinBox">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="suffix">
+                  <string> m</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>59</number>
+                 </property>
+                 <property name="value">
+                  <number>0</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="rescue_tab">
+       <attribute name="title">
+        <string>Einsätze</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <layout class="QVBoxLayout" name="rescueTab_verticalLayout">
+          <item>
+           <layout class="QHBoxLayout" name="rescues_horizontalLayout">
+            <item>
+             <widget class="QGroupBox" name="rescues_groupBox">
+              <property name="title">
+               <string>Hilfeleistungen</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="rescues_horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="rescueTab_verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="documents_horizontalLayout">
+            <item>
+             <widget class="QGroupBox" name="documents_groupBox">
+              <property name="title">
+               <string>Dokumente</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="documents_horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="rescueTab_verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="assignmentNumber_horizontalLayout">
+            <item>
+             <widget class="QGroupBox" name="assignmentNumber_groupBox">
+              <property name="title">
+               <string>Einsatznummer LSt</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_9">
+               <item>
+                <widget class="QLineEdit" name="assignmentNumber_lineEdit">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>245</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>245</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                 <property name="maxLength">
+                  <number>100</number>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Nur auszufüllen, wenn Koordinierungsstelle Bezirk</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="assignmentNumber_horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="rescueTabExpand_horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10000</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="rescueTab_line">
+          <property name="font">
+           <font>
+            <family>Tahoma</family>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="rescueTabSidebar_verticalLayout">
+          <item>
+           <widget class="QLabel" name="rescueTabApplicationLogo_label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>339</width>
+              <height>136</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>339</width>
+              <height>136</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="pixmap">
+             <pixmap resource="../resources.qrc">:/resources/icons/application-icon_raw.png</pixmap>
+            </property>
+            <property name="scaledContents">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="rescueTabCalendar_groupBox">
+            <property name="title">
+             <string>Kalender</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_5">
+             <item>
+              <widget class="QLCDNumber" name="rescueTabTime_lcdNumber">
+               <property name="digitCount">
+                <number>8</number>
+               </property>
+               <property name="segmentStyle">
+                <enum>QLCDNumber::Flat</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCalendarWidget" name="rescueTab_calendarWidget">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>315</width>
+                 <height>185</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>315</width>
+                 <height>185</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="Line" name="rescueTabSidebar_line">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="rescueTabSidebar_verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1294</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="file_menu">
+    <property name="font">
+     <font>
+      <family>Segoe UI</family>
+      <pointsize>9</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>&amp;Datei</string>
+    </property>
+    <addaction name="saveFile_action"/>
+    <addaction name="saveFileAs_action"/>
+    <addaction name="separator"/>
+    <addaction name="exportFile_action"/>
+    <addaction name="separator"/>
+    <addaction name="loadCarries_action"/>
+    <addaction name="separator"/>
+    <addaction name="close_action"/>
+   </widget>
+   <widget class="QMenu" name="extras_menu">
+    <property name="font">
+     <font>
+      <family>Segoe UI</family>
+      <pointsize>9</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>E&amp;xtras</string>
+    </property>
+    <widget class="QMenu" name="exportOptions_menu">
+     <property name="title">
+      <string>Export-Optionen</string>
+     </property>
+     <addaction name="editPersonnelListSplit_action"/>
+    </widget>
+    <addaction name="exportOptions_menu"/>
+   </widget>
+   <addaction name="file_menu"/>
+   <addaction name="extras_menu"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="editPersonnelListSplit_action">
+   <property name="text">
+    <string>Personallisten-Trennung</string>
+   </property>
+  </action>
+  <action name="saveFile_action">
+   <property name="text">
+    <string>&amp;Speichern</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="exportFile_action">
+   <property name="text">
+    <string>&amp;Exportieren</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+E</string>
+   </property>
+  </action>
+  <action name="loadCarries_action">
+   <property name="text">
+    <string>Überträge &amp;laden</string>
+   </property>
+  </action>
+  <action name="close_action">
+   <property name="text">
+    <string>S&amp;chließen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="saveFileAs_action">
+   <property name="text">
+    <string>Speichern &amp;unter...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+ </widget>
+ <tabstops>
+  <tabstop>report_tabWidget</tabstop>
+  <tabstop>reportNumberIncr_radioButton</tabstop>
+  <tabstop>reportNumberDecr_radioButton</tabstop>
+  <tabstop>station_comboBox</tabstop>
+  <tabstop>stationRadioCallName_comboBox</tabstop>
+  <tabstop>dutyPurpose_comboBox</tabstop>
+  <tabstop>dutyPurposeComment_lineEdit</tabstop>
+  <tabstop>reportDate_dateEdit</tabstop>
+  <tabstop>dutyTimesBegin_timeEdit</tabstop>
+  <tabstop>dutyTimesEnd_timeEdit</tabstop>
+  <tabstop>reportComments_plainTextEdit</tabstop>
+  <tabstop>temperatureAir_spinBox</tabstop>
+  <tabstop>temperatureWater_spinBox</tabstop>
+  <tabstop>precipitation_comboBox</tabstop>
+  <tabstop>cloudiness_comboBox</tabstop>
+  <tabstop>windStrength_comboBox</tabstop>
+  <tabstop>weatherComments_plainTextEdit</tabstop>
+  <tabstop>operationProtocols_checkBox</tabstop>
+  <tabstop>operationProtocolsCtr_spinBox</tabstop>
+  <tabstop>patientRecords_checkBox</tabstop>
+  <tabstop>patientRecordsCtr_spinBox</tabstop>
+  <tabstop>radioCallLogs_checkBox</tabstop>
+  <tabstop>radioCallLogsCtr_spinBox</tabstop>
+  <tabstop>otherEnclosures_checkBox</tabstop>
+  <tabstop>otherEnclosures_lineEdit</tabstop>
+  <tabstop>otherEnclosures_scrollArea</tabstop>
+  <tabstop>personLastName_lineEdit</tabstop>
+  <tabstop>personFirstName_lineEdit</tabstop>
+  <tabstop>personIdent_comboBox</tabstop>
+  <tabstop>personFunction_comboBox</tabstop>
+  <tabstop>personTimeBegin_timeEdit</tabstop>
+  <tabstop>personTimeEnd_timeEdit</tabstop>
+  <tabstop>addPerson_pushButton</tabstop>
+  <tabstop>addExtPerson_pushButton</tabstop>
+  <tabstop>personnel_tableWidget</tabstop>
+  <tabstop>updatePerson_pushButton</tabstop>
+  <tabstop>removePerson_pushButton</tabstop>
+  <tabstop>setPersonTimeBegin_pushButton</tabstop>
+  <tabstop>setPersonTimeEnd_pushButton</tabstop>
+  <tabstop>setPersonTimeBeginNow_pushButton</tabstop>
+  <tabstop>setPersonTimeEndNow_pushButton</tabstop>
+  <tabstop>personnelHoursHours_spinBox</tabstop>
+  <tabstop>personnelHoursMinutes_spinBox</tabstop>
+  <tabstop>personnelHoursCarryHours_spinBox</tabstop>
+  <tabstop>personnelHoursCarryMinutes_spinBox</tabstop>
+  <tabstop>personnelHoursTotalHours_spinBox</tabstop>
+  <tabstop>personnelHoursTotalMinutes_spinBox</tabstop>
+  <tabstop>reportTab_calendarWidget</tabstop>
+  <tabstop>boat_comboBox</tabstop>
+  <tabstop>boatRadioCallName_comboBox</tabstop>
+  <tabstop>boatSlippedBeginOfDuty_checkBox</tabstop>
+  <tabstop>boatSlippedEndOfDuty_checkBox</tabstop>
+  <tabstop>boatReadyFrom_timeEdit</tabstop>
+  <tabstop>boatReadyUntil_timeEdit</tabstop>
+  <tabstop>boatComments_plainTextEdit</tabstop>
+  <tabstop>engineHoursBeginOfDuty_doubleSpinBox</tabstop>
+  <tabstop>engineHoursEndOfDuty_doubleSpinBox</tabstop>
+  <tabstop>engineHoursDiff_doubleSpinBox</tabstop>
+  <tabstop>fuelBeginOfDuty_spinBox</tabstop>
+  <tabstop>fuelAfterDrives_spinBox</tabstop>
+  <tabstop>fuelEndOfDuty_spinBox</tabstop>
+  <tabstop>fuelTotal_spinBox</tabstop>
+  <tabstop>addBoatDrive_pushButton</tabstop>
+  <tabstop>boatDrives_tableWidget</tabstop>
+  <tabstop>boatDrive_scrollArea</tabstop>
+  <tabstop>boatDrivePurpose_comboBox</tabstop>
+  <tabstop>boatDriveBegin_timeEdit</tabstop>
+  <tabstop>boatDriveEnd_timeEdit</tabstop>
+  <tabstop>boatDriveFuel_spinBox</tabstop>
+  <tabstop>boatDriveBoatman_comboBox</tabstop>
+  <tabstop>boatDriveComments_plainTextEdit</tabstop>
+  <tabstop>boatCrewMember_comboBox</tabstop>
+  <tabstop>boatCrewMemberFunction_comboBox</tabstop>
+  <tabstop>addBoatCrewMember_pushButton</tabstop>
+  <tabstop>boatCrew_tableWidget</tabstop>
+  <tabstop>removeBoatCrewMember_pushButton</tabstop>
+  <tabstop>applyBoatDriveChanges_pushButton</tabstop>
+  <tabstop>discardBoatDriveChanges_pushButton</tabstop>
+  <tabstop>setBoatDriveTimeBeginNow_pushButton</tabstop>
+  <tabstop>setBoatDriveTimeEndNow_pushButton</tabstop>
+  <tabstop>splitBoatDrive_pushButton</tabstop>
+  <tabstop>moveBoatDriveUp_pushButton</tabstop>
+  <tabstop>moveBoatDriveDown_pushButton</tabstop>
+  <tabstop>removeBoatDrive_pushButton</tabstop>
+  <tabstop>boatHoursHours_spinBox</tabstop>
+  <tabstop>boatHoursMinutes_spinBox</tabstop>
+  <tabstop>boatHoursCarryHours_spinBox</tabstop>
+  <tabstop>boatHoursCarryMinutes_spinBox</tabstop>
+  <tabstop>boatHoursTotalHours_spinBox</tabstop>
+  <tabstop>boatHoursTotalMinutes_spinBox</tabstop>
+  <tabstop>boatTab_calendarWidget</tabstop>
+  <tabstop>assignmentNumber_lineEdit</tabstop>
+  <tabstop>rescueTab_calendarWidget</tabstop>
+ </tabstops>
+ <resources>
+  <include location="../resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>

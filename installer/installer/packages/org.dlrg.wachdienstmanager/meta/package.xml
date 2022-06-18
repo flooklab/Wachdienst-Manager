@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>Wachdienst-Manager</DisplayName>
+    <Description>Installiert den Wachdienst-Manager.</Description>
+    <Version>1.0.0</Version>
+    <ReleaseDate>2021-04-19</ReleaseDate>
+    <Licenses>
+        <License name="GNU Affero General Public License Agreement" file="LICENSE.txt" />
+    </Licenses>
+    <Default>true</Default>
+    <Script>installscript.qs</Script>
+</Package>
