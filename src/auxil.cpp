@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -50,7 +50,7 @@ const QRegularExpressionValidator Aux::personNamesValidator =
 const QRegularExpressionValidator Aux::stationItentifiersValidator =
     QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\-\\/\\(\\)]+%[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/\\(\\)]+"));
 const QRegularExpressionValidator Aux::radioCallNamesValidator =
-        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/\\(\\)]+"));
+        QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\d\\-\\/\\(\\)][a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\d\\-\\/\\(\\)]*"));
 const QRegularExpressionValidator Aux::boatAcronymsValidator =
         QRegularExpressionValidator(QRegularExpression("[A-ZÄÖÜßÆÅØ]{3}\\d \\- RTB\\d"));
 const QRegularExpressionValidator Aux::fuelTypesValidator =
@@ -65,7 +65,7 @@ const QRegularExpressionValidator Aux::programVersionsValidator =
         QRegularExpressionValidator(QRegularExpression("[\\d]+\\.[\\d]+[abc]?\\.[\\d]+"));
 //
 const QStringList Aux::boatFuelTypePresets = {"Super", "Super plus", "Normalbenzin", "Diesel"};
-const QStringList Aux::boatDrivePurposePresets = {"Kontrollfahrt", "Begleitung Regatta", "Begleitung Jugendtraining",
+const QStringList Aux::boatDrivePurposePresets = {"Kontrollfahrt", "Begleitung Regatta", "Begleitung Segeltraining",
                                                   "Tonnen setzen", "Tonnen einholen", "Übung", "Einsatz"};
 
 //Public
@@ -559,15 +559,15 @@ QString Aux::windStrengthToLabel(WindStrength pWind)
             return "5 Bft (Frische Brise)";
         case WindStrength::_STRONG_BREEZE:
             return "6 Bft (Starker Wind)";
-        case WindStrength::_MODERATE_GALE:
+        case WindStrength::_NEAR_GALE:
             return "7 Bft (Steifer Wind)";
-        case WindStrength::_FRESH_GALE:
+        case WindStrength::_GALE:
             return "8 Bft (Stürmischer Wind)";
         case WindStrength::_STRONG_GALE:
             return "9 Bft (Sturm)";
-        case WindStrength::_WHOLE_GALE:
-            return "10 Bft (Schwerer Sturm)";
         case WindStrength::_STORM:
+            return "10 Bft (Schwerer Sturm)";
+        case WindStrength::_VIOLENT_STORM:
             return "11 Bft (Orkanartiger Sturm)";
         case WindStrength::_HURRICANE:
             return "12 Bft (Orkan)";
@@ -602,15 +602,15 @@ Aux::WindStrength Aux::labelToWindStrength(const QString& pWind)
     else if (pWind == "6 Bft (Starker Wind)")
         return WindStrength::_STRONG_BREEZE;
     else if (pWind == "7 Bft (Steifer Wind)")
-        return WindStrength::_MODERATE_GALE;
+        return WindStrength::_NEAR_GALE;
     else if (pWind == "8 Bft (Stürmischer Wind)")
-        return WindStrength::_FRESH_GALE;
+        return WindStrength::_GALE;
     else if (pWind == "9 Bft (Sturm)")
         return WindStrength::_STRONG_GALE;
     else if (pWind == "10 Bft (Schwerer Sturm)")
-        return WindStrength::_WHOLE_GALE;
-    else if (pWind == "11 Bft (Orkanartiger Sturm)")
         return WindStrength::_STORM;
+    else if (pWind == "11 Bft (Orkanartiger Sturm)")
+        return WindStrength::_VIOLENT_STORM;
     else if (pWind == "12 Bft (Orkan)")
         return WindStrength::_HURRICANE;
     else

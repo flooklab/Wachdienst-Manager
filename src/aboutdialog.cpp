@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -30,7 +30,7 @@
  *
  * Inserts the program and Qt versions into the corresponding info label.
  *
- * \param pParent
+ * \param pParent The parent widget.
  */
 AboutDialog::AboutDialog(QWidget *const pParent) :
     QDialog(pParent, Qt::WindowTitleHint |
@@ -42,7 +42,7 @@ AboutDialog::AboutDialog(QWidget *const pParent) :
 
     //Show current program version and Qt version used for compilation
     ui->info_label->setText("Wachdienst-Manager " + Aux::programVersionStringPretty + ".\n\n" +
-                            "Basiert auf Qt " + QT_VERSION_STR + ".");
+                            "Verwendet Qt. Erstellt mit Version " + QT_VERSION_STR + ".");
 }
 
 /*!

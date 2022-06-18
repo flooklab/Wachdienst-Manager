@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -77,6 +77,18 @@ Report::Report() :
 //Public
 
 /*!
+ * \brief Reset to the state of a newly constructed report.
+ *
+ * Restores the report's initial empty state just as it is right after construction. See also Report().
+ */
+void Report::reset()
+{
+    *this = Report();
+}
+
+//
+
+/*!
  * \brief Load report from file.
  *
  * Opens the report file \p pFileName as a JSON document (see also save())
@@ -96,12 +108,15 @@ Report::Report() :
  */
 bool Report::open(const QString& pFileName)
 {
+    //First make sure that all maps etc. are empty
+    reset();
+
     //Open file
     QFile file(pFileName);
     if (!file.open(QIODevice::ReadOnly))
     {
-        std::cerr<<"ERROR: Could not open file for reading!"<<std::endl;
         file.close();
+        std::cerr<<"ERROR: Could not open file for reading!"<<std::endl;
         return false;
     }
 
@@ -124,7 +139,6 @@ bool Report::open(const QString& pFileName)
         std::cerr<<"ERROR: File is not a report!"<<std::endl;
         return false;
     }
-
 
     if (!jsonObj.contains("_version") || !jsonObj.value("_version").isString())
     {
@@ -738,7 +752,7 @@ bool Report::open(const QString& pFileName)
  * removed from and added to the loaded report again.
  *
  * \param pFileName Path to the file to write the report to.
- * \param pTempFile Do not change the report file name.
+ * \param pTempFile Do not change the report instance's file name.
  * \return If successful.
  */
 bool Report::save(const QString& pFileName, bool pTempFile)
@@ -985,7 +999,7 @@ QString Report::getFileName() const
  * (which in turn is last report's gained personnel hours plus last report's personnel hours carry)
  * - Boat drive hours carry is set to last report's total boat drive hours
  * (which in turn is last report's gained boat drive hours plus last report's boat drive hours carry)
- * - Initial and final boat engine hours are set to last report's final engine hours.
+ * - Initial (and final, if still zero) boat engine hours are set to last report's final engine hours.
  *
  * Additionally the report serial number is set to last report's serial number plus one.
  *
@@ -1031,7 +1045,11 @@ void Report::loadCarryovers(const Report& pLastReport)
 
     //Use final engine hours from last report as new initial value
     double newEngineHoursInitial = pLastReport.boatLogPtr->getEngineHoursFinal();
-    double newEngineHoursFinal = newEngineHoursInitial;
+
+    //If final engine hours are still zero (prevent unwanted destructive overwrite), set them equal to the new initial value
+    double newEngineHoursFinal = boatLogPtr->getEngineHoursFinal();
+    if (newEngineHoursFinal == 0)
+        newEngineHoursFinal = newEngineHoursInitial;
 
     //Copy loaded/calculated values to this report (and increment serial number!)
     number = pLastReport.number + 1;
@@ -1980,17 +1998,17 @@ QString Report::rescueOperationToLabel(RescueOperation pRescue)
         case RescueOperation::_FIRST_AID_MATERIAL:
             return "Ausgabe von EH-/SAN-Material";
         case RescueOperation::_SWIMMER_ACROSS:
-            return "Schwimmer-Einsätze (Querschwimmer)";
-        case RescueOperation::_SWIMMER_INSHORE:
-            return "Schwimmer-Einsätze (Uferbereich)";
+            return "Hilfeleistungen Querschwimmer";
+        case RescueOperation::_SWIMMER_GENERAL:
+            return "Sonstige Schwimmer-Einsätze";
         case RescueOperation::_CAPSIZE:
             return "Bootskenterungen";
         case RescueOperation::_MATERIAL_RETRIEVAL:
             return "Bergung von Sachgütern";
         case RescueOperation::_OTHER_ASSISTANCE:
             return "Sonstige Hilfeleistungen";
-        case RescueOperation::_MORTAL_DANGER:
-            return "Hilfeleistungen unter Lebensgefahr";
+        case RescueOperation::_MORTAL_DANGER_INVOLVED:
+            return "Hilfeleistungen mit Lebensgefahr";
         default:
             return "Sonstige Hilfeleistungen";
     }
@@ -2017,7 +2035,7 @@ QString Report::rescueOperationToDocNotice(RescueOperation pRescue)
         case RescueOperation::_SWIMMER_ACROSS:
             return "Details unter Bemerkungen vermerkt oder alternativ\n"
                    "Einsatzprotokoll ausgefüllt und angehängt?";
-        case RescueOperation::_SWIMMER_INSHORE:
+        case RescueOperation::_SWIMMER_GENERAL:
             return "Einsatzprotokoll ausgefüllt und angehängt?";
         case RescueOperation::_CAPSIZE:
             return "Falls nötig: Einsatzprotokoll ausgefüllt und angehängt?";
@@ -2025,7 +2043,7 @@ QString Report::rescueOperationToDocNotice(RescueOperation pRescue)
             return "";
         case RescueOperation::_OTHER_ASSISTANCE:
             return "Details unter Bemerkungen vermerkt?";
-        case RescueOperation::_MORTAL_DANGER:
+        case RescueOperation::_MORTAL_DANGER_INVOLVED:
             return "Einsatzprotokoll ausgefüllt und angehängt?";
         default:
             return "";
@@ -2047,18 +2065,18 @@ Report::RescueOperation Report::labelToRescueOperation(const QString& pRescue)
         return RescueOperation::_FIRST_AID;
     else if (pRescue == "Ausgabe von EH-/SAN-Material")
         return RescueOperation::_FIRST_AID_MATERIAL;
-    else if (pRescue == "Schwimmer-Einsätze (Querschwimmer)")
+    else if (pRescue == "Hilfeleistungen Querschwimmer")
         return RescueOperation::_SWIMMER_ACROSS;
-    else if (pRescue == "Schwimmer-Einsätze (Uferbereich)")
-        return RescueOperation::_SWIMMER_INSHORE;
+    else if (pRescue == "Sonstige Schwimmer-Einsätze")
+        return RescueOperation::_SWIMMER_GENERAL;
     else if (pRescue == "Bootskenterungen")
         return RescueOperation::_CAPSIZE;
     else if (pRescue == "Bergung von Sachgütern")
         return RescueOperation::_MATERIAL_RETRIEVAL;
     else if (pRescue == "Sonstige Hilfeleistungen")
         return RescueOperation::_OTHER_ASSISTANCE;
-    else if (pRescue == "Hilfeleistungen unter Lebensgefahr")
-        return RescueOperation::_MORTAL_DANGER;
+    else if (pRescue == "Hilfeleistungen mit Lebensgefahr")
+        return RescueOperation::_MORTAL_DANGER_INVOLVED;
     else
         return RescueOperation::_OTHER_ASSISTANCE;
 }

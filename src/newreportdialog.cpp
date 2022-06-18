@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -202,6 +202,11 @@ void NewReportDialog::accept()
         }
         report.loadCarryovers(oldReport);
     }
+    else
+    {
+        QMessageBox(QMessageBox::Warning, "Warnung", "Kein letzter Wachbericht angegeben! Es wurden noch keine Überträge geladen.",
+                    QMessageBox::Ok, this).exec();
+    }
 
     QDialog::accept();
 }
@@ -212,7 +217,11 @@ void NewReportDialog::accept()
  * \brief Update progress bar value/label and navigation button labels.
  *
  * Sets progress bar percentage and label according to selected page (\p arg1).
- * Changes "previous button" label to "Abort", iff on first page, and "next button" label to "Finish", iff on last page.
+ * Changes 'previous button' label to "Abort", iff on first page, and 'next button' label to "Finish", iff on last page.
+ *
+ * When the page for loading the last report's carryovers was selected and no such report is currently
+ * selected (which is initially the case) the corresponding radio button for selection of the last
+ * report gets triggered automatically (see on_loadLastReportCarries_radioButton_pressed()).
  *
  * \param arg1 New page index.
  */
@@ -240,6 +249,11 @@ void NewReportDialog::on_stackedWidget_currentChanged(int arg1)
         ui->previous_pushButton->setText("Abbrechen");
     else
         ui->previous_pushButton->setText("Zurück");
+
+    //Automatically trigger the selection of a file name to load last report's carryovers from
+    //whenever the corresponding page gets selected and no such report has been selected yet
+    if (ui->stackedWidget->currentIndex() == ui->stackedWidget->count()-1 && !ui->loadLastReportCarries_radioButton->isChecked())
+        ui->loadLastReportCarries_radioButton->click();
 }
 
 /*!

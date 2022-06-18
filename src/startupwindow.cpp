@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -38,7 +38,7 @@
  * - About: Ctrl+A
  * - Quit: Ctrl+Q
  *
- * \param pParent
+ * \param pParent The parent widget.
  */
 StartupWindow::StartupWindow(QWidget *const pParent) :
     QMainWindow(pParent),
@@ -68,6 +68,9 @@ StartupWindow::StartupWindow(QWidget *const pParent) :
 
     QShortcut* quitShortcut = new QShortcut(QKeySequence("Ctrl+Q"), this);
     connect(quitShortcut, SIGNAL(activated()), this, SLOT(on_quit_pushButton_pressed()));
+
+    //Enable drag and drop in order to open reports being dropped on the window
+    setAcceptDrops(true);
 }
 
 /*!
@@ -95,7 +98,9 @@ void StartupWindow::newReport()
 
     if (newReportDialog.exec() != QDialog::Accepted)
     {
-        show();
+        if (reportWindowPtrs.empty())
+            show();
+
         return;
     }
 
@@ -108,62 +113,173 @@ void StartupWindow::newReport()
 /*!
  * \brief Open report from file and show it in report window.
  *
- * Loads a report from \p pFileName and shows it in a newly created report window after hiding this window.
+ * Loads a report from \p pFileName and, if successful, shows it in a newly created report window after hiding this window.
  *
- * \param pFileName
+ * \param pFileName File name of the report.
+ * \return If successful.
  */
-void StartupWindow::openReport(const QString& pFileName)
+bool StartupWindow::openReport(const QString& pFileName)
 {
     Report report;
     if (!report.open(pFileName))
     {
-        QMessageBox(QMessageBox::Warning, "Fehler", "Konnte Wachericht nicht laden!", QMessageBox::Ok, this).exec();
-        return;
+        QMessageBox(QMessageBox::Warning, "Fehler", "Konnte Wachbericht nicht laden!", QMessageBox::Ok, this).exec();
+        return false;
     }
 
     showReportWindow(std::move(report));
+
+    return true;
 }
 
 //Private
 
 /*!
- * \brief Hide this window and create and show the report window.
+ * \brief Reimplementation of QMainWindow::dragEnterEvent().
+ *
+ * Reimplements QMainWindow::dragEnterEvent().
+ *
+ * \p pEvent is accepted, if the window was entered by a drag and drop action that represents a single file,
+ * and is ignored otherwise. Before accepting, the event's proposed action is changed to Qt::DropAction::LinkAction.
+ *
+ * \param pEvent The event containing information about the drag and drop action that entered the window.
+ */
+void StartupWindow::dragEnterEvent(QDragEnterEvent* pEvent)
+{
+    if (pEvent->mimeData()->hasUrls() && pEvent->mimeData()->urls().length() == 1)
+    {
+        pEvent->setDropAction(Qt::DropAction::LinkAction);
+        pEvent->accept();
+    }
+    else
+        pEvent->ignore();
+}
+
+/*!
+ * \brief Reimplementation of QMainWindow::dropEvent().
+ *
+ * Reimplements QMainWindow::dropEvent().
+ *
+ * \p pEvent is accepted (using event action Qt::DropAction::LinkAction), if a single
+ * file was dropped on the window, and is ignored otherwise. See also dragEnterEvent().
+ *
+ * As the file is assumed to be a saved Report, it is tried to open a report from the dropped file name (see openReport()).
+ *
+ * \param pEvent The event containing information about the drag and drop action that was dropped on the window.
+ */
+void StartupWindow::dropEvent(QDropEvent* pEvent)
+{
+    if (pEvent->mimeData()->hasUrls() && pEvent->mimeData()->urls().length() == 1)
+    {
+        pEvent->setDropAction(Qt::DropAction::LinkAction);
+        pEvent->accept();
+
+        openReport(pEvent->mimeData()->urls().at(0).toLocalFile());
+    }
+    else
+        pEvent->ignore();
+}
+
+//
+
+/*!
+ * \brief Hide this window and create and show a new report window.
  *
  * Creates a new report window, moving \p pReport to the window instance.
- * This window is hidden and the 'closed()' signal from the report window
- * is connected to on_reportWindowClosed() in order to re-show
- * this window when the report window has closed.
  *
- * \param pReport
+ * This window gets hidden and the ReportWindow::closed() signal is
+ * connected to on_reportWindowClosed() in order to eventually remove
+ * the window from the list of open report windows and to re-show
+ * this window when no other report windows are still open.
+ *
+ * The ReportWindow::openAnotherReportRequested() signal is connected to on_openAnotherReportRequested()
+ * in order to be able to open other report windows from within a report window.
+ *
+ * \param pReport The actual report to use for the report window.
  */
 void StartupWindow::showReportWindow(Report&& pReport)
 {
-    //Create report window
-    reportWindowPtr = std::make_unique<ReportWindow>(std::move(pReport), nullptr);
+    //Create a new report window
+    std::unique_ptr<ReportWindow> reportWindowPtr = std::make_unique<ReportWindow>(std::move(pReport), nullptr);
 
-    //Connect report window's closed signal to a slot here to show startup window again and to release the pointer
+    //Always automatically delete window on close
     reportWindowPtr->setAttribute(Qt::WA_DeleteOnClose);
-    connect(reportWindowPtr.get(), SIGNAL(closed()), this, SLOT(on_reportWindowClosed()));
+
+    //React on report window's closed() signal to release pointer and to show startup window again if no report windows open anymore
+    connect(reportWindowPtr.get(), SIGNAL(closed(const ReportWindow *const)),
+            this, SLOT(on_reportWindowClosed(const ReportWindow *const)));
+
+    //React on report window's openAnotherReportRequested() signal to open an existing or a new report in another report window
+    connect(reportWindowPtr.get(), SIGNAL(openAnotherReportRequested(const QString&, bool)),
+            this, SLOT(on_openAnotherReportRequested(const QString&, bool)));
 
     //Hide startup window before showing report window
     hide();
 
     reportWindowPtr->show();
+
+    //Add new window to list of open report windows
+    reportWindowPtrs.insert(std::move(reportWindowPtr));
 }
 
 //Private slots
 
 /*!
- * \brief Destroy the report window and show this window again.
+ * \brief Destroy and remove the pointer to the closed report window.
  *
- * Disconnects this slot from the report window 'closed()' signal again,
- * destroys the report window and shows this window again.
+ * Disconnects this very slot and on_openAnotherReportRequested() from the connected signals again,
+ * destroys the report window \p pWindow, removes it from the list of open report windows and,
+ * if no other report window is still open, shows this window again.
+ *
+ * \param pWindow Pointer to the report window that has been closed.
  */
-void StartupWindow::on_reportWindowClosed()
+void StartupWindow::on_reportWindowClosed(const ReportWindow *const pWindow)
 {
-    disconnect(reportWindowPtr.get(), SIGNAL(closed()), this, SLOT(on_reportWindowClosed()));
-    reportWindowPtr.release();
-    show();
+    decltype(reportWindowPtrs)::const_iterator windowIt = reportWindowPtrs.end();
+
+    for (decltype(windowIt) tWindowIt = reportWindowPtrs.begin(); tWindowIt != reportWindowPtrs.end(); ++tWindowIt)
+    {
+        if ((*tWindowIt).get() == pWindow)
+        {
+            windowIt = tWindowIt;
+            break;
+        }
+    }
+
+    if (windowIt == reportWindowPtrs.end())
+        return;
+
+    disconnect(pWindow, SIGNAL(closed(const ReportWindow *const)),
+               this, SLOT(on_reportWindowClosed(const ReportWindow *const)));
+    disconnect(pWindow, SIGNAL(openAnotherReportRequested(const QString&, bool)),
+               this, SLOT(on_openAnotherReportRequested(const QString&, bool)));
+
+    //Window is already deleted, see showReportWindow()
+    reportWindowPtrs.extract(windowIt).value().release();
+
+    if (reportWindowPtrs.empty())
+        show();
+}
+
+/*!
+ * \brief Load a report from file and open a new report window for it.
+ *
+ * See openReport(). If \p pFileName is empty, a new report is created and shown instead (see newReport()).
+ *
+ * If \p pChooseFile is true, it will be asked for a file name. Note that in this
+ * case no empty report will be created and shown if the file dialog is rejected.
+ *
+ * \param pFileName File name of the report.
+ * \param pChooseFile Ask for a file name (ignore \p pFileName).
+ */
+void StartupWindow::on_openAnotherReportRequested(const QString& pFileName, bool pChooseFile)
+{
+    if (pChooseFile)
+        on_loadReport_pushButton_pressed();
+    else if (pFileName == "")
+        newReport();
+    else
+        openReport(pFileName);
 }
 
 //

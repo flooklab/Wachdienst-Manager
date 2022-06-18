@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -38,7 +38,7 @@
 #endif
 
 #define PROGRAM_VERSION_MAJOR "1"
-#define PROGRAM_VERSION_MINOR "1"
+#define PROGRAM_VERSION_MINOR "2"
 #define PROGRAM_VERSION_PATCH "0"
 
 #define CONFIG_DATABASE_USER_VERSION 1l

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -172,7 +172,8 @@ public:
      * The available values describe different kinds of precipitation types.
      * The enum class can be used to describe weather information for the Report.
      */
-    enum class Precipitation : int8_t {
+    enum class Precipitation : int8_t
+    {
         _NONE = 0,              ///< None
         _FOG = 1,               ///< "Nebel"
         _DEW = 2,               ///< "Tau"
@@ -197,7 +198,8 @@ public:
      * The available values describe different levels of cloudiness (plus some special conditions like thunderclouds etc.).
      * The enum class can be used to describe weather information for the Report.
      */
-    enum class Cloudiness : int8_t {
+    enum class Cloudiness : int8_t
+    {
         _CLOUDLESS = 0,             ///< "Wolkenlos"
         _SUNNY = 1,                 ///< "Sonnig"
         _FAIR = 2,                  ///< "Heiter"
@@ -217,7 +219,8 @@ public:
      * The available values describe different levels of wind strength.
      * The enum class can be used to describe weather information for the Report.
      */
-    enum class WindStrength : int8_t {
+    enum class WindStrength : int8_t
+    {
         _CALM = 0,              ///< "Windstille"
         _LIGHT_AIR = 1,         ///< "Leiser Zug"
         _LIGHT_BREEZE = 2,      ///< "Leichte Brise"
@@ -225,11 +228,11 @@ public:
         _MODERATE_BREEZE = 4,   ///< "Mäßige Brise"
         _FRESH_BREEZE = 5,      ///< "Frische Brise"
         _STRONG_BREEZE = 6,     ///< "Starker Wind"
-        _MODERATE_GALE = 7,     ///< "Steifer Wind"
-        _FRESH_GALE = 8,        ///< "Stürmischer Wind"
+        _NEAR_GALE = 7,         ///< "Steifer Wind"
+        _GALE = 8,              ///< "Stürmischer Wind"
         _STRONG_GALE = 9,       ///< "Sturm"
-        _WHOLE_GALE = 10,       ///< "Schwerer Sturm"
-        _STORM = 11,            ///< "Orkanartiger Sturm"
+        _STORM = 10,            ///< "Schwerer Sturm"
+        _VIOLENT_STORM = 11,    ///< "Orkanartiger Sturm"
         _HURRICANE = 12         ///< "Orkan"
     };
 
@@ -334,11 +337,11 @@ public:
                                   WindStrength::_MODERATE_BREEZE,
                                   WindStrength::_FRESH_BREEZE,
                                   WindStrength::_STRONG_BREEZE,
-                                  WindStrength::_MODERATE_GALE,
-                                  WindStrength::_FRESH_GALE,
+                                  WindStrength::_NEAR_GALE,
+                                  WindStrength::_GALE,
                                   WindStrength::_STRONG_GALE,
-                                  WindStrength::_WHOLE_GALE,
                                   WindStrength::_STORM,
+                                  WindStrength::_VIOLENT_STORM,
                                   WindStrength::_HURRICANE})
         {
             pFunction(wind, pArgs ...);

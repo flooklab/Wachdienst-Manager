@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -71,6 +71,8 @@ public:
 
 public:
     Report();                                                       ///< Constructor.
+    //
+    void reset();                                                   ///< Reset to the state of a newly constructed report.
     //
     bool open(const QString& pFileName);                            ///< Load report from file.
     bool save(const QString& pFileName, bool pTempFile = false);    ///< Save report to file.
@@ -200,18 +202,18 @@ public:
      *
      * The values correspond to the most common rescue operations.
      * Use RescueOperation::_OTHER_ASSISTANCE, if no value fits.
-     * Use RescueOperation::_MORTAL_DANGER to describe a subset of all rescue operations where patients were in mortal danger.
+     * Use RescueOperation::_MORTAL_DANGER_INVOLVED to describe a subset of all rescue operations where persons were in mortal danger.
      */
     enum class RescueOperation : int8_t
     {
-        _FIRST_AID = 0,             ///< "Erste-Hilfe".
-        _FIRST_AID_MATERIAL = 1,    ///< "Ausgabe von EH-/SAN-Material".
-        _SWIMMER_ACROSS = 2,        ///< "Querschwimmer".
-        _SWIMMER_INSHORE = 3,       ///< "Anderer Schwimmer-Notfall (z.B. im Uferbereich)".
-        _CAPSIZE = 4,               ///< "Bootskenterung".
-        _MATERIAL_RETRIEVAL = 5,    ///< "Sachgutbergung".
-        _OTHER_ASSISTANCE = 50,     ///< "Sonstige Hilfeleistung".
-        _MORTAL_DANGER = 100        ///< "... unter Lebensgefahr".
+        _FIRST_AID = 0,                 ///< "Erste-Hilfe".
+        _FIRST_AID_MATERIAL = 1,        ///< "Ausgabe von EH-/SAN-Material".
+        _SWIMMER_ACROSS = 2,            ///< "Unterstützung/Rettung von Querschwimmer".
+        _SWIMMER_GENERAL = 3,           ///< "Anderer Schwimmer-Notfall (z.B. im Uferbereich)".
+        _CAPSIZE = 4,                   ///< "Bootskenterung".
+        _MATERIAL_RETRIEVAL = 5,        ///< "Sachgutbergung".
+        _OTHER_ASSISTANCE = 50,         ///< "Sonstige Hilfeleistung".
+        _MORTAL_DANGER_INVOLVED = 100   ///< "... davon unter Lebensgefahr".
     };
 
 public:
@@ -270,11 +272,11 @@ public:
         for (RescueOperation rescue : {RescueOperation::_FIRST_AID,
                                        RescueOperation::_FIRST_AID_MATERIAL,
                                        RescueOperation::_SWIMMER_ACROSS,
-                                       RescueOperation::_SWIMMER_INSHORE,
+                                       RescueOperation::_SWIMMER_GENERAL,
                                        RescueOperation::_CAPSIZE,
                                        RescueOperation::_MATERIAL_RETRIEVAL,
                                        RescueOperation::_OTHER_ASSISTANCE,
-                                       RescueOperation::_MORTAL_DANGER})
+                                       RescueOperation::_MORTAL_DANGER_INVOLVED})
         {
             pFunction(rescue, pArgs ...);
         }

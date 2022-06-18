@@ -262,6 +262,9 @@
                  <property name="plainText">
                   <string/>
                  </property>
+                 <property name="placeholderText">
+                  <string>Bemerkungen zum Wachbericht</string>
+                 </property>
                 </widget>
                </item>
                <item row="5" column="0">
@@ -528,6 +531,9 @@
                    <family>Tahoma</family>
                    <pointsize>8</pointsize>
                   </font>
+                 </property>
+                 <property name="placeholderText">
+                  <string>Bemerkungen zum Wetter</string>
                  </property>
                 </widget>
                </item>
@@ -806,7 +812,7 @@
                     <x>0</x>
                     <y>0</y>
                     <width>185</width>
-                    <height>127</height>
+                    <height>119</height>
                    </rect>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -1161,7 +1167,7 @@
                    <property name="maximumSize">
                     <size>
                      <width>39</width>
-                     <height>16</height>
+                     <height>16777215</height>
                     </size>
                    </property>
                    <property name="text">
@@ -1174,7 +1180,7 @@
                    <property name="maximumSize">
                     <size>
                      <width>39</width>
-                     <height>16</height>
+                     <height>16777215</height>
                     </size>
                    </property>
                    <property name="text">
@@ -1220,7 +1226,7 @@
                    <property name="maximumSize">
                     <size>
                      <width>39</width>
-                     <height>16</height>
+                     <height>16777215</height>
                     </size>
                    </property>
                    <property name="text">
@@ -1233,7 +1239,7 @@
                    <property name="maximumSize">
                     <size>
                      <width>39</width>
-                     <height>16</height>
+                     <height>16777215</height>
                     </size>
                    </property>
                    <property name="text">
@@ -1389,7 +1395,7 @@
           <item>
            <widget class="QGroupBox" name="personnelHours_groupBox">
             <property name="title">
-             <string>Einsatzstunden</string>
+             <string>Personalstunden</string>
             </property>
             <layout class="QFormLayout" name="formLayout_2">
              <item row="0" column="0">
@@ -2178,6 +2184,9 @@
                      <family>Tahoma</family>
                      <pointsize>8</pointsize>
                     </font>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Bemerkungen zum Bootstagebuch</string>
                    </property>
                   </widget>
                  </item>
@@ -3682,6 +3691,9 @@
     <addaction name="separator"/>
     <addaction name="loadCarries_action"/>
     <addaction name="separator"/>
+    <addaction name="newReport_action"/>
+    <addaction name="openReport_action"/>
+    <addaction name="separator"/>
     <addaction name="close_action"/>
    </widget>
    <widget class="QMenu" name="extras_menu">
@@ -3744,8 +3756,27 @@
    <property name="text">
     <string>Speichern &amp;unter...</string>
    </property>
+   <property name="toolTip">
+    <string>Speichern unter...</string>
+   </property>
    <property name="shortcut">
     <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+  <action name="newReport_action">
+   <property name="text">
+    <string>&amp;Neu</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="openReport_action">
+   <property name="text">
+    <string>Ö&amp;ffnen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
    </property>
   </action>
  </widget>

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -110,7 +110,7 @@ public:
              bfA,   ///< "Bootsführerschein A (Binnen)"
              sr1,   ///< "Strömungsretter"
              et,    ///< "Einsatztaucher"
-             bos,   ///< "BOS Sprechfunker"
+             bos,   ///< "BOS-Sprechfunker"
              wf,    ///< "Wachführer"
              zf;    ///< "Zugführer"
     };

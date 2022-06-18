@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021 M. Frohne
+//  Copyright (C) 2021–2022 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -38,6 +38,7 @@
 #include <thread>
 #include <atomic>
 
+#include <QList>
 #include <QString>
 #include <QStringList>
 #include <QRegularExpressionValidator>
@@ -52,6 +53,9 @@
 #include <QUrl>
 #include <QDate>
 #include <QTime>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 
 #include <QMainWindow>
 #include <QFileDialog>
@@ -120,7 +124,10 @@ public:
     ~ReportWindow();                                                            ///< Destructor.
 
 private:
-    virtual void closeEvent(QCloseEvent* event);                                ///< Reimplementation of QMainWindow::closeEvent().
+    virtual void closeEvent(QCloseEvent* pEvent);                               ///< Reimplementation of QMainWindow::closeEvent().
+    //
+    virtual void dragEnterEvent(QDragEnterEvent* pEvent);                       ///< Reimplementation of QMainWindow::dragEnterEvent().
+    virtual void dropEvent(QDropEvent* pEvent);                                 ///< Reimplementation of QMainWindow::dropEvent().
     //
     void loadReportData();                                                      ///< Fill all widgets with the report data.
     //
@@ -183,6 +190,8 @@ private slots:
     void on_saveFileAs_action_triggered();                                          ///< Save the report to a (different) file.
     void on_exportFile_action_triggered();                                          ///< Export the report as a PDF file.
     void on_loadCarries_action_triggered();                                         ///< Load old report carryovers from a file.
+    void on_newReport_action_triggered();                                           ///< Create a new report in a different window.
+    void on_openReport_action_triggered();                                          ///< Open a report from a file in a different window.
     void on_close_action_triggered();                                               ///< Close the report window.
     void on_editPersonnelListSplit_action_triggered();                              ///< Change the maximum PDF personnel table length.
     //
@@ -221,6 +230,7 @@ private slots:
     //
     void on_personLastName_lineEdit_textChanged(const QString&);            ///< Check entered person name and update dependent widgets.
     void on_personFirstName_lineEdit_textChanged(const QString&);           ///< Check entered person name and update dependent widgets.
+    void on_personFirstName_lineEdit_returnPressed();                       ///< Add the selected person to the report personnel list.
     void on_personIdent_comboBox_currentTextChanged(const QString& arg1);   ///< Update selectable personnel functions.
     void on_addPerson_pushButton_pressed();                                 ///< Add the selected person to the report personnel list.
     void on_addExtPerson_pushButton_pressed();                              ///< Add an external person to the report personnel list.
@@ -282,11 +292,14 @@ private slots:
     void on_boatHoursCarryHours_spinBox_valueChanged(int arg1);     ///< Set report boat hours carry and update total boat hours display.
     void on_boatHoursCarryMinutes_spinBox_valueChanged(int arg1);   ///< Set report boat hours carry and update total boat hours display.
     //
-    void on_assignmentNumber_lineEdit_textEdited(const QString& arg1);      ///< Set report assignment number.
+    void on_assignmentNumber_lineEdit_textEdited(const QString& arg1);  ///< Set report assignment number.
 
 signals:
-    void closed();          ///< Signal emitted when window closes (for re-showing startup dialog).
-    void exportFailed();    ///< Signal emitted by export thread on failure to show message box in main thread.
+    void closed(const ReportWindow *const pWindow); ///< Signal emitted when window closes (for re-showing startup window).
+    void exportFailed();                            ///< Signal emitted by export thread on failure to show message box in main thread.
+    void openAnotherReportRequested(const QString& pFileName, bool pChooseFile = false);    ///< \brief Signal emitted when another
+                                                                                            ///  report window shall be opened
+                                                                                            ///  by the startup window.
 
 private:
     Ui::ReportWindow *ui;   //UI
