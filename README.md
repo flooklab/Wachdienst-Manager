@@ -1,6 +1,34 @@
 # Wachdienst-Manager
 
-Wachdienst-Manager ist ein Verwaltungsprogramm für DLRG-Wachdienstberichte.
+Wachdienst-Manager ist ein Programm zum Erstellen von Wachberichten für den Wasserrettungsdienst der DLRG.
+Die erstellten Wachberichte können sowohl in einem programmeigenen Dateiformat gespeichert als auch zum Drucken
+als PDF-Datei exportiert werden. Um die Exportfunktion nutzen zu können, muss zusätzlich zum Wachdienst-Manager
+eine LaTeX-Installation (wie zum Beispiel [TeXLive](https://www.tug.org/texlive)) vorhanden sein.  
+
+Neben generellen Informationen zum jeweiligen Diensttag und dem Wachpersonal, das aus einer programminternen Datenbank
+ausgewählt oder manuell als externes Personal hinzugefügt werden kann, können Angaben zum Wetter, zur Hilfeleistungsstatistik
+und zu eingesetzten Einsatzfahrzeugen eingetragen werden. Auch können dem Wachbericht angehängte Anlagen sowie eine
+gegebenenfalls von der Leitstelle vergebene Einsatznummer eingetragen werden. Wichtige Dateien, wie zum Beispiel eine
+Einsatzprotokoll-Vorlage, können in der Benutzeroberfläche verlinkt und direkt von dort aus geöffnet werden.  
+
+Jeder Person des Wachpersonals wird eine Funktion, wie zum Beispiel "Bootsführer", zugewiesen, die je nach den für
+die Person in der Datenbank eingetragenen Qualifikationen entsprechend ausgewählt werden kann. Die für jede Person
+eingetragenen Dienstzeiten werden automatisch zusammengerechnet und mit dem Übertrag des letzten Wachberichtes zu
+einem Gesamtwert verrechnet. Der Übertrag kann automatisch aus dem letzten Wachbericht errechnet und eingetragen
+werden. Diese Übertragsfunktionalität setzt entsprechend auch automatisch die laufende Nummer des Wachberichts.  
+
+Zusätzlich zu dem eigentlichen Wachbericht wird ein Eintrag für das Bootstagebuch generiert. Dazu können in derselben
+Benutzeroberfläche die am Diensttag getätigten Bootsfahrten und weitere, allgemeine Daten zum Bootstagebuch wie unter
+anderem der Betriebsstundenzählerstand und die Menge an getanktem Treibstoff eingetragen werden. Für die Bootsbesatzung
+der Fahrten können jeweils die als Wachpersonal eingetragenen Personen ausgewählt werden. Diesen wird für die Dauer
+der Fahrt eine Bootsgast-Funktion zugewiesen, die wiederum entsprechend der vorhandenen Qualifikationen ausgewählt
+werden kann. Analog zu den Dienstzeiten des Wachpersonals werden auch hier die gefahrenen Bootsstunden automatisch
+zusammengerechnet und mit dem Übertrag verrechnet. Auch dieser Übertrag kann, genauso wie der Startwert
+des Betriebsstundenzählers, mit der zuvor genannten Übertragsfunktionalität geladen werden.
+
+## Handbuch
+
+Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdienst-Managers wird jedem neuen Release angehängt.
 
 ## Erstellen des Wachdienst-Managers (Windows)
 
@@ -8,7 +36,8 @@ Wachdienst-Manager ist ein Verwaltungsprogramm für DLRG-Wachdienstberichte.
   - Benötigte Software: [Qt 6](https://www.qt.io/product/qt6), [CMake](https://cmake.org/).
 
 - Vorbereitung:
-  - DLRG-Logo (z.B. Logo aus https://de.wikipedia.org/wiki/Datei:DLRG_Logo.svg mit Inkscape exportieren) mit Größe {475px x 386px} unter ".\resources\images\dlrg-logo.png" speichern (**Urheberrechte beachten!**)
+  - DLRG-Logo (zum Beispiel das Logo aus https://de.wikipedia.org/wiki/Datei:DLRG_Logo.svg mit Inkscape exportieren)
+    mit Größe {475px x 386px} unter ".\resources\images\dlrg-logo.png" speichern (**Urheberrechte beachten!**)
   - Eingabekonsole (`cmd.exe`) starten
 
 - Build:
@@ -33,10 +62,6 @@ Wachdienst-Manager ist ein Verwaltungsprogramm für DLRG-Wachdienstberichte.
 - *Optionale* Quellcode-Dokumentation (benötigt [Doxygen](https://github.com/doxygen/doxygen)):
   - In Verzeichnis ".\doc" wechseln
   - `doxygen` ausführen
-
-## Handbuch
-
-Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdienst-Managers wird jedem neuen Release angehängt.
 
 ## Lizenzhinweise
 
