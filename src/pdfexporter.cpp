@@ -27,8 +27,9 @@
 /*!
  * \brief Export report as PDF file.
  *
- * Calls reportToLaTeX() to generate LaTeX code from \p pReport, which is then compiled using configured XeLaTeX executable
- * in a temporary directory and copied over to \p pFileName. \p pPersonnelTableMaxLength is passed to reportToLaTeX().
+ * Calls reportToLaTeX() to generate LaTeX code from \p pReport, which is then compiled using
+ * configured XeLaTeX executable in a temporary directory and copied over to \p pFileName.
+ * \p pPersonnelTableMaxLength and \p pBoatDrivesTableMaxLength are passed to reportToLaTeX().
  *
  * Images required for the LaTeX document are copied from compiled resources to temporary directory before compilation.
  *
@@ -37,16 +38,18 @@
  * \param pReport The report to use to create the PDF.
  * \param pFileName Location / file name for the PDF file.
  * \param pPersonnelTableMaxLength See reportToLaTeX().
+ * \param pBoatDrivesTableMaxLength See reportToLaTeX().
  * \return If compilation and copying was successful.
  */
-bool PDFExporter::exportPDF(const Report& pReport, const QString& pFileName, int pPersonnelTableMaxLength)
+bool PDFExporter::exportPDF(const Report& pReport, const QString& pFileName,
+                            int pPersonnelTableMaxLength, int pBoatDrivesTableMaxLength)
 {
     //Generate content of LaTeX document
     QString texString;
-    reportToLaTeX(pReport, texString, pPersonnelTableMaxLength);
+    reportToLaTeX(pReport, texString, pPersonnelTableMaxLength, pBoatDrivesTableMaxLength);
 
     //XeLaTeX application path
-    //Note: Suppressing potential message boxes since this function likely executed in a different thread (not possible with QMessageBox)
+    //Note: Suppressing potential message boxes since this function likely executed in different thread (not possible with QMessageBox)
     QString texProg = SettingsCache::getStrSetting("app_export_xelatexPath", true);
 
     if (!QFileInfo::exists(texProg))
@@ -140,9 +143,10 @@ bool PDFExporter::exportPDF(const Report& pReport, const QString& pFileName, int
  *
  * \param pReport The report to use to create the PDF.
  * \param pTeXString Destination for the generated LaTeX code.
- * \param pPersonnelTableMaxLength Row count limit for personnel table. Will insert additional page to continue table if this exceeded.
+ * \param pPersonnelTableMaxLength Row count limit for personnel table. Inserts additional page to continue table if this exceeded.
+ * \param pBoatDrivesTableMaxLength Row count limit for boat drives table. Inserts additional page to continue table if this exceeded.
  */
-void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int pPersonnelTableMaxLength)
+void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int pPersonnelTableMaxLength, int pBoatDrivesTableMaxLength)
 {
     QString rawTexString0 = "\\documentclass[a4paper, notitlepage, 10pt]{scrreprt}\n"
        "\n"
@@ -160,9 +164,11 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
        "\\usepackage{ulem}\n"
        "\n"
        "\\usepackage{array}\n"
+       "\\usepackage{extdash}\n"
        "\\usepackage{multirow}\n"
        "\\usepackage{makecell}\n"
        "\\usepackage{booktabs}\n"
+       "\\usepackage{longtable}\n"
        "\n"
        "\\usepackage{graphicx}\n"
        "\n"
@@ -173,7 +179,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     //Document font
 
-    //Note: Suppressing potential message boxes since this function likely executed in a different thread (not possible with QMessageBox)
+    //Note: Suppressing potential message boxes since this function likely executed in different thread (not possible with QMessageBox)
     QString tFontFamily = SettingsCache::getStrSetting("app_export_fontFamily", true);
     Aux::latexEscapeSpecialChars(tFontFamily);
     Aux::latexFixLineBreaksNoLineBreaks(tFontFamily);
@@ -217,33 +223,44 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         tDistrictAssociation = tStation.districtAssociation;
         tStationLocation = tStation.location;
         tStationName = tStation.name;
+
+        Aux::latexUseHyphdash(tLocalGroup);
+        Aux::latexUseHyphdash(tDistrictAssociation);
+        Aux::latexUseHyphdash(tStationLocation);
+        Aux::latexUseHyphdash(tStationName);
     }
 
     //Combine duty purpose with its comment, if not empty
-    QString tPurpose;
-    if (pReport.getDutyPurposeComment() == "")
-        tPurpose = Report::dutyPurposeToLabel(pReport.getDutyPurpose());
-    else
+
+    QString tPurpose = "\\hspace{0pt}" + Report::dutyPurposeToLabel(pReport.getDutyPurpose());
+    Aux::latexUseHyphdash(tPurpose);
+
+    if (pReport.getDutyPurposeComment() != "")
     {
         QString tPurposeComment = pReport.getDutyPurposeComment();
         Aux::latexEscapeSpecialChars(tPurposeComment);
-        tPurpose = "\\makecell[lt]{" + Report::dutyPurposeToLabel(pReport.getDutyPurpose()) +
-                   "\\\\(\\textit{" + std::move(tPurposeComment) + "})}";
+        Aux::latexFixLineBreaksNoLineBreaks(tPurposeComment);
+        Aux::latexUseHyphdash(tPurposeComment);
+
+        tPurpose += "\\newline{}\\hspace{0pt}(\\textit{" + std::move(tPurposeComment) + "})\\vspace{-0.25\\baselineskip}";
     }
 
-    QString rawTexString1 = "{\\LARGE\\textbf{Wachbericht DLRG OG %10}}\n"
+    //Station radio call name
+    QString tStationRadioCallName = pReport.getRadioCallName();
+    Aux::latexUseHyphdash(tStationRadioCallName);
+
+    QString rawTexString1 = "{\\LARGE\\textbf{Wachbericht}}\n"
        "\n"
-       "\\vspace{42pt}\n"
-       "\\begin{minipage}[r][0pt][r]{1.04\\linewidth} \\hfill\\includegraphics[width=105bp]{logo} \\end{minipage}\n"
-       "\\vspace{-56pt}\n"
+       "\\vspace{-2pt}\\hspace{-0.5in}\n"
+       "\\begin{minipage}[b][0pt][t]{\\linewidth+0.5in+0.4in-2pt-8pt}\\vspace{-51pt+8pt}\\hfill\\includegraphics[width=105pt]{logo}\\end{minipage}\n"
        "\n"
        "\\begin{minipage}{\\linewidth}\n"
        "\\renewcommand{\\arraystretch}{1.55}\n"
-       "\\begin{tabular}{>{}p{0.095\\linewidth}>{}p{0.280\\linewidth}>{}p{0.10\\linewidth}>{}p{0.08\\linewidth}\n"
+       "\\begin{tabular}{>{}p{0.095\\linewidth}>{}p{0.28\\linewidth}>{}p{0.10\\linewidth}>{}p{0.09\\linewidth}\n"
        "                 >{}p{0.09\\linewidth}>{}p{0.09\\linewidth}}\n"
-       "\\textbf{Bezirk/OG:} & %2 / %10 & Lfd. Nr. & %3 && \\\\\n"
-       "\\textbf{Station:} & %4 & Dienstzweck: & \\multicolumn{3}{l}{%5} \\\\\n"
-       "\\textbf{Ort:} & %1 & \\textbf{Funkruf:} & \\multicolumn{3}{l}{%6} \\\\\n"
+       "\\textbf{Bezirk/OG:} & \\hspace{0pt}%2 / %10 & \\textbf{Lfd. Nr.:} & %3 && \\\\\n"
+       "\\textbf{Station:} & \\hspace{0pt}%4 & \\textbf{Dienstzweck:} & \\multicolumn{3}{p{0.27\\linewidth}}{%5} \\\\\n"
+       "\\textbf{Ort:} & \\hspace{0pt}%1 & \\textbf{Funkruf:} & \\multicolumn{3}{p{0.27\\linewidth}}{\\hspace{0pt}%6} \\\\\n"
        "\\textbf{Datum:} & %7 & \\textbf{Beginn:} & %8 & \\textbf{Ende:} & %9 \\\\\n"
        "\\end{tabular}\n"
        "\\end{minipage}\n"
@@ -251,22 +268,22 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     QString texString1 = rawTexString1.arg(tStationLocation, tDistrictAssociation, QString::number(pReport.getNumber()),
                                            tStationName, tPurpose).arg(
-                                           pReport.getRadioCallName(), pReport.getDate().toString("dd.MM.yyyy"),
+                                           tStationRadioCallName, pReport.getDate().toString("dd.MM.yyyy"),
                                            pReport.getBeginTime().toString("hh:mm"), pReport.getEndTime().toString("hh:mm"),
                                            tLocalGroup);
 
     QString texString2 = "\\subsection*{Wachmannschaft}\n"
        "\\vspace{3pt}\n"
        "\\renewcommand{\\arraystretch}{0.6}\n"
-       "\\begin{tabular}{>{\\raggedleft}p{0.02\\linewidth}>{\\raggedright}p{0.25\\linewidth}>{\\raggedright}p{0.25\\linewidth}\n"
-       "                 >{\\raggedright}p{0.12\\linewidth}>{\\raggedleft}p{0.06\\linewidth}>{\\raggedleft}p{0.06\\linewidth}\n"
-       "                 >{\\raggedleft\\arraybackslash}p{0.06\\linewidth}}\n"
+       "\\begin{tabular}{>{\\raggedleft}p{0.02\\linewidth}>{\\raggedright}p{0.26\\linewidth}>{\\raggedright}p{0.26\\linewidth}\n"
+       "                 >{\\raggedright}p{0.09\\linewidth}>{\\raggedleft}p{0.07\\linewidth}>{\\raggedleft}p{0.07\\linewidth}\n"
+       "                 >{\\raggedleft\\arraybackslash}p{0.07\\linewidth}}\n"
        "\\textbf{Nr.} & \\textbf{Name} & \\textbf{Vorname} & \\textbf{Funktion} & \\textbf{Beginn} & \\textbf{Ende} &\n"
        "\\textbf{Gesamt}\\\\\n"
        "\\toprule\n";
 
     //Row template for personnel table
-    QString tRowString = "\\textbf{%1} & %2 & %3 & %4 & %5 & %6 & %7 \\\\";
+    QString tRowString = "\\textbf{%1} & \\hspace{0pt}%2 & \\hspace{0pt}%3 & %4 & %5 & %6 & %7 \\\\";
 
     //Sorted personnel list
     std::vector<QString> tPersonnelSorted = pReport.getPersonnel(true);
@@ -274,6 +291,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     int tPersonNumber = 1;                                                  //Enumerate personnel
     int tTotalPersonnelMinutes = 0;                                         //Print total personnel hours at the end of the table
+
     bool splitPersonnelTable = (tPersonnelSize > pPersonnelTableMaxLength); //Continue long table on next page
 
     //Add a table row for each person
@@ -284,17 +302,27 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         const QTime tBeginTime = pReport.getPersonBeginTime(tIdent);
         const QTime tEndTime = pReport.getPersonEndTime(tIdent);
 
-        int tMinutes = tBeginTime.secsTo(tEndTime) / 60;
-        tTotalPersonnelMinutes += tMinutes;
+        int dMinutes = tBeginTime.secsTo(tEndTime) / 60;
 
-        QTime tDuration = QTime(0, 0, 0).addSecs(tMinutes * 60);
+        if (dMinutes < 0)
+            dMinutes += 24 * 60;
+
+        tTotalPersonnelMinutes += dMinutes;
+
+        QTime tDuration = QTime(0, 0, 0).addSecs(dMinutes * 60);
+
+        QString tLastNameStr = tPerson.getLastName();
+        Aux::latexUseHyphdash(tLastNameStr);
+
+        QString tFirstNameStr = tPerson.getFirstName();
+        Aux::latexUseHyphdash(tFirstNameStr);
 
         if (splitPersonnelTable && tPersonNumber == pPersonnelTableMaxLength)
         {
             //Hint at continuation of the table on next page, if table is too long and split here
             texString2.append(" \\midrule\n");
-            texString2.append("\\textbf{\\dots} & \\multicolumn{5}{l}{\\textit{Fortsetzung auf nächster Seite}} & "
-                              "\\dots\\vspace{0pt} \\\\ \\midrule");
+            texString2.append("\\textbf{\\dots} & \\multicolumn{5}{c}{\\textit{Fortsetzung auf nächster Seite}} & "
+                              "\\dots\\vspace{0pt} \\\\");
         }
         else if (splitPersonnelTable && tPersonNumber > pPersonnelTableMaxLength)
         {
@@ -306,7 +334,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
             if (tPersonNumber > 1)
                 texString2.append(" \\midrule\n");
 
-            texString2.append(tRowString.arg(QString::number(tPersonNumber), tPerson.getLastName(), tPerson.getFirstName(),
+            texString2.append(tRowString.arg(QString::number(tPersonNumber), tLastNameStr, tFirstNameStr,
                                              Person::functionToLabel(tFunction),
                                              tBeginTime.toString("hh:mm"), tEndTime.toString("hh:mm"), tDuration.toString("hh:mm")));
         }
@@ -326,7 +354,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     int tTotalPersonnelHoursWithCarry = (tTotalPersonnelMinutes + pReport.getPersonnelMinutesCarry() -
                                          tTotalPersonnelModMinutesWithCarry) / 60;
     texString2.append(QString("\n"
-       "\\midrule\n"
+       "\\bottomrule\\addlinespace[\\belowrulesep]\n"
        "\\multicolumn{6}{r}{Einsatzstunden} & %1\\vspace{1pt} \\\\\n"
        "\\multicolumn{6}{r}{+ Übertrag} & %2\\vspace{3pt} \\\\\n"
        "\\multicolumn{6}{r}{= Gesamt} & \\textbf{%3} \\\\\n"
@@ -334,12 +362,14 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
        "\\vspace{-2pt}\n"
        "\\vfill\n\n").arg(QString::asprintf("%02u:%02u", tTotalPersonnelHours, tTotalPersonnelModMinutes),
                           QString::asprintf("%02u:%02u", tCarryPersonnelHours, tCarryPersonnelModMinutes),
-                          QString::asprintf("%3u:%02u", tTotalPersonnelHoursWithCarry, tTotalPersonnelModMinutesWithCarry)));
+                          QString::asprintf("%02u:%02u", tTotalPersonnelHoursWithCarry, tTotalPersonnelModMinutesWithCarry)));
 
     //Weather conditions
 
     QString tWeatherComments = pReport.getWeatherComments();
     Aux::latexEscapeSpecialChars(tWeatherComments);
+    Aux::latexFixLineBreaks(tWeatherComments);
+    Aux::latexUseHyphdash(tWeatherComments);
     if (tWeatherComments == "")
         tWeatherComments = "---";
 
@@ -350,7 +380,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
        "                 >{\\raggedright}p{0.18\\linewidth}>{\\raggedright}p{0.12\\linewidth}\n"
        "                 >{\\raggedright\\arraybackslash}p{0.25\\linewidth}}\n"
        "Lufttemperatur: & \\SI{%1}{\\degreeCelsius} & Bewölkung: & %3 & Wind: & %5 \\\\\n"
-       "Wassertemperatur: & \\SI{%2}{\\degreeCelsius} & Niederschlag: & %4 & Bemerkungen: & %6 \n"
+       "Wassertemperatur: & \\SI{%2}{\\degreeCelsius} & Niederschlag: & %4 & Bemerkungen: & \\hspace{0pt}%6 \n"
        "\\end{tabular}\n"
        "\\end{minipage}\n"
        "\\vspace{7pt}\n\\vfill\n\n";
@@ -403,19 +433,15 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     texString4.append(QString("\\end{tabular}\n"
        "\\end{minipage}\n"
-       "}\n"
-       "\\usebox{\\rescuesBox}\n"
-       "\\hfill\n"));
+       "}\n"));
 
     //Vehicles
 
-    QString texString5 = "\\newlength{\\rescuesBoxHeight}\n"
-       "\\setlength{\\rescuesBoxHeight}{\\ht\\rescuesBox+\\dp\\rescuesBox}\n"
-       "\\begin{minipage}[c][\\rescuesBoxHeight][t]{0.45\\linewidth}\n"
-       "\\subsection*{Einsatzfahrzeuge an der Station}\n"
-       "\\hfill\n"
+    QString texString5 = "\\newsavebox{\\vehiclesBox}\n"
+       "\\savebox{\\vehiclesBox}{\n"
+       "\\begin{minipage}{0.45\\linewidth}\n"
+       "\\subsection*{Eingesetzte Einsatzfahrzeuge}\n"
        "\\renewcommand{\\arraystretch}{0.6}\n"
-
        "\\begin{tabular}{>{\\raggedright}p{0.66\\linewidth}>{\\raggedright\\arraybackslash}p{0.10\\linewidth}\n"
        "                >{\\raggedright\\arraybackslash}p{0.09\\linewidth}}\n"
        "\\textbf{Fahrzeug} & \\textbf{Von} & \\textbf{Bis} \\\\ \\toprule\n";
@@ -426,11 +452,14 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     //Add new row for each vehicle
     for (const auto& it : pReport.getVehicles(true))
     {
-        const QString& vehicle = it.first;
+        QString vehicle = it.first;
+        Aux::latexUseHyphdash(vehicle);
+
         const QTime arrivalTime = it.second.first;
         const QTime leavingTime = it.second.second;
 
-        texString5.append(QString("%1 & %2 & %3 \\\\").arg(vehicle, arrivalTime.toString("hh:mm"), leavingTime.toString("hh:mm")));
+        texString5.append(QString("\\hspace{0pt}%1 & %2 & %3 \\\\").arg(vehicle, arrivalTime.toString("hh:mm"),
+                                                                                 leavingTime.toString("hh:mm")));
 
         if (++tVehicleNumber < tNumVehicles)
             texString5.append(" \\midrule\n");
@@ -438,13 +467,42 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     texString5.append("\\bottomrule\n");
 
     texString5.append(QString("\\end{tabular}\n"
-       "\\vfill\\hfill\n"
-       "\\begin{tabular}{>{\\raggedleft\\arraybackslash}p{0.42\\linewidth}}\n"
-       "\\textbf{Einsatznummer LSt:} \\\\ \\toprule\\vspace{-3pt}\n"
+       "\\end{minipage}\n"
+       "}\n"
+       "\\newsavebox{\\assignmentNumberBox}\n"
+       "\\savebox{\\assignmentNumberBox}{\n"
+       "\\begin{minipage}{0.45\\linewidth}\\hfill\n"
+       "\\begin{tabular}{>{\\raggedleft\\arraybackslash}p{0.45\\linewidth}}\n"
+       "\\multicolumn{1}{c}{\\textbf{Einsatznummer LSt:}} \\\\ \\toprule\\vspace{-3pt}\n"
        "%1\n"
        "\\end{tabular}\n"
+       "\\end{minipage}\n").arg(pReport.getAssignmentNumber().size() > 0 ? pReport.getAssignmentNumber() : "---"));
+
+    texString5.append(QString("}\n"
+       "\\newlength{\\rescuesBoxHeight}\n"
+       "\\setlength{\\rescuesBoxHeight}{\\ht\\rescuesBox+\\dp\\rescuesBox}\n"
+       "\\newlength{\\vehiclesBoxHeight}\n"
+       "\\setlength{\\vehiclesBoxHeight}{\\ht\\vehiclesBox+\\dp\\vehiclesBox}\n"
+       "\\newlength{\\assignmentNumberBoxHeight}\n"
+       "\\setlength{\\assignmentNumberBoxHeight}{\\ht\\assignmentNumberBox+\\dp\\assignmentNumberBox}\n"
+       "\\newlength{\\vehiclesBoxSepLength}\n"
+       "\\setlength{\\vehiclesBoxSepLength}{5pt}\n"
+       "\\newlength{\\maxMinipageColHeight}\n"
+       "\\setlength{\\maxMinipageColHeight}{%\n"
+       "\\maxof{\\rescuesBoxHeight}{\\vehiclesBoxHeight+\\assignmentNumberBoxHeight+\\vehiclesBoxSepLength}}\n"
+       "\\begin{minipage}[c][\\maxMinipageColHeight][t]{\\linewidth}\n"
+       "\\begin{minipage}[c][\\maxMinipageColHeight][t]{0.45\\linewidth}\n"
+       "\\usebox{\\rescuesBox}\n"
+       "\\vfill\n"
        "\\end{minipage}\n"
-       "\\vspace{10pt}\n\\vfill\n\n").arg(pReport.getAssignmentNumber().size() > 0 ? pReport.getAssignmentNumber() : "---"));
+       "\\hfill\n"
+       "\\begin{minipage}[c][\\maxMinipageColHeight][t]{0.45\\linewidth}\\raggedleft\n"
+       "\\usebox{\\vehiclesBox}\n"
+       "\\vspace{\\vehiclesBoxSepLength}\\vfill\n"
+       "\\usebox{\\assignmentNumberBox}\n"
+       "\\end{minipage}\n"
+       "\\end{minipage}\n"
+       "\\vspace{10pt}\n\\vfill\n\n"));
 
     QString rawTexString6 = "\\begin{minipage}{\\linewidth}\n"
        "\\subsection*{Bemerkungen}\n"
@@ -484,11 +542,11 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         tOtherEnclosures = "\\mbox{\\hspace{200pt}}";   //Keep some empty underlined space
 
     QString rawTexString7 = "\\begin{minipage}{\\linewidth}\n"
-       "Weitere Anlagen zum Wachbericht:\\vspace*{5pt}\\\\\n"
+       "Anlagen zum Wachbericht:\\vspace*{5pt}\\\\\n"
        "\\mbox{$%1$ Bootstagebuch \\qquad\\qquad $%2$ Einsatzprotokoll %6\\qquad\\qquad $%3$ Patientenprotokoll %7"
                                  "\\qquad\\qquad $%4$ Funktagebuch %8}\n"
        "\\vspace*{5pt}\\\\\n"
-       "Sonstige Anlagen:\\\\\\\\[-8pt]\n"
+       "Weitere Anlagen:\\\\\\\\[-8pt]\n"
        "\\hphantom{X}\\uline{\\mbox{}\\,%5\\ \\ \\mbox{}}\n"
        "\\end{minipage}\n"
        "\\vspace{-13pt}\n"
@@ -513,13 +571,21 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
                      "\\subsection*{Fortsetzung: Wachmannschaft}\n"
                      "\\vspace{3pt}\n"
                      "\\renewcommand{\\arraystretch}{0.6}\n"
-        "\\begin{tabular}{>{\\raggedleft}p{0.02\\linewidth}>{\\raggedright}p{0.25\\linewidth}>{\\raggedright}p{0.25\\linewidth}\n"
-        "                 >{\\raggedright}p{0.12\\linewidth}>{\\raggedleft}p{0.06\\linewidth}>{\\raggedleft}p{0.06\\linewidth}\n"
-        "                 >{\\raggedleft\\arraybackslash}p{0.06\\linewidth}}\n"
+        "\\begin{longtable}{>{\\raggedleft}p{0.02\\linewidth}>{\\raggedright}p{0.26\\linewidth}>{\\raggedright}p{0.26\\linewidth}\n"
+        "                   >{\\raggedright}p{0.11\\linewidth}>{\\raggedleft}p{0.06\\linewidth}>{\\raggedleft}p{0.06\\linewidth}\n"
+        "                   >{\\raggedleft\\arraybackslash}p{0.07\\linewidth}}\n"
         "\\textbf{Nr.} & \\textbf{Name} & \\textbf{Vorname} & \\textbf{Funktion} & \\textbf{Beginn} & \\textbf{Ende} &\n"
         "\\textbf{Gesamt}\\\\\n"
-        "\\toprule \\midrule\n"
-        "\\textbf{\\dots} & \\multicolumn{5}{l}{\\textit{Fortsetzung von letzter Seite}} & \\dots\\vspace{0pt} \\\\";
+        "\\toprule\n"
+        "\\textbf{\\dots} & \\multicolumn{5}{c}{\\textit{Fortsetzung von letzter Seite}} & \\dots\\vspace{0pt} \\\\\n"
+        "\\midrule\n"
+        "\\endhead\n"
+        "\\textbf{\\dots} & \\multicolumn{5}{c}{\\textit{Fortsetzung auf nächster Seite}}\\strut &\n"
+        "\\dots\\vspace{0pt} \\\\\n"
+        "\\bottomrule\n"
+        "\\endfoot\n"
+        "\\bottomrule\n"
+        "\\endlastfoot\n";
 
         //Reuse enumerator variable from above
         tPersonNumber = 0;
@@ -536,20 +602,30 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
             const QTime tBeginTime = pReport.getPersonBeginTime(tIdent);
             const QTime tEndTime = pReport.getPersonEndTime(tIdent);
 
-            int tMinutes = tBeginTime.secsTo(tEndTime) / 60;
+            int dMinutes = tBeginTime.secsTo(tEndTime) / 60;
 
-            QTime tDuration = QTime(0, 0, 0).addSecs(tMinutes * 60);
+            if (dMinutes < 0)
+                dMinutes += 24 * 60;
 
-            texString8.append(" \\midrule\n");
+            QTime tDuration = QTime(0, 0, 0).addSecs(dMinutes * 60);
 
-            texString8.append(tRowString.arg(QString::number(tPersonNumber), tPerson.getLastName(), tPerson.getFirstName(),
+            QString tLastNameStr = tPerson.getLastName();
+            Aux::latexUseHyphdash(tLastNameStr);
+
+            QString tFirstNameStr = tPerson.getFirstName();
+            Aux::latexUseHyphdash(tFirstNameStr);
+
+            //Skip midrule for first line after header
+            if (tPersonNumber > pPersonnelTableMaxLength)
+                texString8.append(" \\midrule\n");
+
+            texString8.append(tRowString.arg(QString::number(tPersonNumber), tLastNameStr, tFirstNameStr,
                                              Person::functionToLabel(tFunction),
                                              tBeginTime.toString("hh:mm"), tEndTime.toString("hh:mm"), tDuration.toString("hh:mm")));
         }
 
-        texString8.append(QString(" \\midrule\n"
-                                  "\\midrule\n"
-                                  "\\end{tabular}\n"
+        texString8.append(QString("\n"
+                                  "\\end{longtable}\n"
                                   "\\vspace{0pt}\n"
                                   "\\vfill\n"));
     }
@@ -558,7 +634,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     QString pagebreakString = "\n\\clearpage\n";
 
-    //Note: Suppressing potential message boxes since this function likely executed in a different thread (not possible with QMessageBox)
+    //Note: Suppressing potential message boxes since this function likely executed in different thread (not possible with QMessageBox)
     if (SettingsCache::getBoolSetting("app_export_twoSidedPrint", true))
     {
         pagebreakString.append("\\ifodd\\value{page}\n"
@@ -588,6 +664,10 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         tBoatAcronym = tBoat.acronym;
         tBoatType = tBoat.type;
         tBoatFuelType = tBoat.fuelType;
+
+        Aux::latexUseHyphdash(tBoatName);
+        Aux::latexUseHyphdash(tBoatType);
+        Aux::latexUseHyphdash(tBoatFuelType);
     }
 
     //Split boat engine hours in parts before and after decimal point
@@ -605,19 +685,22 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     else
         tBoatNameStr = tBoatAcronym + " " + tBoatName;
 
-    QString rawTexString9 = "{\\LARGE\\textbf{Bootstagebuch DLRG OG %1}}\n"
+    //Boat radio call name
+    QString tBoatRadioCallName = boatLog.getRadioCallName();
+    Aux::latexUseHyphdash(tBoatRadioCallName);
+
+    QString rawTexString9 = "{\\LARGE\\textbf{Bootstagebuch}}\n"
         "\n"
-        "\\vspace{42pt}\n"
-        "\\begin{minipage}[r][0pt][r]{1.04\\linewidth} \\hfill\\includegraphics[width=105bp]{logo} \\end{minipage}\n"
-        "\\vspace{-56pt}\n"
+        "\\vspace{-2pt}\\hspace{-0.5in}\n"
+        "\\begin{minipage}[b][0pt][t]{\\linewidth+0.5in+0.4in-2pt-8pt}\\vspace{-51pt+8pt}\\hfill\\includegraphics[width=105pt]{logo}\\end{minipage}\n"
         "\n"
         "\\begin{minipage}{\\linewidth}\n"
         "\\renewcommand{\\arraystretch}{1.55}\n"
-        "\\begin{tabular}{>{}p{0.095\\linewidth}>{}p{0.28\\linewidth}>{}p{0.11\\linewidth}>{}p{0.09\\linewidth}\n"
-        "                >{}p{0.11\\linewidth}>{}p{0.09\\linewidth}}\n"
-        "\\textbf{Bezirk/OG:} & %2 / %1 & Lfd. Nr. & %3 && \\\\\n"
-        "\\textbf{Boot:} & %10 & Typ: & \\multicolumn{3}{l}{%4} \\\\\n"
-        "\\textbf{Ort:} & %5 & \\textbf{Funkruf:} & \\multicolumn{3}{l}{%6} \\\\\n"
+        "\\begin{tabular}{>{}p{0.095\\linewidth}>{}p{0.28\\linewidth}>{}p{0.11\\linewidth}>{}p{0.075\\linewidth}\n"
+        "                >{}p{0.11\\linewidth}>{}p{0.075\\linewidth}}\n"
+        "\\textbf{Bezirk/OG:} & \\hspace{0pt}%2 / %1 & \\textbf{Lfd. Nr.:} & %3 && \\\\\n"
+        "\\textbf{Boot:} & \\hspace{0pt}%10 & \\textbf{Typ:} & \\multicolumn{3}{p{0.26\\linewidth}}{\\hspace{0pt}%4} \\\\\n"
+        "\\textbf{Ort:} & \\hspace{0pt}%5 & \\textbf{Funkruf:} & \\multicolumn{3}{p{0.26\\linewidth}}{\\hspace{0pt}%6} \\\\\n"
         "\\textbf{Datum:} & %7 & \\textbf{BSZ-Start:} & %8 & \\textbf{BSZ-Ende:} & %9 \\\\\n"
         "\\end{tabular}\n"
         "\\end{minipage}\n"
@@ -625,120 +708,160 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     //Boat log header
     QString texString9 = rawTexString9.arg(tLocalGroup, tDistrictAssociation, QString::number(pReport.getNumber()), tBoatType,
-                                           tStationLocation, boatLog.getRadioCallName(), pReport.getDate().toString("dd.MM.yyyy"),
+                                           tStationLocation, tBoatRadioCallName, pReport.getDate().toString("dd.MM.yyyy"),
                                            QString::asprintf("%04u,%1u", tEngineInitialFullHours, tEngineInitialDecimalPlace),
                                            QString::asprintf("%04u,%1u", tEngineFinalFullHours, tEngineFinalDecimalPlace)
                                            ).arg(tBoatNameStr);
 
+    //Define lambda to compare/sort persons by name, then identifier
+    auto cmpNameIdent = [](const Person& pA, const Person& pB) -> bool
+    {
+        if (QString::localeAwareCompare(pA.getLastName(), pB.getLastName()) < 0)
+            return true;
+        else if (QString::localeAwareCompare(pA.getLastName(), pB.getLastName()) > 0)
+            return false;
+        else
+        {
+            if (QString::localeAwareCompare(pA.getFirstName(), pB.getFirstName()) < 0)
+                return true;
+            else if (QString::localeAwareCompare(pA.getFirstName(), pB.getFirstName()) > 0)
+                return false;
+            else
+            {
+                if (QString::localeAwareCompare(pA.getIdent(), pB.getIdent()) < 0)
+                    return true;
+                else
+                    return false;
+            }
+        }
+    };
+
     QString texString10 = "\\subsection*{Bootsfahrten}\n"
         "\\vspace{3pt}\n"
         "\\renewcommand{\\arraystretch}{0.6}\n"
-        "\\begin{tabular}{>{\\raggedleft}p{0.02\\linewidth}>{\\raggedright}p{0.08\\linewidth}>{\\raggedright}p{0.15\\linewidth}\n"
-        "                >{\\raggedright}p{0.12\\linewidth}>{\\raggedright}p{0.20\\linewidth}>{\\raggedright}p{0.21\\linewidth}\n"
-        "                >{\\raggedleft\\arraybackslash}p{0.06\\linewidth}}\n"
+        "\\begin{tabular}{>{\\raggedleft}p{0.02\\linewidth}>{\\raggedright}p{0.08\\linewidth}>{\\raggedright}p{0.14\\linewidth}\n"
+        "                >{\\raggedright}p{0.13\\linewidth}>{\\raggedright}p{0.21\\linewidth}>{\\raggedright}p{0.19\\linewidth}\n"
+        "                >{\\raggedleft\\arraybackslash}p{0.07\\linewidth}}\n"
         "\\textbf{Nr.} & \\textbf{Zeitraum} & \\textbf{Fahrtzweck} & \\textbf{Bootsführer} & \\textbf{Besatzung} &\n"
         "\\textbf{Bemerkungen} & \\textbf{Dauer}\\\\\n"
         "\\toprule\n";
 
+    //Row template for boat drives table
+    QString tDriveRowString = "\\textbf{%1} & \\makecell[rt]{%2\\\\--%3} & \\hspace{0pt}%4 & \\hspace{0pt}%5 & %6 & "
+                              "\\hspace{0pt}%7 & %8 \\\\";
+
     //Boat drives list
     auto tDrives = boatLog.getDrives();
-
-    //Row template for boat drives table
-    QString tDriveRowString = "\\textbf{%1} & \\makecell[rt]{%2\\\\--%3} & %4 & %5 & \\makecell[lt]{%6} & %7 & %8 \\\\";
+    int tDrivesSize = tDrives.size();
 
     int tDriveNumber = 1;       //Enumerate drives
     int tTotalBoatMinutes = 0;  //Print total boat drive hours at the end of the table
     int tTotalDrivesFuel = 0;   //Sum up amount of fuel added during/after individual drives
 
+    bool splitDrivesTable = (tDrivesSize > pBoatDrivesTableMaxLength);  //Continue long table on next page
+
     //Add a table row for each drive
     for (const BoatDrive& tDrive : tDrives)
     {
-        //Boatman information
+        //Name of boatman
 
         Person tBoatman = Person::dummyPerson();
         if (tDrive.getBoatman() != "")
             tBoatman = pReport.getPerson(tDrive.getBoatman());
 
         QString tBoatmanStr = tBoatman.getLastName() + ", " + tBoatman.getFirstName();
+        Aux::latexUseHyphdash(tBoatmanStr);
+
+        if (tDrive.getBoatman() == "")
+            tBoatmanStr = "---";
 
         //Crew members
 
-        std::map<QString, Person::BoatFunction> tCrewIdents = tDrive.crew();
         std::vector<Person> tCrew;
-        for (const auto& it : tCrewIdents)
+        for (const auto& it : tDrive.crew())
             tCrew.push_back(pReport.getPerson(it.first));
 
         int tCrewMemberNumber = 1;
 
-        //Define lambda to compare/sort persons by name, then identifier
-        auto cmp = [](const Person& pA, const Person& pB) -> bool
-        {
-            if (QString::localeAwareCompare(pA.getLastName(), pB.getLastName()) < 0)
-                return true;
-            else if (QString::localeAwareCompare(pA.getLastName(), pB.getLastName()) > 0)
-                return false;
-            else
-            {
-                if (QString::localeAwareCompare(pA.getFirstName(), pB.getFirstName()) < 0)
-                    return true;
-                else if (QString::localeAwareCompare(pA.getFirstName(), pB.getFirstName()) > 0)
-                    return false;
-                else
-                {
-                    if (QString::localeAwareCompare(pA.getIdent(), pB.getIdent()) < 0)
-                        return true;
-                    else
-                        return false;
-                }
-            }
-        };
-
         //Use temporary set to sort persons using above custom sort lambda
 
-        std::set<std::reference_wrapper<const Person>, decltype(cmp)> tCrewSorted(cmp);
+        std::set<std::reference_wrapper<const Person>, decltype(cmpNameIdent)> tCrewSorted(cmpNameIdent);
 
         for (const Person& tPerson : tCrew)
             tCrewSorted.insert(std::cref(tPerson));
 
-        QString tCrewStr;
+        QString tCrewStr = "\\hspace{0pt}";
 
         for (const Person& tPerson : tCrewSorted)
         {
-            tCrewStr.append(tPerson.getLastName() + ", " + tPerson.getFirstName());
+            QString tPersonStr = tPerson.getLastName() + ", " + tPerson.getFirstName();
+            Aux::latexUseHyphdash(tPersonStr);
+
+            tCrewStr.append(tPersonStr);
 
             if (tCrewMemberNumber++ < static_cast<int>(tCrewSorted.size()))
-                tCrewStr.append("\\\\");
+                tCrewStr.append("\\newline{}\\hspace{0pt}");
         }
 
+        if (tDrive.crewSize() == 0)
+            tCrewStr = "---";
+
         //Drive purpose
+
         QString tDrivePurpose = tDrive.getPurpose();
         Aux::latexEscapeSpecialChars(tDrivePurpose);
         Aux::latexFixLineBreaksNoLineBreaks(tDrivePurpose);
+        Aux::latexUseHyphdash(tDrivePurpose);
+
+        if (tDrivePurpose == "")
+            tDrivePurpose = "---";
 
         //Drive comment
         QString tDriveComments = tDrive.getComments();
         Aux::latexEscapeSpecialChars(tDriveComments);
         Aux::latexFixLineBreaks(tDriveComments);
+        Aux::latexUseHyphdash(tDriveComments);
 
         //Drive's timeframe
         QTime tBeginTime = tDrive.getBeginTime();
         QTime tEndTime = tDrive.getEndTime();
 
-        int tMinutes = tBeginTime.secsTo(tEndTime) / 60;
-        tTotalBoatMinutes += tMinutes;
+        int dMinutes = tBeginTime.secsTo(tEndTime) / 60;
 
-        QTime tDuration = QTime(0, 0, 0).addSecs(tMinutes * 60);
+        if (dMinutes < 0)
+            dMinutes += 24 * 60;
+
+        tTotalBoatMinutes += dMinutes;
+
+        QTime tDuration = QTime(0, 0, 0).addSecs(dMinutes * 60);
 
         //Add fuel
         tTotalDrivesFuel += tDrive.getFuel();
 
-        if (tDriveNumber > 1)
+        if (splitDrivesTable && tDriveNumber == pBoatDrivesTableMaxLength)
+        {
+            //Hint at continuation of the table on next page, if table is too long and split here
             texString10.append(" \\midrule\n");
+            texString10.append("\\textbf{\\dots} & \\multicolumn{5}{c}{\\textit{Fortsetzung auf nächster Seite}} & "
+                               "\\dots\\vspace{0pt} \\\\");
+        }
+        else if (splitDrivesTable && tDriveNumber > pBoatDrivesTableMaxLength)
+        {
+            //Skip remaining rows here, if table is too long and continued on next page
+            ;   //(sic!)
+        }
+        else
+        {
+            if (tDriveNumber > 1)
+                texString10.append(" \\midrule\n");
 
-        texString10.append(tDriveRowString.arg(QString::number(tDriveNumber++),
-                                               tBeginTime.toString("hh:mm"), tEndTime.toString("hh:mm"),
-                                               tDrivePurpose, tBoatmanStr, tCrewStr,
-                                               tDriveComments, tDuration.toString("hh:mm")));
+            texString10.append(tDriveRowString.arg(QString::number(tDriveNumber),
+                                                   tBeginTime.toString("hh:mm"), tEndTime.toString("hh:mm"),
+                                                   tDrivePurpose, tBoatmanStr, tCrewStr,
+                                                   tDriveComments, tDuration.toString("hh:mm")));
+        }
+
+        ++tDriveNumber;
     }
 
     //Calculate boat hours split in hours and minutes
@@ -753,7 +876,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     int tTotalBoatHoursWithCarry = (tTotalBoatMinutes + boatLog.getBoatMinutesCarry() - tTotalBoatModMinutesWithCarry) / 60;
 
     texString10.append(QString("\n"
-        "\\midrule\n"
+        "\\bottomrule\\addlinespace[\\belowrulesep]\n"
         "\\multicolumn{6}{r}{Einsatzstunden} & %1\\vspace{1pt} \\\\\n"
         "\\multicolumn{6}{r}{+ Übertrag} & %2\\vspace{3pt} \\\\\n"
         "\\multicolumn{6}{r}{= Gesamt} & \\textbf{%3} \\\\\n"
@@ -761,7 +884,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         "\\vspace{0pt}\n"
         "\\vfill\n\n").arg(QString::asprintf("%02u:%02u", tTotalBoatHours, tTotalBoatModMinutes),
                            QString::asprintf("%02u:%02u", tCarryBoatHours, tCarryBoatModMinutes),
-                           QString::asprintf("%3u:%02u", tTotalBoatHoursWithCarry, tTotalBoatModMinutesWithCarry)));
+                           QString::asprintf("%02u:%02u", tTotalBoatHoursWithCarry, tTotalBoatModMinutesWithCarry)));
 
     //Sum up fuel added at begin/end of duty and during/after individual drives
     int tFuelTotal = tTotalDrivesFuel + boatLog.getFuelInitial() + boatLog.getFuelFinal();
@@ -784,7 +907,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         "\\hfill\n"
         "\\begin{tabular}{>{\\raggedright}p{0.10\\linewidth}>{\\raggedleft\\arraybackslash}p{0.075\\linewidth}}\n"
         "\\multicolumn{2}{l}{\\textbf{Getankt:}} \\\\\n"
-        "%5: & %6\\,Liter \\\\ \\\\\n"
+        "\\hspace{0pt}%5: & %6\\,Liter \\\\ & \n"
         "\\end{tabular}\n"
         "\\end{minipage}\n"
         "\\vspace{8pt}\n"
@@ -810,11 +933,135 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     QString texString13 = "\\hfill\\vfill\\parbox[c][0pt][r]{150pt}{\\hrule \\vspace{3pt} Unterschrift Bootsführer "
                           "\\vspace{-2pt}}\\hfill\n \\parbox[c][0pt][r]{150pt}{\\hrule \\vspace{3pt} Unterschrift Stationsleiter "
-                          "\\vspace{-2pt}}\n\\end{document}\n";
+                          "\\vspace{-2pt}}\n";
+
+    QString texString14 = "";
+
+    //Continue split boat drives table here
+    if (splitDrivesTable)
+    {
+        texString14 = "\n\\clearpage\n\n"
+                      "\\subsection*{Fortsetzung: Bootsfahrten}\n"
+                      "\\vspace{3pt}\n"
+                      "\\renewcommand{\\arraystretch}{0.6}\n"
+        "\\begin{longtable}{>{\\raggedleft}p{0.02\\linewidth}>{\\raggedright}p{0.08\\linewidth}>{\\raggedright}p{0.14\\linewidth}\n"
+        "                   >{\\raggedright}p{0.13\\linewidth}>{\\raggedright}p{0.21\\linewidth}>{\\raggedright}p{0.19\\linewidth}\n"
+        "                   >{\\raggedleft\\arraybackslash}p{0.07\\linewidth}}\n"
+        "\\textbf{Nr.} & \\textbf{Zeitraum} & \\textbf{Fahrtzweck} & \\textbf{Bootsführer} & \\textbf{Besatzung} &\n"
+        "\\textbf{Bemerkungen} & \\textbf{Dauer}\\\\\n"
+        "\\toprule\n"
+        "\\textbf{\\dots} & \\multicolumn{5}{c}{\\textit{Fortsetzung von letzter Seite}} & \\dots\\vspace{0pt} \\\\\n"
+        "\\midrule\n"
+        "\\endhead\n"
+        "\\textbf{\\dots} & \\multicolumn{5}{c}{\\textit{Fortsetzung auf nächster Seite}}\\strut &\n"
+        "\\dots\\vspace{0pt} \\\\\n"
+        "\\bottomrule\n"
+        "\\endfoot\n"
+        "\\bottomrule\n"
+        "\\endlastfoot\n";
+
+        //Reuse enumerator variable from above
+        tDriveNumber = 0;
+
+        //Add a table row for each drive
+        for (const BoatDrive& tDrive : tDrives)
+        {
+            //Skip entries that are already in first part of the boat drives table
+            if (++tDriveNumber < pBoatDrivesTableMaxLength)
+                continue;
+
+            //Name of boatman
+
+            Person tBoatman = Person::dummyPerson();
+            if (tDrive.getBoatman() != "")
+                tBoatman = pReport.getPerson(tDrive.getBoatman());
+
+            QString tBoatmanStr = tBoatman.getLastName() + ", " + tBoatman.getFirstName();
+            Aux::latexUseHyphdash(tBoatmanStr);
+
+            if (tDrive.getBoatman() == "")
+                tBoatmanStr = "---";
+
+            //Crew members
+
+            std::vector<Person> tCrew;
+            for (const auto& it : tDrive.crew())
+                tCrew.push_back(pReport.getPerson(it.first));
+
+            int tCrewMemberNumber = 1;
+
+            //Use temporary set to sort persons using above custom sort lambda
+
+            std::set<std::reference_wrapper<const Person>, decltype(cmpNameIdent)> tCrewSorted(cmpNameIdent);
+
+            for (const Person& tPerson : tCrew)
+                tCrewSorted.insert(std::cref(tPerson));
+
+            QString tCrewStr = "\\hspace{0pt}";
+
+            for (const Person& tPerson : tCrewSorted)
+            {
+                QString tPersonStr = tPerson.getLastName() + ", " + tPerson.getFirstName();
+                Aux::latexUseHyphdash(tPersonStr);
+
+                tCrewStr.append(tPersonStr);
+
+                if (tCrewMemberNumber++ < static_cast<int>(tCrewSorted.size()))
+                    tCrewStr.append("\\newline{}\\hspace{0pt}");
+            }
+
+            if (tDrive.crewSize() == 0)
+                tCrewStr = "---";
+
+            //Drive purpose
+
+            QString tDrivePurpose = tDrive.getPurpose();
+            Aux::latexEscapeSpecialChars(tDrivePurpose);
+            Aux::latexFixLineBreaksNoLineBreaks(tDrivePurpose);
+            Aux::latexUseHyphdash(tDrivePurpose);
+
+            if (tDrivePurpose == "")
+                tDrivePurpose = "---";
+
+            //Drive comment
+            QString tDriveComments = tDrive.getComments();
+            Aux::latexEscapeSpecialChars(tDriveComments);
+            Aux::latexFixLineBreaks(tDriveComments);
+            Aux::latexUseHyphdash(tDriveComments);
+
+            //Drive's timeframe
+            QTime tBeginTime = tDrive.getBeginTime();
+            QTime tEndTime = tDrive.getEndTime();
+
+            int dMinutes = tBeginTime.secsTo(tEndTime) / 60;
+
+            if (dMinutes < 0)
+                dMinutes += 24 * 60;
+
+            QTime tDuration = QTime(0, 0, 0).addSecs(dMinutes * 60);
+
+            //Skip midrule for first line after header
+            if (tDriveNumber > pBoatDrivesTableMaxLength)
+                texString14.append(" \\midrule\n");
+
+            texString14.append(tDriveRowString.arg(QString::number(tDriveNumber),
+                                                   tBeginTime.toString("hh:mm"), tEndTime.toString("hh:mm"),
+                                                   tDrivePurpose, tBoatmanStr, tCrewStr,
+                                                   tDriveComments, tDuration.toString("hh:mm")));
+        }
+
+        texString14.append(QString("\n"
+                                   "\\end{longtable}\n"
+                                   "\\vspace{0pt}\n"
+                                   "\\vfill\n"));
+    }
+
+    QString texString15 = "\\end{document}\n";
 
     //Assemble all parts to one document
-    QString texString = texString0 + texString1 + texString2 + texString3 + texString4 + texString5 + texString6 + texString7 +
-                        texString8 + pagebreakString + texString9 + texString10 + texString11 + texString12 + texString13;
+    QString texString = texString0 + texString1 + texString2 + texString3 + texString4 + texString5 + texString6 +
+                        texString7 + texString8 + pagebreakString + texString9 + texString10 + texString11 +
+                        texString12 + texString13 + texString14 + texString15;
 
     //Swap document to the function argument
     pTeXString.swap(texString);

@@ -1021,8 +1021,12 @@ void Report::loadCarryovers(const Report& pLastReport)
         const QTime& tBeginTime = it.second.second.first;
         const QTime& tEndTime = it.second.second.second;
 
-        int tMinutes = tBeginTime.secsTo(tEndTime) / 60;
-        oldTotalPersonnelMinutes += tMinutes;
+        int dMinutes = tBeginTime.secsTo(tEndTime) / 60;
+
+        if (dMinutes < 0)
+            dMinutes += 24 * 60;
+
+        oldTotalPersonnelMinutes += dMinutes;
     }
 
     //Sum up gained boat hours for each boat drive's begin/end times from last report
@@ -1035,8 +1039,12 @@ void Report::loadCarryovers(const Report& pLastReport)
         const QTime& tBeginTime = it.get().getBeginTime();
         const QTime& tEndTime = it.get().getEndTime();
 
-        int tMinutes = tBeginTime.secsTo(tEndTime) / 60;
-        oldTotalBoatMinutes += tMinutes;
+        int dMinutes = tBeginTime.secsTo(tEndTime) / 60;
+
+        if (dMinutes < 0)
+            dMinutes += 24 * 60;
+
+        oldTotalBoatMinutes += dMinutes;
     }
 
     //Set new carryovers to sum of old carryovers plus summed gained time from last report
@@ -1847,9 +1855,10 @@ void Report::setAssignmentNumber(QString pNumber)
 //
 
 /*!
- * \brief Get the list of vehicles at the station.
+ * \brief Get the list of vehicles used for the duty.
  *
- * Returns a list of vehicles (their (radio call) names) present at the station together with their arrival and leaving times.
+ * Returns a list of vehicles (their (radio call) names) used in the course of the duty
+ * or otherwise present at the station together with their arrival and leaving times.
  * If \p pSorted is true, the returned vector is sorted by arrival time (before (radio call) name, before leaving time).
  *
  * \param pSorted Get a sorted vector.
@@ -1900,9 +1909,10 @@ std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getVehicles(boo
 }
 
 /*!
- * \brief Set the list of vehicles at the station.
+ * \brief Set the list of vehicles used for the duty.
  *
- * Sets a list of vehicles (their (radio call) names) present at the station together with their arrival and leaving times.
+ * Sets a list of vehicles (their (radio call) names) used in the course of the duty
+ * or otherwise present at the station together with their arrival and leaving times.
  *
  * \param pVehicles New vehicles list as vector {{NAME, {T_ARRIVE, T_LEAVE}}, ...}.
  */
@@ -1929,7 +1939,7 @@ QString Report::dutyPurposeToLabel(DutyPurpose pPurpose)
         case DutyPurpose::_WATCHKEEPING:
             return "Wachdienst";
         case DutyPurpose::_SAILING_REGATTA:
-            return "Begleitung Segelregatta";
+            return "Begleitung Regatta";
         case DutyPurpose::_SAILING_PRACTICE:
             return "Begleitung Segeltraining";
         case DutyPurpose::_SWIMMING_PRACTICE:
@@ -1960,7 +1970,7 @@ Report::DutyPurpose Report::labelToDutyPurpose(const QString& pPurpose)
 {
     if (pPurpose == "Wachdienst")
         return DutyPurpose::_WATCHKEEPING;
-    else if (pPurpose == "Begleitung Segelregatta")
+    else if (pPurpose == "Begleitung Regatta")
         return DutyPurpose::_SAILING_REGATTA;
     else if (pPurpose == "Begleitung Segeltraining")
         return DutyPurpose::_SAILING_PRACTICE;

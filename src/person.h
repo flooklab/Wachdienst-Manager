@@ -161,7 +161,7 @@ public:
      *
      * For each 'Function' the \p pFunction is called with first parameter being 'Function'
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(function, pArgs...).
-     * Non-void return values will be discarded. You may use use \p pArgs
+     * Non-void return values will be discarded. You may use \p pArgs
      * to communicate results of the function calls.
      *
      * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each personnel 'Function'.
@@ -196,7 +196,7 @@ public:
      *
      * For each 'BoatFunction' the \p pFunction is called with first parameter being 'BoatFunction'
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(boatFunction, pArgs...).
-     * Non-void return values will be discarded. You may use use \p pArgs
+     * Non-void return values will be discarded. You may use \p pArgs
      * to communicate results of the function calls.
      *
      * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each 'BoatFunction'.

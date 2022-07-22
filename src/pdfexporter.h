@@ -56,14 +56,14 @@
 class PDFExporter
 {
 public:
-    PDFExporter() = delete;                                                 ///< Deleted constructor.
+    PDFExporter() = delete;                                                                         ///< Deleted constructor.
     //
     static bool exportPDF(const Report& pReport, const QString& pFileName,
-                          int pPersonnelTableMaxLength = 15);               ///< Export report as PDF file.
+                          int pPersonnelTableMaxLength = 15, int pBoatDrivesTableMaxLength = 9);    ///< Export report as PDF file.
 
 private:
     static void reportToLaTeX(const Report& pReport, QString& pTeXString,
-                              int pPersonnelTableMaxLength);                ///< Generate LaTeX document from report.
+                              int pPersonnelTableMaxLength, int pBoatDrivesTableMaxLength);     ///< Generate LaTeX document from report.
 };
 
 #endif // PDFEXPORTER_H

@@ -35,8 +35,10 @@
 
 #include <vector>
 #include <map>
+#include <list>
 #include <thread>
 #include <atomic>
+#include <functional>
 
 #include <QList>
 #include <QString>
@@ -56,6 +58,8 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
+#include <QStandardItem>
+#include <QStandardItemModel>
 
 #include <QMainWindow>
 #include <QFileDialog>
@@ -143,6 +147,8 @@ private:
     bool checkImplausibleValues();                          ///< Check for valid but improbable or forgotten values.
     //
     void updateWindowTitle();                               ///< Update the window title.
+    void updatePersonLastNameCompletions();                 ///< Update last name completions according to currently entered first name.
+    void updatePersonFirstNameCompletions();                ///< Update first name completions according to currently entered last name.
     void updateTotalPersonnelHours();                       ///< Update the total (carry + new) personnel hours display.
     void updateTotalBoatHours();                            ///< Update the total (carry + new) boat drive hours display.
     void updatePersonnelHours();                            ///< Update the accumulated personnel hours display.
@@ -193,7 +199,8 @@ private slots:
     void on_newReport_action_triggered();                                           ///< Create a new report in a different window.
     void on_openReport_action_triggered();                                          ///< Open a report from a file in a different window.
     void on_close_action_triggered();                                               ///< Close the report window.
-    void on_editPersonnelListSplit_action_triggered();                              ///< Change the maximum PDF personnel table length.
+    void on_editPersonnelTableSplit_action_triggered();                             ///< Change the maximum PDF personnel table length.
+    void on_editBoatDrivesTableSplit_action_triggered();                            ///< Change the maximum PDF boat drives table length.
     //
     void on_reportTab_calendarWidget_currentPageChanged(int year, int month);       ///< Synchronize the calendar widgets of every tab.
     void on_boatTab_calendarWidget_currentPageChanged(int year, int month);         ///< Synchronize the calendar widgets of every tab.
@@ -348,6 +355,7 @@ private:
     std::atomic_bool exporting;                 //Export thread currently running?
     //
     int exportPersonnelTableMaxLength;          //Maximum length of exported PDFs personnel table; will be split if length is exceeded
+    int exportBoatDrivesTableMaxLength;         //Maximum length of exported PDFs boat drives table; will be split if length is exceeded
     //
     QString loadedStation;                  //Initial station identifier from loaded report, if not found in database (else empty)
     QString loadedStationRadioCallName;     //Initial radio call name from loaded report, if station not found in database (else empty)
@@ -355,6 +363,9 @@ private:
     QString loadedBoatRadioCallName;        //Initial radio call name from loaded report, if boat not found in database (else empty)
     //
     QString selectedBoatmanIdent;           //Person identifier of currently selected boatman combo box item
+    //
+    QStringList databaseLastNames;          //All distinct last names present in personnel database
+    QStringList databaseFirstNames;         //All distinct first names present in personnel database
 };
 
 #endif // REPORTWINDOW_H

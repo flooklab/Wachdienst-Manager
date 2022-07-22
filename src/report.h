@@ -155,8 +155,9 @@ public:
     void setAssignmentNumber(QString pNumber);                          ///< Set the assignment number of the rescue directing center.
     //
     std::vector<std::pair<QString, std::pair<QTime, QTime>>> getVehicles(bool pSorted = false) const;
-                                                                                            ///< Get the list of vehicles at the station.
-    void setVehicles(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pVehicles);   ///< Set the list of vehicles at the station.
+                                                                                        ///< Get the list of vehicles used for the duty.
+    void setVehicles(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pVehicles);
+                                                                                        ///< Set the list of vehicles used for the duty.
     //
     static QString dutyPurposeToLabel(DutyPurpose pPurpose);                ///< Get the label for a duty purpose.
     static DutyPurpose labelToDutyPurpose(const QString& pPurpose);         ///< Get the duty purpose from its label.
@@ -189,7 +190,7 @@ public:
     enum class DutyPurpose : int8_t
     {
         _WATCHKEEPING = 0,      ///< "Wachdienst".
-        _SAILING_REGATTA = 1,   ///< "Segelregatta".
+        _SAILING_REGATTA = 1,   ///< "Regatta".
         _SAILING_PRACTICE = 2,  ///< "Segeltraining".
         _SWIMMING_PRACTICE = 3, ///< "Training".
         _RESCUE_EXERCISE = 4,   ///< "Übung".
@@ -222,7 +223,7 @@ public:
      *
      * For each 'DutyPurpose' the \p pFunction is called with first parameter being 'DutyPurpose'
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(purpose, pArgs...).
-     * Non-void return values will be discarded. You may use use \p pArgs
+     * Non-void return values will be discarded. You may use \p pArgs
      * to communicate results of the function calls.
      *
      * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each 'DutyPurpose'.
@@ -254,7 +255,7 @@ public:
      *
      * For each 'RescueOperation' the \p pFunction is called with first parameter being 'RescueOperation'
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(rescue, pArgs...).
-     * Non-void return values will be discarded. You may use use \p pArgs
+     * Non-void return values will be discarded. You may use \p pArgs
      * to communicate results of the function calls.
      *
      * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each 'RescueOperation'.
@@ -325,7 +326,7 @@ private:
     //
     QString assignmentNumber;                               //Assignment number from rescue directing center
     //
-    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehicles;  //List of present vehicles with their arrival/leaving times
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehicles;  //List of used vehicles with their arrival/leaving times
 };
 
 #endif // REPORT_H

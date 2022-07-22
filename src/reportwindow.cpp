@@ -67,6 +67,7 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     unappliedBoatDriveChanges(false),
     exporting(false),
     exportPersonnelTableMaxLength(15),
+    exportBoatDrivesTableMaxLength(9),
     loadedStation(""),
     loadedStationRadioCallName(""),
     loadedBoat(""),
@@ -216,7 +217,7 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     ui->boatComments_plainTextEdit->setTabChangesFocus(true);
     ui->boatDriveComments_plainTextEdit->setTabChangesFocus(true);
 
-    //Format table headers and configure selection modes
+    //Format table headers, configure selection modes, set style sheets
 
     ui->personnel_tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
     ui->personnel_tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -231,6 +232,8 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     ui->boatDrives_tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->boatDrives_tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->boatDrives_tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->boatDrives_tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->boatDrives_tableWidget->setStyleSheet("QTableWidget::item { border: none; padding: 8px 3px 8px 3px; }");
 
     ui->boatCrew_tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->boatCrew_tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -283,32 +286,37 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
 
     //Add completers for personnel name line edits
 
+    QCompleter* lastNameCompleter = new QCompleter(ui->personLastName_lineEdit);
+    QCompleter* firstNameCompleter = new QCompleter(ui->personFirstName_lineEdit);
+
+    lastNameCompleter->setCaseSensitivity(Qt::CaseInsensitive);
+    firstNameCompleter->setCaseSensitivity(Qt::CaseInsensitive);
+
+    lastNameCompleter->setCompletionMode(QCompleter::PopupCompletion);
+    firstNameCompleter->setCompletionMode(QCompleter::PopupCompletion);
+
+    ui->personLastName_lineEdit->setCompleter(lastNameCompleter);
+    ui->personFirstName_lineEdit->setCompleter(firstNameCompleter);
+
     std::vector<Person> dbPersonnel;
     DatabaseCache::getPersonnel(dbPersonnel);
 
-    QStringList lastNameCompletions, firstNameCompletions;
-
+    //Collect available first and last names from personnel database
     for (const Person& tPerson : dbPersonnel)
     {
-        QString tLastName = tPerson.getLastName();
-        QString tFirstName = tPerson.getFirstName();
+        const QString& tLastName = tPerson.getLastName();
+        const QString& tFirstName = tPerson.getFirstName();
 
-        if (!lastNameCompletions.contains(tLastName))
-            lastNameCompletions.push_back(std::move(tLastName));
+        if (!databaseLastNames.contains(tLastName))
+            databaseLastNames.push_back(tLastName);
 
-        if (!firstNameCompletions.contains(tFirstName))
-            firstNameCompletions.push_back(std::move(tFirstName));
+        if (!databaseFirstNames.contains(tFirstName))
+            databaseFirstNames.push_back(tFirstName);
     }
 
-    QCompleter* lastNameCompleter = new QCompleter(lastNameCompletions, ui->personLastName_lineEdit);
-    lastNameCompleter->setCompletionMode(QCompleter::PopupCompletion);
-    lastNameCompleter->setCaseSensitivity(Qt::CaseInsensitive);
-    ui->personLastName_lineEdit->setCompleter(lastNameCompleter);
-
-    QCompleter* firstNameCompleter = new QCompleter(firstNameCompletions, ui->personFirstName_lineEdit);
-    firstNameCompleter->setCompletionMode(QCompleter::PopupCompletion);
-    firstNameCompleter->setCaseSensitivity(Qt::CaseInsensitive);
-    ui->personFirstName_lineEdit->setCompleter(firstNameCompleter);
+    //Fill completers with collected names
+    updatePersonLastNameCompletions();
+    updatePersonFirstNameCompletions();
 
     //Enable drag and drop in order to open further reports being dropped on the window
     setAcceptDrops(true);
@@ -363,8 +371,9 @@ void ReportWindow::closeEvent(QCloseEvent* pEvent)
     if (unappliedBoatDriveChanges)
     {
         QMessageBox msgBox(QMessageBox::Question, "Ungespeicherte Änderungen",
-                           "Nicht übernommene/gespeicherte Änderungen in selektierter Bootsfahrt.\nTrotzdem schließen?",
+                           "Nicht übernommene/gespeicherte Änderungen in ausgewählter Bootsfahrt.\nTrotzdem schließen?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
 
         if (msgBox.exec() != QMessageBox::Yes)
         {
@@ -378,6 +387,7 @@ void ReportWindow::closeEvent(QCloseEvent* pEvent)
         QMessageBox msgBox(QMessageBox::Question, "Ungespeicherte Änderungen",
                            "Ungespeicherte Änderungen im Wachbericht.\nTrotzdem schließen?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
 
         if (msgBox.exec() != QMessageBox::Yes)
         {
@@ -565,7 +575,11 @@ void ReportWindow::loadReportData()
     ui->boatSlippedBeginOfDuty_checkBox->setChecked(boatLogPtr->getSlippedInitial());
     ui->boatSlippedEndOfDuty_checkBox->setChecked(boatLogPtr->getSlippedFinal());
 
-    //Remember time since gets overwritten by time edit spin box slot
+    //Call slots in case check states did not change
+    on_boatSlippedBeginOfDuty_checkBox_stateChanged(ui->boatSlippedBeginOfDuty_checkBox->checkState());
+    on_boatSlippedEndOfDuty_checkBox_stateChanged(ui->boatSlippedEndOfDuty_checkBox->checkState());
+
+    //Remember time since it gets overwritten by time edit spin box slot
     QTime tReadyUntil = boatLogPtr->getReadyUntil();
 
     ui->boatReadyFrom_timeEdit->setTime(boatLogPtr->getReadyFrom());
@@ -654,6 +668,8 @@ void ReportWindow::saveReport(const QString& pFileName)
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
                                "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nTrotzdem speichern?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return;
         }
@@ -772,6 +788,8 @@ void ReportWindow::exportReport(const QString& pFileName, bool pAskOverwrite)
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
                                "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nTrotzdem exportieren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return;
         }
@@ -783,8 +801,10 @@ void ReportWindow::exportReport(const QString& pFileName, bool pAskOverwrite)
 
     if (pAskOverwrite && QFileInfo::exists(pFileName))
     {
-        QMessageBox msgBox(QMessageBox::Question, "Überschreiben?", "Datei überschreiben?",
+        QMessageBox msgBox(QMessageBox::Question, "Exportieren", "Datei überschreiben?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Yes);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return;
     }
@@ -797,7 +817,7 @@ void ReportWindow::exportReport(const QString& pFileName, bool pAskOverwrite)
     std::thread exportThread(
                 [this, pFileName]() -> void
                 {
-                    if (!PDFExporter::exportPDF(report, pFileName, exportPersonnelTableMaxLength))
+                    if (!PDFExporter::exportPDF(report, pFileName, exportPersonnelTableMaxLength, exportBoatDrivesTableMaxLength))
                         emit exportFailed();
 
                     ui->statusbar->clearMessage();
@@ -874,7 +894,9 @@ bool ReportWindow::checkInvalidValues()
     if (report.getStation() == "")
     {
         QMessageBox msgBox(QMessageBox::Warning, "Keine Wachstation", "Wachstation nicht gesetzt.\nTrotzdem fortfahren?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);
+                           QMessageBox::Abort | QMessageBox::Yes, this);        
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -883,6 +905,8 @@ bool ReportWindow::checkInvalidValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Kein Funkrufname", "Stations-Funkrufname nicht gesetzt.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -891,6 +915,8 @@ bool ReportWindow::checkInvalidValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Kein Boot", "Boot nicht gesetzt.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -899,6 +925,8 @@ bool ReportWindow::checkInvalidValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Kein Funkrufname", "Boots-Funkrufname nicht gesetzt.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -908,6 +936,8 @@ bool ReportWindow::checkInvalidValues()
         QMessageBox msgBox(QMessageBox::Warning, "Ungültige Dienst-Zeiten",
                            "Dienst-Ende liegt vor Dienst-Beginn.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -916,9 +946,12 @@ bool ReportWindow::checkInvalidValues()
     {
         if (report.getPersonBeginTime(tIdent).secsTo(report.getPersonEndTime(tIdent)) < 0)
         {
-            QMessageBox msgBox(QMessageBox::Warning, "Ungültige Personal-Zeiten",
-                               "Personal-Dienstzeit-Ende liegt vor Personal-Dienstzeit-Beginn.\nTrotzdem fortfahren?",
+            QMessageBox msgBox(QMessageBox::Warning, "Ungültige Personal-Zeiten", "Personal-Dienstzeit-Ende für \"" +
+                               report.getPerson(tIdent).getFirstName() + " " + report.getPerson(tIdent).getLastName() +
+                               "\" liegt vor Personal-Dienstzeit-Beginn.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
@@ -926,9 +959,11 @@ bool ReportWindow::checkInvalidValues()
 
     if (boatLogPtr->getReadyUntil() != QTime(0, 0) && boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getReadyUntil()) < 0)
     {
-        QMessageBox msgBox(QMessageBox::Warning, "Ungültige Boots-Bereitschaftszeiten",
+        QMessageBox msgBox(QMessageBox::Warning, "Ungültiger Boots-Bereitschaftszeitraum",
                            "Boots-Einsatzbereitschafts-Ende liegt vor Boots-Einsatzbereitschafts-Beginn.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -936,56 +971,69 @@ bool ReportWindow::checkInvalidValues()
     if (boatLogPtr->getEngineHoursInitial() > boatLogPtr->getEngineHoursFinal())
     {
         QMessageBox msgBox(QMessageBox::Warning, "Ungültiger Betriebsstundenzählerstand",
-                           "Betriebsstundenzähler-Start größer als -Ende.\nTrotzdem fortfahren?",
+                           "Betriebsstundenzähler-Start größer als Betriebsstundenzähler-Ende.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
 
-    bool firstDrive = true;
+    int driveIdx = 0;
     QTime latestEndTime;
 
     for (const BoatDrive& tDrive : boatLogPtr->getDrives())
     {
         if (tDrive.getPurpose().trimmed() == "")
         {
-            QMessageBox msgBox(QMessageBox::Warning, "Kein Fahrt-Zweck", "Kein Bootsfahrt-Zweck angegeben.\nTrotzdem fortfahren?",
+            QMessageBox msgBox(QMessageBox::Warning, "Kein Fahrt-Zweck",
+                               "Kein Fahrt-Zweck für Bootsfahrt #" + QString::number(driveIdx+1) + " angegeben.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
 
         if (tDrive.getBoatman() == "")
         {
-            QMessageBox msgBox(QMessageBox::Warning, "Kein Bootsführer", "Bootsfahrt hat keinen Bootsführer.\nTrotzdem fortfahren?",
+            QMessageBox msgBox(QMessageBox::Warning, "Kein Bootsführer",
+                               "Bootsfahrt #" + QString::number(driveIdx+1) + " hat keinen Bootsführer.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
 
         if (tDrive.getBeginTime().secsTo(tDrive.getEndTime()) < 0)
         {
-            QMessageBox msgBox(QMessageBox::Warning, "Ungültige Bootsfahrt-Zeiten",
-                               "Bootsfahrt-Ende liegt vor Bootsfahrt-Beginn.\nTrotzdem fortfahren?",
+            QMessageBox msgBox(QMessageBox::Warning, "Ungültige Bootsfahrt-Zeiten", "Fahrt-Ende von Bootsfahrt #" +
+                               QString::number(driveIdx+1) + " liegt vor Fahrt-Beginn.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
 
-        if (firstDrive)
-            firstDrive = false;
-        else
+        if (driveIdx > 0)
         {
             if (latestEndTime.secsTo(tDrive.getBeginTime()) < 0)
             {
                 QMessageBox msgBox(QMessageBox::Warning, "Ungültige Bootsfahrt-Zeiten",
-                                   "Bootsfahrt-Zeiten in falscher Reihenfolge oder überschneiden sich.\nTrotzdem fortfahren?",
+                                   "Fahrt-Beginn von Bootsfahrt #" + QString::number(driveIdx+1) + " liegt vor Fahrt-Ende "
+                                   "von Bootsfahrt #" + QString::number(driveIdx) + ".\nTrotzdem fortfahren?",
                                    QMessageBox::Abort | QMessageBox::Yes, this);
+                msgBox.setDefaultButton(QMessageBox::Abort);
+
                 if (msgBox.exec() != QMessageBox::Yes)
                     return false;
             }
         }
         latestEndTime = tDrive.getEndTime();
+
+        ++driveIdx;
     }
 
     for (const auto& it : report.getVehicles())
@@ -993,8 +1041,10 @@ bool ReportWindow::checkInvalidValues()
         if (it.second.first.secsTo(it.second.second) < 0)
         {
             QMessageBox msgBox(QMessageBox::Warning, "Einsatzfahrzeuge",
-                               "Fahrzeug-Abfahrtszeit liegt vor Fahrzeug-Ankunftszeit.\nTrotzdem fortfahren?",
+                               "Fahrzeug-Abfahrtszeit für \"" + it.first + "\" liegt vor Fahrzeug-Ankunftszeit.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
 
@@ -1023,6 +1073,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Laufende Nummer", "Laufende Nummer ist 1.\nKorrekt?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1031,6 +1083,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Datum", "Datum ist nicht heute.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1039,6 +1093,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Lufttemperatur", "Lufttemperatur ist 0°C.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1047,6 +1103,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Wassertemperatur", "Wassertemperatur ist 0°C.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1055,6 +1113,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Kein Personal", "Kein Personal eingetragen.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1063,6 +1123,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Personalstunden-Übertrag", "Personalstunden-Übertrag ist 0.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1071,6 +1133,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Bootsstunden-Übertrag", "Bootsstunden-Übertrag ist 0.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1079,6 +1143,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Betriebsstundenzähler", "Betriebsstundenzähler-Start ist 0.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1087,20 +1153,28 @@ bool ReportWindow::checkImplausibleValues()
     {
         QMessageBox msgBox(QMessageBox::Warning, "Betriebsstundenzähler", "Betriebsstundenzähler-Ende ist 0.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
+
+    int driveIdx = 0;
 
     for (const BoatDrive& tDrive : boatLogPtr->getDrives())
     {
         if (tDrive.crewSize() == 0)
         {
-            QMessageBox msgBox(QMessageBox::Warning, "Keine Bootsbesatzung",
-                               "Bootsfahrt hat außer dem Bootsführer keine Bootsbesatzung.\nTrotzdem fortfahren?",
+            QMessageBox msgBox(QMessageBox::Warning, "Keine Bootsbesatzung", "Bootsfahrt #" + QString::number(driveIdx+1) +
+                               " hat außer dem Bootsführer keine Bootsbesatzung.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
+
+        ++driveIdx;
     }
 
     if (boatLogPtr->getDrivesCount() > 0)
@@ -1114,6 +1188,8 @@ bool ReportWindow::checkImplausibleValues()
         {
             QMessageBox msgBox(QMessageBox::Warning, "Getankt?", "Nichts getankt!?!?.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
@@ -1121,6 +1197,8 @@ bool ReportWindow::checkImplausibleValues()
         {
             QMessageBox msgBox(QMessageBox::Warning, "Getankt?", "Bei Dienstende nicht vollgetankt?\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
@@ -1128,8 +1206,10 @@ bool ReportWindow::checkImplausibleValues()
         if (boatLogPtr->getEngineHoursFinal() == boatLogPtr->getEngineHoursInitial())
         {
             QMessageBox msgBox(QMessageBox::Warning, "Betriebsstundenzähler",
-                               "Betriebsstundenzähler-Ende trotz Fahrten gleich -Start.\nTrotzdem fortfahren?",
+                               "Betriebsstundenzähler-Ende trotz Fahrten gleich Betriebsstundenzähler-Start.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
         }
@@ -1137,18 +1217,22 @@ bool ReportWindow::checkImplausibleValues()
 
     if (boatLogPtr->getReadyFrom() == QTime(0, 0))
     {
-        QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeiten",
+        QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeitraum",
                            "Boots-Einsatzbereitschafts-Beginn ist 00:00 Uhr.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
 
     if (boatLogPtr->getReadyUntil() == QTime(0, 0) && boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getReadyUntil()) < 0)
     {
-        QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeiten",
+        QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeitraum",
                            "Boots-Einsatzbereitschafts-Ende liegt vor Boots-Einsatzbereitschafts-Beginn.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1157,15 +1241,55 @@ bool ReportWindow::checkImplausibleValues()
         QMessageBox msgBox(QMessageBox::Warning, "Boot nicht einsatzbereit?",
                            "Boot in keinem Zeitraum einsatzbereit.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
+        if (msgBox.exec() != QMessageBox::Yes)
+            return false;
+    }
+
+    if (boatLogPtr->getDrivesCount() > 0 && boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getDrives().front().get().getBeginTime()) < 0)
+    {
+        QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeitraum",
+                           "Fahrt-Beginn der ersten Bootsfahrt liegt vor Boots-Einsatzbereitschafts-Beginn.\nTrotzdem fortfahren?",
+                           QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
+        if (msgBox.exec() != QMessageBox::Yes)
+            return false;
+    }
+
+    if (boatLogPtr->getDrivesCount() > 0 && boatLogPtr->getDrives().back().get().getEndTime().secsTo(boatLogPtr->getReadyUntil()) < 0)
+    {
+        QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeitraum",
+                           "Boots-Einsatzbereitschafts-Ende liegt vor Fahrt-Ende der letzten Bootsfahrt.\nTrotzdem fortfahren?",
+                           QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
 
     if (personWithFunctionPresent(Person::Function::_FUD) && report.getAssignmentNumber() == "")
     {
+        QString tFUDPersonNames;
+
+        for (const QString& tIdent : report.getPersonnel())
+        {
+            if (report.getPersonFunction(tIdent) == Person::Function::_FUD)
+            {
+                if (tFUDPersonNames != "")
+                    tFUDPersonNames.append(", ");
+
+                tFUDPersonNames.append("\"" + report.getPerson(tIdent).getFirstName() + " " +
+                                              report.getPerson(tIdent).getLastName() + "\"");
+            }
+        }
+
         QMessageBox msgBox(QMessageBox::Warning, "Einsatznummer?",
-                           "Person im Führungsdienst aber keine Einsatznummer eingetragen.\nTrotzdem fortfahren?",
+                           tFUDPersonNames + " im Führungsdienst aber keine Einsatznummer eingetragen.\nTrotzdem fortfahren?",
                            QMessageBox::Abort | QMessageBox::Yes, this);
+        msgBox.setDefaultButton(QMessageBox::Abort);
+
         if (msgBox.exec() != QMessageBox::Yes)
             return false;
     }
@@ -1175,8 +1299,10 @@ bool ReportWindow::checkImplausibleValues()
         if (it.second.second == it.second.first)
         {
             QMessageBox msgBox(QMessageBox::Warning, "Einsatzfahrzeuge",
-                               "Fahrzeug-Abfahrtszeit gleich Fahrzeug-Ankunftszeit.\nTrotzdem fortfahren?",
+                               "Fahrzeug-Abfahrtszeit für \"" + it.first + "\" gleich Fahrzeug-Ankunftszeit.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
             if (msgBox.exec() != QMessageBox::Yes)
                 return false;
 
@@ -1219,6 +1345,92 @@ void ReportWindow::updateWindowTitle()
 }
 
 /*!
+ * \brief Update last name completions according to currently entered first name.
+ *
+ * Changes the completions of the person last name line edit such that (only) those last names are suggested that,
+ * according to the personnel database, match the currently entered first name in the corresponding line edit.
+ *
+ * If the currently entered first name is empty or does not match any available first name,
+ * the last name completions are set to all available last names from the personnel database.
+ */
+void ReportWindow::updatePersonLastNameCompletions()
+{
+    QStringList filteredLastNameCompletions;
+
+    //If current first name matches at least one person from personnel database, use those persons' last names as completions;
+    //use all existing persons' last names as completions otherwise
+
+    if (databaseFirstNames.contains(ui->personFirstName_lineEdit->text()))
+    {
+        std::vector<Person> dbPersonnel;
+        DatabaseCache::getPersonnel(dbPersonnel);
+
+        for (const Person& tPerson : dbPersonnel)
+        {
+            if (tPerson.getFirstName() == ui->personFirstName_lineEdit->text())
+            {
+                if (!filteredLastNameCompletions.contains(tPerson.getLastName()))
+                    filteredLastNameCompletions.push_back(tPerson.getLastName());
+            }
+        }
+    }
+    else
+        filteredLastNameCompletions = databaseLastNames;
+
+    //Apply prepared list of last name completions to completer
+
+    QStandardItemModel* lastNameModel = new QStandardItemModel(ui->personLastName_lineEdit->completer());
+
+    for (const QString& tLastName : filteredLastNameCompletions)
+        lastNameModel->appendRow(new QStandardItem(tLastName));
+
+    ui->personLastName_lineEdit->completer()->setModel(lastNameModel);
+}
+
+/*!
+ * \brief Update first name completions according to currently entered last name.
+ *
+ * Changes the completions of the person first name line edit such that (only) those first names are suggested that,
+ * according to the personnel database, match the currently entered last name in the corresponding line edit.
+ *
+ * If the currently entered last name is empty or does not match any available last name,
+ * the first name completions are set to all available first names from the personnel database.
+ */
+void ReportWindow::updatePersonFirstNameCompletions()
+{
+    QStringList filteredFirstNameCompletions;
+
+    //If current last name matches at least one person from personnel database, use those persons' first names as completions;
+    //use all existing persons' first names as completions otherwise
+
+    if (databaseLastNames.contains(ui->personLastName_lineEdit->text()))
+    {
+        std::vector<Person> dbPersonnel;
+        DatabaseCache::getPersonnel(dbPersonnel);
+
+        for (const Person& tPerson : dbPersonnel)
+        {
+            if (tPerson.getLastName() == ui->personLastName_lineEdit->text())
+            {
+                if (!filteredFirstNameCompletions.contains(tPerson.getFirstName()))
+                    filteredFirstNameCompletions.push_back(tPerson.getFirstName());
+            }
+        }
+    }
+    else
+        filteredFirstNameCompletions = databaseFirstNames;
+
+    //Apply prepared list of first name completions to completer
+
+    QStandardItemModel* firstNameModel = new QStandardItemModel(ui->personFirstName_lineEdit->completer());
+
+    for (const QString& tFirstName : filteredFirstNameCompletions)
+        firstNameModel->appendRow(new QStandardItem(tFirstName));
+
+    ui->personFirstName_lineEdit->completer()->setModel(firstNameModel);
+}
+
+/*!
  * \brief Update the total (carry + new) personnel hours display.
  */
 void ReportWindow::updateTotalPersonnelHours()
@@ -1257,7 +1469,14 @@ void ReportWindow::updatePersonnelHours()
 
     int tPersonnelMinutes = 0;
     for (const QString& tIdent : tIdents)
-        tPersonnelMinutes += report.getPersonBeginTime(tIdent).secsTo(report.getPersonEndTime(tIdent)) / 60;
+    {
+        int dMinutes = report.getPersonBeginTime(tIdent).secsTo(report.getPersonEndTime(tIdent)) / 60;
+
+        if (dMinutes < 0)
+            dMinutes += 24 * 60;
+
+        tPersonnelMinutes += dMinutes;
+    }
 
     int modMinutes = tPersonnelMinutes % 60;
     int modHours = (tPersonnelMinutes - modMinutes) / 60;
@@ -1337,7 +1556,14 @@ void ReportWindow::updateBoatDrivesHours()
 
     int tDrivesMinutes = 0;
     for (const BoatDrive& tDrive : tDrives)
-        tDrivesMinutes += tDrive.getBeginTime().secsTo(tDrive.getEndTime()) / 60;
+    {
+        int dMinutes = tDrive.getBeginTime().secsTo(tDrive.getEndTime()) / 60;
+
+        if (dMinutes < 0)
+            dMinutes += 24 * 60;
+
+        tDrivesMinutes += dMinutes;
+    }
 
     int modMinutes = tDrivesMinutes % 60;
     int modHours = (tDrivesMinutes - modMinutes) / 60;
@@ -1448,12 +1674,19 @@ void ReportWindow::updateReportVehiclesList()
     std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehicles;
     std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehiclesOld = report.getVehicles();
 
+    //Use set to avoid duplicates in the vector
+    std::set<std::pair<QString, std::pair<QTime, QTime>>> vehiclesSet;
+
     for (const auto& row : vehiclesTableRows)
     {
         if (row.vehicleNameLineEdit->text().trimmed() == "")    //Skip rows without vehicle name
             continue;
 
-        vehicles.push_back({row.vehicleNameLineEdit->text().trimmed(), {row.arriveTimeEdit->time(), row.leaveTimeEdit->time()}});
+        if (vehiclesSet.insert({row.vehicleNameLineEdit->text().trimmed(), {row.arriveTimeEdit->time(), row.leaveTimeEdit->time()}
+                                }).second)
+        {
+            vehicles.push_back({row.vehicleNameLineEdit->text().trimmed(), {row.arriveTimeEdit->time(), row.leaveTimeEdit->time()}});
+        }
     }
 
     if (vehicles != vehiclesOld)
@@ -1617,9 +1850,9 @@ void ReportWindow::addVehiclesTableRow(QString pName, QTime pArrivalTime, QTime 
 /*!
  * \brief Check entered person name and update selectable identifiers list accordingly.
  *
- * Checks, if at least one person with the entered person name exists in the personnel database.
- * If so, inserts identifiers of all matching persons into the person identifier combo box and enables the add person button.
- * Clears the combo box and disables the button else.
+ * Checks, if at least one person with the entered person name both exists in the personnel database and has not already
+ * been added to the personnel list. If so, inserts identifiers of all matching persons into the person identifier
+ * combo box and enables the add person button. Clears the combo box and disables the button else.
  */
 void ReportWindow::checkPersonInputs()
 {
@@ -1628,6 +1861,8 @@ void ReportWindow::checkPersonInputs()
 
     ui->personLastName_lineEdit->setStyleSheet("");
     ui->personFirstName_lineEdit->setStyleSheet("");
+
+    ui->personIdent_comboBox->setEnabled(false);
 
     ui->addPerson_pushButton->setEnabled(false);
 
@@ -1639,17 +1874,27 @@ void ReportWindow::checkPersonInputs()
 
     if (tPersons.size() == 0)
     {
-        ui->personLastName_lineEdit->setStyleSheet("QLineEdit { color: red; }");
-        ui->personFirstName_lineEdit->setStyleSheet("QLineEdit { color: red; }");
+        //Highlight line edits in red as name does not match any person; do *not* highlight, though,
+        //if either of first/last name is OK but no match just because last/first name is (still) empty
+
+        if (ui->personFirstName_lineEdit->text() != "" || !databaseLastNames.contains(ui->personLastName_lineEdit->text()))
+            ui->personLastName_lineEdit->setStyleSheet("QLineEdit { color: red; }");
+        if (ui->personLastName_lineEdit->text() != "" || !databaseFirstNames.contains(ui->personFirstName_lineEdit->text()))
+            ui->personFirstName_lineEdit->setStyleSheet("QLineEdit { color: red; }");
     }
     else
     {
         for (const Person& tPerson : tPersons)
-            ui->personIdent_comboBox->insertItem(ui->personIdent_comboBox->count(), tPerson.getIdent());
+            if (!report.personExists(tPerson.getIdent()))
+                ui->personIdent_comboBox->insertItem(ui->personIdent_comboBox->count(), tPerson.getIdent());
 
         ui->personIdent_comboBox->setCurrentIndex(0);
 
-        ui->addPerson_pushButton->setEnabled(true);
+        if (ui->personIdent_comboBox->count() > 1)
+            ui->personIdent_comboBox->setEnabled(true);
+
+        if (ui->personIdent_comboBox->count() > 0)
+            ui->addPerson_pushButton->setEnabled(true);
     }
 }
 
@@ -2089,9 +2334,9 @@ void ReportWindow::on_updateClocksTimerTimeout()
 {
     QString timeText = QTime::currentTime().toString("hh:mm:ss");
 
-    ui->reportTabTime_lcdNumber->display(timeText);
-    ui->boatTabTime_lcdNumber->display(timeText);
-    ui->rescueTabTime_lcdNumber->display(timeText);
+    ui->reportTabTime_label->setText(timeText);
+    ui->boatTabTime_label->setText(timeText);
+    ui->rescueTabTime_label->setText(timeText);
 }
 
 /*!
@@ -2145,9 +2390,11 @@ void ReportWindow::on_saveFile_action_triggered()
     {
         if (QFileInfo::exists(report.getFileName()))
         {
-            QMessageBox msgBox(QMessageBox::Question, "Überschreiben?", "Datei überschreiben?",
-                               QMessageBox::Abort | QMessageBox::Ok, this);
-            if(msgBox.exec() != QMessageBox::Ok)
+            QMessageBox msgBox(QMessageBox::Question, "Speichern", "Datei überschreiben?",
+                               QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Yes);
+
+            if (msgBox.exec() != QMessageBox::Yes)
                 return;
         }
 
@@ -2246,7 +2493,7 @@ void ReportWindow::on_exportFile_action_triggered()
  */
 void ReportWindow::on_loadCarries_action_triggered()
 {
-    QString tFileName = QFileDialog::getOpenFileName(this, "Letzten Wachbericht öffnen", "", "Wachberichte (*.wbr)");
+    QString tFileName = QFileDialog::getOpenFileName(this, "[Überträge laden] Letzten Wachbericht öffnen", "", "Wachberichte (*.wbr)");
 
     if (tFileName == "")
         return;
@@ -2310,15 +2557,31 @@ void ReportWindow::on_close_action_triggered()
  *
  * This value is used for PDFExporter::exportPDF() by exportReport().
  */
-void ReportWindow::on_editPersonnelListSplit_action_triggered()
+void ReportWindow::on_editPersonnelTableSplit_action_triggered()
 {
     bool ok = false;
 
-    int value = QInputDialog::getInt(this, "Personallisten-Trennung", "Maximale Länge der Personalliste:",
+    int value = QInputDialog::getInt(this, "Personal-Tabellen-Trennung", "Personal-Tabelle trennen, wenn länger als:",
                                      exportPersonnelTableMaxLength, 1, 99, 1, &ok);
 
     if (ok)
         exportPersonnelTableMaxLength = value;
+}
+
+/*!
+ * \brief Change the maximum PDF boat drives table length.
+ *
+ * This value is used for PDFExporter::exportPDF() by exportReport().
+ */
+void ReportWindow::on_editBoatDrivesTableSplit_action_triggered()
+{
+    bool ok = false;
+
+    int value = QInputDialog::getInt(this, "Bootsfahrten-Tabellen-Trennung", "Bootsfahrten-Tabelle trennen, wenn länger als:",
+                                     exportBoatDrivesTableMaxLength, 1, 99, 1, &ok);
+
+    if (ok)
+        exportBoatDrivesTableMaxLength = value;
 }
 
 //
@@ -2832,21 +3095,25 @@ void ReportWindow::on_otherEnclosures_lineEdit_textChanged(const QString& arg1)
 /*!
  * \brief Check entered person name and update dependent widgets.
  *
- * See checkPersonInputs().
+ * See checkPersonInputs() and updatePersonNameCompleters().
  */
 void ReportWindow::on_personLastName_lineEdit_textChanged(const QString&)
 {
     checkPersonInputs();
+
+    updatePersonFirstNameCompletions();
 }
 
 /*!
  * \brief Check entered person name and update dependent widgets.
  *
- * See checkPersonInputs().
+ * See checkPersonInputs() and updatePersonNameCompleters().
  */
 void ReportWindow::on_personFirstName_lineEdit_textChanged(const QString&)
 {
     checkPersonInputs();
+
+    updatePersonLastNameCompletions();
 }
 
 /*!
@@ -3397,7 +3664,28 @@ void ReportWindow::on_boatRadioCallName_comboBox_currentTextChanged(const QStrin
  */
 void ReportWindow::on_boatSlippedBeginOfDuty_checkBox_stateChanged(int arg1)
 {
-    boatLogPtr->setSlippedInitial(arg1 == Qt::CheckState::Checked);
+    bool checked = (arg1 == Qt::CheckState::Checked);
+
+    boatLogPtr->setSlippedInitial(checked);
+
+    if (!checked && ui->boatSlippedEndOfDuty_checkBox->isChecked())
+    {
+        QPalette palette = ui->boatSlippedBeginOfDuty_checkBox->palette();
+        palette.setColor(QPalette::Base, Qt::yellow);
+        ui->boatSlippedBeginOfDuty_checkBox->setPalette(palette);
+    }
+    else
+        ui->boatSlippedBeginOfDuty_checkBox->setPalette(QApplication::style()->standardPalette());
+
+    if (checked && !ui->boatSlippedEndOfDuty_checkBox->isChecked())
+    {
+        QPalette palette = ui->boatSlippedEndOfDuty_checkBox->palette();
+        palette.setColor(QPalette::Base, Qt::yellow);
+        ui->boatSlippedEndOfDuty_checkBox->setPalette(palette);
+    }
+    else
+        ui->boatSlippedEndOfDuty_checkBox->setPalette(QApplication::style()->standardPalette());
+
     setUnsavedChanges();
 }
 
@@ -3410,7 +3698,28 @@ void ReportWindow::on_boatSlippedBeginOfDuty_checkBox_stateChanged(int arg1)
  */
 void ReportWindow::on_boatSlippedEndOfDuty_checkBox_stateChanged(int arg1)
 {
-    boatLogPtr->setSlippedFinal(arg1 == Qt::CheckState::Checked);
+    bool checked = (arg1 == Qt::CheckState::Checked);
+
+    boatLogPtr->setSlippedFinal(checked);
+
+    if (!checked && ui->boatSlippedBeginOfDuty_checkBox->isChecked())
+    {
+        QPalette palette = ui->boatSlippedEndOfDuty_checkBox->palette();
+        palette.setColor(QPalette::Base, Qt::yellow);
+        ui->boatSlippedEndOfDuty_checkBox->setPalette(palette);
+    }
+    else
+        ui->boatSlippedEndOfDuty_checkBox->setPalette(QApplication::style()->standardPalette());
+
+    if (checked && !ui->boatSlippedBeginOfDuty_checkBox->isChecked())
+    {
+        QPalette palette = ui->boatSlippedBeginOfDuty_checkBox->palette();
+        palette.setColor(QPalette::Base, Qt::yellow);
+        ui->boatSlippedBeginOfDuty_checkBox->setPalette(palette);
+    }
+    else
+        ui->boatSlippedBeginOfDuty_checkBox->setPalette(QApplication::style()->standardPalette());
+
     setUnsavedChanges();
 }
 
@@ -3609,6 +3918,7 @@ void ReportWindow::on_boatDrives_tableWidget_currentCellChanged(int currentRow, 
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
                                "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
 
             if (msgBox.exec() != QMessageBox::Yes)
             {
@@ -3729,6 +4039,7 @@ void ReportWindow::on_addBoatDrive_pushButton_pressed()
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
                                "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
 
             if (msgBox.exec() != QMessageBox::Yes)
                 return;
@@ -3759,9 +4070,7 @@ void ReportWindow::on_addBoatDrive_pushButton_pressed()
 /*!
  * \brief Remove the selected boat drive from the report.
  *
- * Resets setUnappliedBoatDriveChanges().
- *
- * Sets setUnsavedChanges(), if drive was removed.
+ * Resets setUnappliedBoatDriveChanges() and sets setUnsavedChanges(), if drive was removed.
  *
  * Then updates the boat drives table (see updateBoatDrivesTable()).
  */
@@ -3770,12 +4079,20 @@ void ReportWindow::on_removeBoatDrive_pushButton_pressed()
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
 
+    //If removing last drive select new last drive afterwards
+    bool lastDriveSelected = false;
+    if (ui->boatDrives_tableWidget->currentRow() == ui->boatDrives_tableWidget->rowCount()-1)
+        lastDriveSelected = true;
+
     boatLogPtr->removeDrive(ui->boatDrives_tableWidget->currentRow());
 
     setUnappliedBoatDriveChanges(false);
     setUnsavedChanges();
 
     updateBoatDrivesTable();
+
+    if (lastDriveSelected)
+        ui->boatDrives_tableWidget->setCurrentCell(ui->boatDrives_tableWidget->rowCount()-1, 0);
 }
 
 /*!
@@ -3807,6 +4124,7 @@ void ReportWindow::on_moveBoatDriveUp_pushButton_pressed()
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
                                "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
 
             if (msgBox.exec() != QMessageBox::Yes)
                 return;
@@ -3852,6 +4170,7 @@ void ReportWindow::on_moveBoatDriveDown_pushButton_pressed()
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
                                "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
 
             if (msgBox.exec() != QMessageBox::Yes)
                 return;
@@ -3924,6 +4243,7 @@ void ReportWindow::on_splitBoatDrive_pushButton_pressed()
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
                                "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nVerwerfen?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
 
             if (msgBox.exec() != QMessageBox::Yes)
                 return;
@@ -3937,6 +4257,7 @@ void ReportWindow::on_splitBoatDrive_pushButton_pressed()
     QMessageBox msgBox(QMessageBox::Question, "Zeit ändern?",
                        "Ende der alten Fahrt und Anfang der neuen Fahrt auf aktuelle Uhrzeit setzen?",
                        QMessageBox::Yes | QMessageBox::No, this);
+    msgBox.setDefaultButton(QMessageBox::No);
 
     if (msgBox.exec() == QMessageBox::Yes)
         oldDrive.setEndTime(Aux::roundQuarterHour(QTime::currentTime()));
@@ -4165,10 +4486,12 @@ void ReportWindow::on_boatCrewMember_comboBox_currentTextChanged(const QString& 
 /*!
  * \brief Add crew member to displayed drive's crew member table.
  *
- * Add selected potential crew member person to the displayed crew member table
- * (with selected boat function), if person not already in this table or selected as boatman.
+ * Adds the selected potential crew member person to the displayed crew member table
+ * (with currently selected function) if the person is not already in this table
+ * or selected as boatman. If the person was already added as crew member before
+ * then the person's function is updated with the currently selected function.
  *
- * Sets setUnappliedBoatDriveChanges(), if a boat drive selected and person was added.
+ * Sets setUnappliedBoatDriveChanges() if a person was added or the person's function was changed.
  */
 void ReportWindow::on_addBoatCrewMember_pushButton_pressed()
 {
@@ -4189,20 +4512,37 @@ void ReportWindow::on_addBoatCrewMember_pushButton_pressed()
         return;
     }
 
-    //Ensure that new crew member is not already crew member
+    //Ensure that new crew member is not already crew member; just update crew member function otherwise
+
+    bool personIsCrewMember = false;
+    bool changedCrewMemberFunction = false;
+
     for (int row = 0; row < ui->boatCrew_tableWidget->rowCount(); ++row)
     {
         if (ui->boatCrew_tableWidget->item(row, 3)->text() == tIdent)
         {
-            QMessageBox(QMessageBox::Warning, "Person schon Bootsgast", "Person ist schon als Bootsgast eingetragen!",
-                        QMessageBox::Ok, this).exec();
-            return;
+            personIsCrewMember = true;
+
+            Person::BoatFunction tOldFunction = Person::labelToBoatFunction(ui->boatCrew_tableWidget->item(row, 2)->text());
+            Person::BoatFunction tNewFunction = Person::labelToBoatFunction(ui->boatCrewMemberFunction_comboBox->currentText());
+
+            if (tNewFunction != tOldFunction)
+            {
+                ui->boatCrew_tableWidget->item(row, 2)->setText(Person::boatFunctionToLabel(tNewFunction));
+
+                changedCrewMemberFunction = true;
+            }
+
+            break;
         }
     }
 
-    insertBoatCrewTableRow(report.getPerson(tIdent), Person::labelToBoatFunction(ui->boatCrewMemberFunction_comboBox->currentText()));
+    if (!personIsCrewMember)
+        insertBoatCrewTableRow(report.getPerson(tIdent),
+                               Person::labelToBoatFunction(ui->boatCrewMemberFunction_comboBox->currentText()));
 
-    setUnappliedBoatDriveChanges();
+    if (!personIsCrewMember || changedCrewMemberFunction)
+        setUnappliedBoatDriveChanges();
 }
 
 /*!

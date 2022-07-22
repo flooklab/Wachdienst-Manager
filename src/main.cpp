@@ -282,92 +282,109 @@ int main(int argc, char *argv[])
 
         if (cmdArg1 == "-E")    //Automatically iterate file list and load and export each report to PDF (replacing extension with .pdf)
         {
-            std::cout<<"Load and export each report from the following file list to PDF:\n\n";
+            QMessageBox msgBox(QMessageBox::Question, "Alle exportieren?",
+                               "Alle angegebenen Wachberichte (siehe Details) werden nacheinander geladen und als PDF exportiert. "
+                               "Dazu wird jeweils die Dateiendung des Wachberichtes durch \".pdf\" ersetzt. Bestehende Dateien "
+                               "werden ohne weiteres Nachfragen überschrieben. Fortfahren?", QMessageBox::Abort | QMessageBox::Yes);
+
+            QString detailedText  = "Folgende Wachberichte werden exportiert:";
+
             for (const QString& tFileName : fileNames)
-                std::cout<<tFileName.toStdString()<<"\n";
+                detailedText.append("\n- \"" + tFileName + "\"");
 
-            std::cout<<"\nUsing the same file names with extensions being replaced by \".pdf\".\n";
-            std::cout<<"\nExported PDF files will be overwritten without asking! Continue? [y/N]\n";
+            msgBox.setDetailedText(detailedText);
 
-            char inputChar = 'n';
-            std::cin>>inputChar;
+            msgBox.setDefaultButton(QMessageBox::Abort);
 
-            std::cout<<std::endl;
-
-            if (inputChar != 'y' && inputChar != 'Y')
+            if (msgBox.exec() != QMessageBox::Yes)
                 return EXIT_SUCCESS;
 
             Report report;
 
             for (const QString& tFileName : fileNames)
             {
-                std::cout<<"\nLoading report from file \""<<tFileName.toStdString()<<"\"..."<<std::endl;
-
                 if (!report.open(tFileName))
+                {
+                    std::cerr<<"ERROR: Could not load report \""<<tFileName.toStdString()<<"\"!"<<std::endl;
+                    QMessageBox(QMessageBox::Critical, "Fehler", "Konnte Wachbericht \"" + tFileName + "\" nicht laden!").exec();
                     return EXIT_FAILURE;
+                }
 
                 QFileInfo fileInfo(tFileName);
                 QString pdfFileName = fileInfo.path() + "/" + fileInfo.completeBaseName() + ".pdf";
 
-                std::cout<<"Exporting report to \""<<pdfFileName.toStdString()<<"\"..."<<std::endl;
-
                 if (!PDFExporter::exportPDF(report, pdfFileName))
+                {
+                    std::cerr<<"ERROR: Could not export report to \""<<pdfFileName.toStdString()<<"\"!"<<std::endl;
+                    QMessageBox(QMessageBox::Critical, "Fehler",
+                                                       "Konnte Wachbericht nicht nach \"" + pdfFileName + "\" exportieren!").exec();
                     return EXIT_FAILURE;
+                }
             }
 
-            std::cout<<"\nFinished exporting all reports."<<std::endl;
+            QMessageBox(QMessageBox::Information, "Exportieren erfolgreich", "Es wurden alle Wachberichte exportiert!").exec();
         }
         else if (cmdArg1 == "-F")   //Iteratively fix all carryovers by loading first report from file list, applying its carryovers to
         {                           //second report and saving second report; then applying its carryovers to third report and so forth
 
-            std::cout<<"Fix all reports' carryovers by iterating over the following file list:\n\n";
-            for (const QString& tFileName : fileNames)
-                std::cout<<tFileName.toStdString()<<"\n";
-
             if (fileNames.size() < 2)
             {
                 std::cerr<<"WARNING: Nothing to be done!"<<std::endl;
+                QMessageBox(QMessageBox::Warning, "Warnung", "Es gibt nichts zu tun!").exec();
                 return EXIT_SUCCESS;
             }
 
-            std::cout<<"\nFirst file remains unmodified. Fixed reports will be saved under their old file names.\n";
-            std::cout<<"\nFiles will be overwritten without asking! Continue? [y/N]\n";
+            QMessageBox msgBox(QMessageBox::Question, "Alle korrigieren?",
+                               "Alle angegebenen Wachberichte (siehe Details) werden nacheinander geladen und nach Korrektur der "
+                               "Überträge mittels des jeweils vorherigen Wachberichtes wieder unter demselben Dateinamen gespeichert. "
+                               "Der erste Wachbericht bleibt unverändert. Die bestehenden Dateien werden ohne weiteres Nachfragen "
+                               "überschrieben.  Fortfahren?", QMessageBox::Abort | QMessageBox::Yes);
 
-            char inputChar = 'n';
-            std::cin>>inputChar;
+            QString detailedText  = "Für die folgenden Wachberichte werden in angegebener Reihenfolge die Überträge korrigiert:";
 
-            std::cout<<std::endl;
+            for (const QString& tFileName : fileNames)
+                detailedText.append("\n- \"" + tFileName + "\"");
 
-            if (inputChar != 'y' && inputChar != 'Y')
+            msgBox.setDetailedText(detailedText);
+
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
+            if (msgBox.exec() != QMessageBox::Yes)
                 return EXIT_SUCCESS;
 
             Report firstReport, secondReport;
 
-            std::cout<<"Loading report from file \""<<fileNames[0].toStdString()<<"\"..."<<std::endl;
-
             if (!secondReport.open(fileNames[0]))
+            {
+                std::cerr<<"ERROR: Could not load report \""<<fileNames[0].toStdString()<<"\"!"<<std::endl;
+                QMessageBox(QMessageBox::Critical, "Fehler", "Konnte Wachbericht \"" + fileNames[0] + "\" nicht laden!").exec();
                 return EXIT_FAILURE;
+            }
 
             for (int i = 1; i < fileNames.size(); ++i)
             {
                 firstReport = secondReport;
 
-                std::cout<<"\nLoading report from file \""<<fileNames[i].toStdString()<<"\"..."<<std::endl;
-
                 if (!secondReport.open(fileNames[i]))
+                {
+                    std::cerr<<"ERROR: Could not load report \""<<fileNames[i].toStdString()<<"\"!"<<std::endl;
+                    QMessageBox(QMessageBox::Critical, "Fehler", "Konnte Wachbericht \"" + fileNames[i] + "\" nicht laden!").exec();
                     return EXIT_FAILURE;
-
-                std::cout<<"Applying carryovers from report \""<<fileNames[i-1].toStdString()<<"\"..."<<std::endl;
+                }
 
                 secondReport.loadCarryovers(firstReport);
 
-                std::cout<<"Saving report \""<<fileNames[i].toStdString()<<"\"..."<<std::endl;
-
                 if (!secondReport.save(secondReport.getFileName()))
+                {
+                    std::cerr<<"ERROR: Could not save report \""<<secondReport.getFileName().toStdString()<<"\"!"<<std::endl;
+                    QMessageBox(QMessageBox::Critical,
+                                "Fehler", "Konnte Wachbericht \"" + secondReport.getFileName() + "\" nicht speichern!").exec();
                     return EXIT_FAILURE;
+                }
             }
 
-            std::cout<<"\nFinished fixing all reports' carryovers."<<std::endl;
+            QMessageBox(QMessageBox::Information, "Korrigieren erfolgreich",
+                                                  "Die Überträge der Wachberichte wurden korrigiert!").exec();
         }
 
         return EXIT_SUCCESS;

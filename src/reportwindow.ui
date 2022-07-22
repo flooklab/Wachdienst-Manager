@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1294</width>
+    <width>1362</width>
     <height>679</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>1294</width>
+    <width>1362</width>
     <height>679</height>
    </size>
   </property>
@@ -244,7 +244,7 @@
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>65</height>
+                   <height>67</height>
                   </size>
                  </property>
                  <property name="maximumSize">
@@ -526,16 +526,44 @@
                </item>
                <item row="4" column="1">
                 <widget class="QPlainTextEdit" name="weatherComments_plainTextEdit">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>54</height>
+                  </size>
+                 </property>
                  <property name="font">
                   <font>
                    <family>Tahoma</family>
                    <pointsize>8</pointsize>
                   </font>
                  </property>
+                 <property name="plainText">
+                  <string/>
+                 </property>
                  <property name="placeholderText">
                   <string>Bemerkungen zum Wetter</string>
                  </property>
                 </widget>
+               </item>
+               <item row="5" column="0" colspan="2">
+                <spacer name="verticalSpacer">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>54</height>
+                  </size>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
                </item>
               </layout>
              </widget>
@@ -625,7 +653,7 @@
                     </size>
                    </property>
                    <property name="text">
-                    <string>Sonstige Anlagen:</string>
+                    <string>Weitere Anlagen:</string>
                    </property>
                   </widget>
                  </item>
@@ -1007,6 +1035,9 @@
                  </item>
                  <item row="1" column="2">
                   <widget class="QComboBox" name="personIdent_comboBox">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="minimumSize">
                     <size>
                      <width>100</width>
@@ -1337,13 +1368,22 @@
              <string>Kalender</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_2">
+             <property name="spacing">
+              <number>9</number>
+             </property>
              <item>
-              <widget class="QLCDNumber" name="reportTabTime_lcdNumber">
-               <property name="digitCount">
-                <number>8</number>
+              <widget class="QLabel" name="reportTabTime_label">
+               <property name="font">
+                <font>
+                 <family>Verdana</family>
+                 <pointsize>22</pointsize>
+                </font>
                </property>
-               <property name="segmentStyle">
-                <enum>QLCDNumber::Flat</enum>
+               <property name="text">
+                <string>00:00:00</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
                </property>
               </widget>
              </item>
@@ -2251,7 +2291,7 @@
                  <property name="font">
                   <font>
                    <family>Tahoma</family>
-                   <pointsize>8</pointsize>
+                   <pointsize>10</pointsize>
                   </font>
                  </property>
                  <attribute name="horizontalHeaderStretchLastSection">
@@ -2406,7 +2446,7 @@
                 <widget class="QScrollArea" name="boatDrive_scrollArea">
                  <property name="minimumSize">
                   <size>
-                   <width>610</width>
+                   <width>594</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -2418,7 +2458,7 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>591</width>
+                    <width>592</width>
                     <height>259</height>
                    </rect>
                   </property>
@@ -2434,7 +2474,7 @@
                      <item>
                       <widget class="QLabel" name="boatDriveComments_label">
                        <property name="text">
-                        <string>Bemerkungen:</string>
+                        <string>Bemerkungen</string>
                        </property>
                       </widget>
                      </item>
@@ -2457,6 +2497,9 @@
                          <family>Tahoma</family>
                          <pointsize>8</pointsize>
                         </font>
+                       </property>
+                       <property name="placeholderText">
+                        <string>Bemerkungen zur Fahrt</string>
                        </property>
                       </widget>
                      </item>
@@ -2593,6 +2636,12 @@
                    </item>
                    <item row="3" column="2">
                     <widget class="QTableWidget" name="boatCrew_tableWidget">
+                     <property name="minimumSize">
+                      <size>
+                       <width>270</width>
+                       <height>0</height>
+                      </size>
+                     </property>
                      <property name="font">
                       <font>
                        <family>Tahoma</family>
@@ -2817,13 +2866,22 @@
              <string>Kalender</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_4">
+             <property name="spacing">
+              <number>9</number>
+             </property>
              <item>
-              <widget class="QLCDNumber" name="boatTabTime_lcdNumber">
-               <property name="digitCount">
-                <number>8</number>
+              <widget class="QLabel" name="boatTabTime_label">
+               <property name="font">
+                <font>
+                 <family>Verdana</family>
+                 <pointsize>22</pointsize>
+                </font>
                </property>
-               <property name="segmentStyle">
-                <enum>QLCDNumber::Flat</enum>
+               <property name="text">
+                <string>00:00:00</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
                </property>
               </widget>
              </item>
@@ -3445,7 +3503,7 @@
                </size>
               </property>
               <property name="title">
-               <string>Einsatzfahrzeuge an der Station</string>
+               <string>Eingesetzte Einsatzfahrzeuge</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_3">
                <item row="1" column="1">
@@ -3602,13 +3660,22 @@
              <string>Kalender</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_5">
+             <property name="spacing">
+              <number>9</number>
+             </property>
              <item>
-              <widget class="QLCDNumber" name="rescueTabTime_lcdNumber">
-               <property name="digitCount">
-                <number>8</number>
+              <widget class="QLabel" name="rescueTabTime_label">
+               <property name="font">
+                <font>
+                 <family>Verdana</family>
+                 <pointsize>22</pointsize>
+                </font>
                </property>
-               <property name="segmentStyle">
-                <enum>QLCDNumber::Flat</enum>
+               <property name="text">
+                <string>00:00:00</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
                </property>
               </widget>
              </item>
@@ -3670,7 +3737,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1294</width>
+     <width>1362</width>
      <height>18</height>
     </rect>
    </property>
@@ -3708,9 +3775,16 @@
     </property>
     <widget class="QMenu" name="exportOptions_menu">
      <property name="title">
-      <string>Export-Optionen</string>
+      <string>&amp;Export-Optionen</string>
      </property>
-     <addaction name="editPersonnelListSplit_action"/>
+     <widget class="QMenu" name="tableSplitOptions_menu">
+      <property name="title">
+       <string>&amp;Tabellen-Trennung</string>
+      </property>
+      <addaction name="editPersonnelTableSplit_action"/>
+      <addaction name="editBoatDrivesTableSplit_action"/>
+     </widget>
+     <addaction name="tableSplitOptions_menu"/>
     </widget>
     <addaction name="exportOptions_menu"/>
    </widget>
@@ -3718,9 +3792,9 @@
    <addaction name="extras_menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="editPersonnelListSplit_action">
+  <action name="editPersonnelTableSplit_action">
    <property name="text">
-    <string>Personallisten-Trennung</string>
+    <string>&amp;Personal</string>
    </property>
   </action>
   <action name="saveFile_action">
@@ -3777,6 +3851,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="editBoatDrivesTableSplit_action">
+   <property name="text">
+    <string>&amp;Bootsfahrten</string>
    </property>
   </action>
  </widget>

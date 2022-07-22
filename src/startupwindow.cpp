@@ -47,7 +47,7 @@ StartupWindow::StartupWindow(QWidget *const pParent) :
     ui->setupUi(this);
 
     //Show current program version in window title
-    setWindowTitle("DLRG Wachdienst-Manager " + Aux::programVersionStringPretty);
+    setWindowTitle("Wachdienst-Manager " + Aux::programVersionStringPretty);
 
     //Add button shortcuts
 

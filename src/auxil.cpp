@@ -299,17 +299,17 @@ QTime Aux::roundQuarterHour(QTime pTime)
  */
 void Aux::latexEscapeSpecialChars(QString& pString)
 {
-    pString.replace("\\", "\\textbackslash{}"); //Need to replace backslashes first
-    pString.replace("{", "\\{");
-    pString.replace("}", "\\}");
+    pString.replace('\\', "\\textbackslash{}"); //Need to replace backslashes first
+    pString.replace('{', "\\{");
+    pString.replace('}', "\\}");
     pString.replace("\\{\\}", "{}");            //Fix wrongly replaced "{}" after "textbackslash"
-    pString.replace("#", "\\#");
-    pString.replace("$", "\\$");
-    pString.replace("%", "\\%");
-    pString.replace("^", "\\^{}");
-    pString.replace("&", "\\&");
-    pString.replace("_", "\\_");
-    pString.replace("~", "\\~{}");
+    pString.replace('#', "\\#");
+    pString.replace('$', "\\$");
+    pString.replace('%', "\\%");
+    pString.replace('^', "\\^{}");
+    pString.replace('&', "\\&");
+    pString.replace('_', "\\_");
+    pString.replace('~', "\\~{}");
 }
 
 /*!
@@ -322,34 +322,44 @@ void Aux::latexEscapeSpecialChars(QString& pString)
  */
 void Aux::latexFixLineBreaks(QString& pString)
 {
-    pString.replace("\n", "\n\n");
+    pString.replace('\n', "\n\n");
 }
 
 /*!
  * \brief Add "\hfill" before line breaks to expand "\ulem" underline.
  *
- * Allows to preserve display of line breaks from a text edit in LaTeX output document
- * together with the expanding underline of the "\uline" command from the "ulem" package
- * when using \p pString within this command.
+ * Allows to preserve display of line breaks from a text edit in LaTeX output document together with the expanding
+ * underline of the "\uline" command from the "ulem" package when using \p pString within this command.
  *
  * \param pString Text to be modified.
  */
 void Aux::latexFixLineBreaksUline(QString& pString)
 {
-    pString.replace("\n", "\\hfill{}\\mbox{}\\newline\n\\mbox{}");
+    pString.replace('\n', "\\hfill{}\\mbox{}\\newline\n\\mbox{}");
 }
 
 /*!
  * \brief Remove all line breaks.
  *
- * Removes any line breaks from a text edit text in order to use \p pString
- * in a LaTeX command that does not allow line breaks.
+ * Removes any line breaks from a text edit text in order to use \p pString in a LaTeX command that does not allow line breaks.
  *
  * \param pString Text to be modified.
  */
 void Aux::latexFixLineBreaksNoLineBreaks(QString& pString)
 {
-    pString.replace("\n", "");
+    pString.replace('\n', "");
+}
+
+/*!
+ * \brief Replace every dash with the "\Hyphdash" command.
+ *
+ * Replaces every dash with the "\Hyphdash" command from the "extdash" package such that words that contain a dash can be hyphenated.
+ *
+ * \param pString Text to be modified.
+ */
+void Aux::latexUseHyphdash(QString& pString)
+{
+    pString.replace('-', "\\Hyphdash{}");
 }
 
 //

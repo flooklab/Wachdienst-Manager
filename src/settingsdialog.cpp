@@ -102,7 +102,9 @@ SettingsDialog::SettingsDialog(QWidget *const pParent) :
         _CheckPassword:
         if (!Aux::checkPassword(hash, salt, pParent))
         {
-            QMessageBox msgBox(QMessageBox::Critical, "Fehler", "Falsches Passwort!", QMessageBox::Ok | QMessageBox::Retry, pParent);
+            QMessageBox msgBox(QMessageBox::Critical, "Fehler", "Falsches Passwort!", QMessageBox::Abort | QMessageBox::Retry, pParent);
+            msgBox.setDefaultButton(QMessageBox::Retry);
+
             if (msgBox.exec() == QMessageBox::Retry)
             {
                 //Retry after a second

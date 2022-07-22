@@ -77,6 +77,7 @@ public:
     static void latexFixLineBreaks(QString& pString);               ///< Convert line breaks into double line breaks.
     static void latexFixLineBreaksUline(QString& pString);          ///< Add "\hfill" before line breaks to expand "\ulem" underline.
     static void latexFixLineBreaksNoLineBreaks(QString& pString);   ///< Remove all line breaks.
+    static void latexUseHyphdash(QString& pString);                 ///< Replace every dash with the "\Hyphdash" command.
     //
     static QString precipitationToLabel(Precipitation pPrecip);         ///< Get the label for a precipitation type.
     static Precipitation labelToPrecipitation(const QString& pPrecip);  ///< Get the precipitation type from its label.
@@ -242,7 +243,7 @@ public:
      *
      * For each precipitation type the \p pFunction is called with first parameter being the type
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(precipType, pArgs...).
-     * Non-void return values will be discarded. You may use use \p pArgs to communicate results of the function calls.
+     * Non-void return values will be discarded. You may use \p pArgs to communicate results of the function calls.
      *
      * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each precipitation type.
      * \tparam ...Args Types of all additional parameters for \p pFunction if there are any.
@@ -282,7 +283,7 @@ public:
      *
      * For each cloudiness level the \p pFunction is called with first parameter being the level
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(cloudLevel, pArgs...).
-     * Non-void return values will be discarded. You may use use \p pArgs to communicate results of the function calls.
+     * Non-void return values will be discarded. You may use \p pArgs to communicate results of the function calls.
      *
      * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each cloudiness level.
      * \tparam ...Args Types of all additional parameters for \p pFunction if there are any.
@@ -316,7 +317,7 @@ public:
      *
      * For each wind strength the \p pFunction is called with first parameter being the strength
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(windStrength, pArgs...).
-     * Non-void return values will be discarded. You may use use \p pArgs to communicate results of the function calls.
+     * Non-void return values will be discarded. You may use \p pArgs to communicate results of the function calls.
      *
      * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each wind strength.
      * \tparam ...Args Types of all additional parameters for \p pFunction if there are any.

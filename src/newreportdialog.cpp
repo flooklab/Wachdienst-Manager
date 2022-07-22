@@ -386,7 +386,7 @@ void NewReportDialog::on_loadLastReportCarries_radioButton_toggled(bool checked)
     if (!checked)
         return;
 
-    QString tFileName = QFileDialog::getOpenFileName(this, "Letzten Wachbericht öffnen", "", "Wachberichte (*.wbr)");
+    QString tFileName = QFileDialog::getOpenFileName(this, "[Überträge laden] Letzten Wachbericht öffnen", "", "Wachberichte (*.wbr)");
 
     if (tFileName == "")
     {

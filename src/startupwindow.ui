@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>DLRG Wachdienst-Manager</string>
+   <string>Wachdienst-Manager</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
