@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,25 @@
 
 #include "personneldatabasedialog.h"
 #include "ui_personneldatabasedialog.h"
+
+#include "auxil.h"
+#include "databasecache.h"
+#include "person.h"
+#include "personneleditordialog.h"
+#include "settingscache.h"
+
+#include <QAbstractItemView>
+#include <QHeaderView>
+#include <QItemSelectionModel>
+#include <QMessageBox>
+#include <QModelIndexList>
+#include <QPushButton>
+#include <QString>
+#include <QTableWidget>
+
+#include <functional>
+#include <set>
+#include <thread>
 
 /*!
  * \brief Constructor.
@@ -194,7 +213,7 @@ void PersonnelDatabaseDialog::on_add_pushButton_pressed()
     if (editDisabled || DatabaseCache::isReadOnly())
         return;
 
-    PersonnelEditorDialog dialog(Person::dummyPerson(), false, this);
+    PersonnelEditorDialog dialog(Person::dummyPerson(), PersonnelEditorDialog::PersonType::_INTERNAL, false, this);
 
     if (dialog.exec() != QDialog::Accepted)
         return;
@@ -250,7 +269,7 @@ void PersonnelDatabaseDialog::on_edit_pushButton_pressed()
         Person tPerson = Person::dummyPerson();
         DatabaseCache::getPerson(tPerson, tIdent);
 
-        PersonnelEditorDialog dialog(tPerson, false, this);
+        PersonnelEditorDialog dialog(tPerson, PersonnelEditorDialog::PersonType::_INTERNAL, false, this);
 
         if (dialog.exec() != QDialog::Accepted)
             continue;
@@ -295,11 +314,39 @@ void PersonnelDatabaseDialog::on_remove_pushButton_pressed()
     if (editDisabled || DatabaseCache::isReadOnly())
         return;
 
-    //Get selected persons' identifiers
+    //Get selected persons' identifiers and names
+
     std::vector<QString> tIdents;
+    QString tNames;
+
     QModelIndexList idxList = ui->personnel_tableWidget->selectionModel()->selectedRows();
     for (auto it = idxList.begin(); it != idxList.end(); ++it)
+    {
         tIdents.push_back(ui->personnel_tableWidget->item((*it).row(), 0)->text());
+
+        if (tNames != "")
+            tNames.append(", ");
+
+        tNames.append("\"" + ui->personnel_tableWidget->item((*it).row(), 2)->text() + " " +
+                             ui->personnel_tableWidget->item((*it).row(), 1)->text() + "\"");
+    }
+
+    if (tIdents.size() == 0)
+        return;
+
+    //Ask before removing
+
+    QString tPersonsLabel1 = (tIdents.size() > 1) ? "Personen" : "Person";
+    QString tPersonsLabel2 = (tIdents.size() > 1) ? "werden" : "wird";
+
+    QMessageBox msgBox(QMessageBox::Question, tPersonsLabel1 + " entfernen?", tPersonsLabel1 + " " + tNames + " " + tPersonsLabel2 +
+                       " entfernt!\nFortfahren?", QMessageBox::Abort | QMessageBox::Yes, this);
+    msgBox.setDefaultButton(QMessageBox::Abort);
+
+    if (msgBox.exec() != QMessageBox::Yes)
+        return;
+
+    //Remove persons
 
     for (const QString& tIdent : tIdents)
     {

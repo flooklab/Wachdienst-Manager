@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -25,11 +25,11 @@
 
 #include "person.h"
 
-#include <map>
-#include <stdexcept>
-
 #include <QString>
 #include <QTime>
+
+#include <map>
+#include <utility>
 
 /*!
  * \brief Information about a boat drive.
@@ -58,23 +58,33 @@ public:
     QString getBoatman() const;             ///< Get the boatman.
     void setBoatman(QString pIdent);        ///< Set the boatman.
     //
+    std::map<QString, Person::BoatFunction> crew() const;                               ///< Get all crew members' functions.
     int crewSize() const;                                                               ///< Get the number of crew members.
-    std::map<QString, Person::BoatFunction> crew() const;                               ///< Get all crew members.
-    void clearCrew();                                                                   ///< Remove all crew members.
     bool getCrewMember(const QString& pIdent, Person::BoatFunction& pFunction) const;   ///< Get the function of a crew member.
+    bool getExtCrewMemberName(const QString& pIdent,
+                              QString& pLastName, QString& pFirstName) const;           ///< Get the name of an external crew member.
     void addCrewMember(const QString& pIdent, Person::BoatFunction pFunction);          ///< Add a crew member.
+    void addExtCrewMember(const QString& pIdent, Person::BoatFunction pFunction,
+                          const QString& pLastName, const QString& pFirstName);         ///< Add an external crew member.
+    void removeCrewMember(const QString& pIdent);                                       ///< Remove a crew member.
+    void clearCrew();                                                                   ///< Remove all crew members.
+    //
+    bool getNoCrewConfirmed() const;        ///< Check if empty crew (except boatman) was confirmed.
+    void setNoCrewConfirmed(bool pNoCrew);  ///< Confirm that empty crew (except boatman) is correct.
 
 private:
-    QString purpose;    //Purpose of the boat drive
-    QString comments;   //Comments on the boat drive
+    QString purpose;        //Purpose of the boat drive
+    QString comments;       //Comments on the boat drive
     //
-    QTime begin, end;   //Timeframe of the boat drive
+    QTime begin, end;       //Timeframe of the boat drive
     //
-    int fuel;           //Added fuel (during/after this drive) in liters
+    int fuel;               //Added fuel (during/after this drive) in liters
     //
-    QString boatman;    //The boatman
+    QString boatman;        //The boatman
     //
-    std::map<QString, Person::BoatFunction> crewMap;    //The boat crew for this drive (excluding the boatman)
+    bool noCrewConfirmed;   //Explicit confirmation that boat crew was left empty intentionally (only boatman aboard)
+    std::map<QString, Person::BoatFunction> crewMap;                //The boat crew for this drive (excluding the boatman)
+    std::map<QString, std::pair<QString, QString>> crewExtNames;    //Last and first names of external crew members
 };
 
 #endif // BOATDRIVE_H

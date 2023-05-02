@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,26 @@
 
 #include "newreportdialog.h"
 #include "ui_newreportdialog.h"
+
+#include "boatlog.h"
+#include "databasecache.h"
+#include "settingscache.h"
+
+#include <QCalendarWidget>
+#include <QComboBox>
+#include <QDate>
+#include <QFileDialog>
+#include <QKeySequence>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QShortcut>
+#include <QStackedWidget>
+#include <QTime>
+#include <QTimeEdit>
 
 /*!
  * \brief Constructor.
@@ -79,14 +99,19 @@ NewReportDialog::NewReportDialog(QWidget *const pParent) :
     }
 
     //Use boat name instead of 'rowid' as key
-    QString tDefaultBoatName;
-    for (const auto& it : DatabaseCache::boats())
-    {
-        //Default boat exists?
-        if (it.first == defaultBoatRowId)
-            tDefaultBoatName = it.second.name;
 
-        boats.insert({it.second.name, std::move(it.second)});
+    QString tDefaultBoatName;
+
+    if (!SettingsCache::getBoolSetting("app_boatLog_disabled"))
+    {
+        for (const auto& it : DatabaseCache::boats())
+        {
+            //Default boat exists?
+            if (it.first == defaultBoatRowId)
+                tDefaultBoatName = it.second.name;
+
+            boats.insert({it.second.name, std::move(it.second)});
+        }
     }
 
     //Add stations and boats to to combo boxes
@@ -132,10 +157,10 @@ NewReportDialog::NewReportDialog(QWidget *const pParent) :
     //Add navigation shortcuts
 
     QShortcut* previousShortcut = new QShortcut(QKeySequence("Alt+Left"), this);
-    connect(previousShortcut, SIGNAL(activated()), this, SLOT(on_previous_pushButton_pressed()));
+    connect(previousShortcut, &QShortcut::activated, this, &NewReportDialog::on_previous_pushButton_pressed);
 
     QShortcut* nextShortcut = new QShortcut(QKeySequence("Alt+Right"), this);
-    connect(nextShortcut, SIGNAL(activated()), this, SLOT(on_next_pushButton_pressed()));
+    connect(nextShortcut, &QShortcut::activated, this, &NewReportDialog::on_next_pushButton_pressed);
 }
 
 /*!
@@ -225,7 +250,7 @@ void NewReportDialog::accept()
  *
  * \param arg1 New page index.
  */
-void NewReportDialog::on_stackedWidget_currentChanged(int arg1)
+void NewReportDialog::on_stackedWidget_currentChanged(const int arg1)
 {
     //Update progress
     ui->progressBar->setValue(static_cast<int>(100 * static_cast<double>(arg1) / ui->stackedWidget->count()));
@@ -288,7 +313,7 @@ void NewReportDialog::on_next_pushButton_pressed()
  *
  * \param arg1 Selected combo box label representing a station.
  */
-void NewReportDialog::on_station_comboBox_currentTextChanged(const QString &arg1)
+void NewReportDialog::on_station_comboBox_currentTextChanged(const QString& arg1)
 {
     ui->stationRadioCallName_comboBox->clear();
 
@@ -310,7 +335,7 @@ void NewReportDialog::on_station_comboBox_currentTextChanged(const QString &arg1
  *
  * \param arg1 Selected combo box label representing a boat.
  */
-void NewReportDialog::on_boat_comboBox_currentTextChanged(const QString &arg1)
+void NewReportDialog::on_boat_comboBox_currentTextChanged(const QString& arg1)
 {
     ui->boatRadioCallName_comboBox->clear();
 
@@ -331,7 +356,7 @@ void NewReportDialog::on_boat_comboBox_currentTextChanged(const QString &arg1)
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_clearStation_radioButton_toggled(bool checked)
+void NewReportDialog::on_clearStation_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;
@@ -347,7 +372,7 @@ void NewReportDialog::on_clearStation_radioButton_toggled(bool checked)
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_clearBoat_radioButton_toggled(bool checked)
+void NewReportDialog::on_clearBoat_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;
@@ -365,7 +390,7 @@ void NewReportDialog::on_clearBoat_radioButton_toggled(bool checked)
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_noLoadLastReportCarries_radioButton_toggled(bool checked)
+void NewReportDialog::on_noLoadLastReportCarries_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;
@@ -381,7 +406,7 @@ void NewReportDialog::on_noLoadLastReportCarries_radioButton_toggled(bool checke
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_loadLastReportCarries_radioButton_toggled(bool checked)
+void NewReportDialog::on_loadLastReportCarries_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;

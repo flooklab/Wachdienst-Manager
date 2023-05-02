@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>1362</width>
-    <height>679</height>
+    <height>693</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>1362</width>
-    <height>679</height>
+    <height>693</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -97,7 +97,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>10000</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -134,7 +134,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -148,6 +148,9 @@
                      <family>Tahoma</family>
                      <pointsize>8</pointsize>
                     </font>
+                   </property>
+                   <property name="displayFormat">
+                    <string>HH:mm</string>
                    </property>
                   </widget>
                  </item>
@@ -171,6 +174,9 @@
                      <family>Tahoma</family>
                      <pointsize>8</pointsize>
                     </font>
+                   </property>
+                   <property name="displayFormat">
+                    <string>HH:mm</string>
                    </property>
                   </widget>
                  </item>
@@ -322,7 +328,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>40</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -369,11 +375,11 @@
                <item row="3" column="0">
                 <widget class="QLabel" name="windStrength_label">
                  <property name="text">
-                  <string>Wind</string>
+                  <string>Windstärke</string>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="0">
+               <item row="5" column="0">
                 <widget class="QLabel" name="weatherComments_label">
                  <property name="text">
                   <string>Bemerkungen</string>
@@ -437,7 +443,7 @@
                    <property name="sizeHint" stdset="0">
                     <size>
                      <width>0</width>
-                     <height>20</height>
+                     <height>0</height>
                     </size>
                    </property>
                   </spacer>
@@ -524,7 +530,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="4" column="1">
+               <item row="5" column="1">
                 <widget class="QPlainTextEdit" name="weatherComments_plainTextEdit">
                  <property name="maximumSize">
                   <size>
@@ -546,8 +552,8 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="0" colspan="2">
-                <spacer name="verticalSpacer">
+               <item row="6" column="0" colspan="2">
+                <spacer name="weather_verticalSpacer">
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
@@ -559,11 +565,28 @@
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>0</width>
                    <height>0</height>
                   </size>
                  </property>
                 </spacer>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="windDirection_label">
+                 <property name="text">
+                  <string>Windrichtung</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QComboBox" name="windDirection_comboBox">
+                 <property name="font">
+                  <font>
+                   <family>Tahoma</family>
+                   <pointsize>8</pointsize>
+                  </font>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -576,7 +599,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>40</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -776,7 +799,7 @@
                    <property name="sizeHint" stdset="0">
                     <size>
                      <width>0</width>
-                     <height>20</height>
+                     <height>0</height>
                     </size>
                    </property>
                   </spacer>
@@ -840,7 +863,7 @@
                     <x>0</x>
                     <y>0</y>
                     <width>185</width>
-                    <height>119</height>
+                    <height>120</height>
                    </rect>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -882,7 +905,7 @@
                      </property>
                      <property name="sizeHint" stdset="0">
                       <size>
-                       <width>20</width>
+                       <width>0</width>
                        <height>0</height>
                       </size>
                      </property>
@@ -903,7 +926,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>40</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -967,6 +990,9 @@
                      <pointsize>8</pointsize>
                     </font>
                    </property>
+                   <property name="displayFormat">
+                    <string>HH:mm</string>
+                   </property>
                   </widget>
                  </item>
                  <item row="0" column="4">
@@ -1014,6 +1040,9 @@
                      <pointsize>8</pointsize>
                     </font>
                    </property>
+                   <property name="displayFormat">
+                    <string>HH:mm</string>
+                   </property>
                   </widget>
                  </item>
                  <item row="0" column="1">
@@ -1040,7 +1069,7 @@
                    </property>
                    <property name="minimumSize">
                     <size>
-                     <width>100</width>
+                     <width>137</width>
                      <height>0</height>
                     </size>
                    </property>
@@ -1049,6 +1078,9 @@
                      <family>Tahoma</family>
                      <pointsize>8</pointsize>
                     </font>
+                   </property>
+                   <property name="sizeAdjustPolicy">
+                    <enum>QComboBox::AdjustToContents</enum>
                    </property>
                   </widget>
                  </item>
@@ -1075,6 +1107,9 @@
                    <family>Tahoma</family>
                    <pointsize>8</pointsize>
                   </font>
+                 </property>
+                 <property name="tabKeyNavigation">
+                  <bool>false</bool>
                  </property>
                  <column>
                   <property name="text">
@@ -1125,7 +1160,7 @@
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>0</width>
                    <height>21</height>
                   </size>
                  </property>
@@ -1168,11 +1203,11 @@
                   <enum>Qt::Vertical</enum>
                  </property>
                  <property name="sizeType">
-                  <enum>QSizePolicy::MinimumExpanding</enum>
+                  <enum>QSizePolicy::Expanding</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>0</width>
                    <height>10</height>
                   </size>
                  </property>
@@ -1231,7 +1266,7 @@
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>0</width>
                    <height>5</height>
                   </size>
                  </property>
@@ -1285,13 +1320,23 @@
                  <property name="orientation">
                   <enum>Qt::Vertical</enum>
                  </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Expanding</enum>
+                 </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
-                   <height>0</height>
+                   <width>0</width>
+                   <height>10</height>
                   </size>
                  </property>
                 </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="personQualifications_pushButton">
+                 <property name="text">
+                  <string>Qualifikationen</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -1426,7 +1471,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>40</height>
              </size>
             </property>
@@ -1469,7 +1514,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -1576,7 +1621,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -1680,7 +1725,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -1855,7 +1900,7 @@
                  <item>
                   <widget class="QLabel" name="boatSlipped_label">
                    <property name="text">
-                    <string>Boot geslipt?</string>
+                    <string>Boot geslippt?</string>
                    </property>
                   </widget>
                  </item>
@@ -1885,7 +1930,7 @@
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>0</width>
                    <height>10</height>
                   </size>
                  </property>
@@ -1907,6 +1952,9 @@
                      <family>Tahoma</family>
                      <pointsize>8</pointsize>
                     </font>
+                   </property>
+                   <property name="displayFormat">
+                    <string>HH:mm</string>
                    </property>
                   </widget>
                  </item>
@@ -1931,6 +1979,9 @@
                      <pointsize>8</pointsize>
                     </font>
                    </property>
+                   <property name="displayFormat">
+                    <string>HH:mm</string>
+                   </property>
                   </widget>
                  </item>
                 </layout>
@@ -1942,7 +1993,7 @@
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>0</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -1959,7 +2010,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>0</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -2243,7 +2294,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>0</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -2293,6 +2344,9 @@
                    <family>Tahoma</family>
                    <pointsize>10</pointsize>
                   </font>
+                 </property>
+                 <property name="tabKeyNavigation">
+                  <bool>false</bool>
                  </property>
                  <attribute name="horizontalHeaderStretchLastSection">
                   <bool>true</bool>
@@ -2459,7 +2513,7 @@
                     <x>0</x>
                     <y>0</y>
                     <width>592</width>
-                    <height>259</height>
+                    <height>265</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_2">
@@ -2558,6 +2612,9 @@
                            <pointsize>8</pointsize>
                           </font>
                          </property>
+                         <property name="displayFormat">
+                          <string>HH:mm</string>
+                         </property>
                         </widget>
                        </item>
                        <item>
@@ -2580,6 +2637,9 @@
                            <family>Tahoma</family>
                            <pointsize>8</pointsize>
                           </font>
+                         </property>
+                         <property name="displayFormat">
+                          <string>HH:mm</string>
                          </property>
                         </widget>
                        </item>
@@ -2627,13 +2687,6 @@
                      </property>
                     </widget>
                    </item>
-                   <item row="2" column="0" colspan="3">
-                    <widget class="QLabel" name="boatCrew_label">
-                     <property name="text">
-                      <string>Besatzung:</string>
-                     </property>
-                    </widget>
-                   </item>
                    <item row="3" column="2">
                     <widget class="QTableWidget" name="boatCrew_tableWidget">
                      <property name="minimumSize">
@@ -2647,6 +2700,9 @@
                        <family>Tahoma</family>
                        <pointsize>8</pointsize>
                       </font>
+                     </property>
+                     <property name="tabKeyNavigation">
+                      <bool>false</bool>
                      </property>
                      <column>
                       <property name="text">
@@ -2692,7 +2748,7 @@
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
-                         <width>20</width>
+                         <width>0</width>
                          <height>10000</height>
                         </size>
                        </property>
@@ -2746,6 +2802,13 @@
                         </widget>
                        </item>
                        <item>
+                        <widget class="QPushButton" name="addExtBoatCrewMember_pushButton">
+                         <property name="text">
+                          <string>Extern</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
                         <widget class="QPushButton" name="removeBoatCrewMember_pushButton">
                          <property name="text">
                           <string>Entfernen</string>
@@ -2761,13 +2824,27 @@
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
-                         <width>20</width>
+                         <width>0</width>
                          <height>0</height>
                         </size>
                        </property>
                       </spacer>
                      </item>
                     </layout>
+                   </item>
+                   <item row="2" column="0" colspan="2">
+                    <widget class="QLabel" name="boatCrew_label">
+                     <property name="text">
+                      <string>Besatzung:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="2">
+                    <widget class="QCheckBox" name="noBoatCrew_checkBox">
+                     <property name="text">
+                      <string>Keine Besatzung</string>
+                     </property>
+                    </widget>
                    </item>
                   </layout>
                  </widget>
@@ -2924,7 +3001,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>40</height>
              </size>
             </property>
@@ -2967,7 +3044,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -3086,7 +3163,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -3196,7 +3273,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -3336,7 +3413,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>0</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -3350,7 +3427,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>0</height>
              </size>
             </property>
@@ -3373,7 +3450,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>0</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -3387,7 +3464,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>0</height>
              </size>
             </property>
@@ -3398,7 +3475,7 @@
             <item>
              <widget class="QGroupBox" name="assignmentNumber_groupBox">
               <property name="title">
-               <string>Einsatznummer LSt</string>
+               <string>Einsatznummer von Leitstelle</string>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_9">
                <item>
@@ -3411,13 +3488,13 @@
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>245</width>
+                   <width>200</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>245</width>
+                   <width>200</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -3429,9 +3506,6 @@
                  </property>
                  <property name="maxLength">
                   <number>100</number>
-                 </property>
-                 <property name="placeholderText">
-                  <string>Nur auszufüllen, wenn Koordinierungsstelle Bezirk</string>
                  </property>
                 </widget>
                </item>
@@ -3446,7 +3520,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>0</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -3483,7 +3557,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>0</width>
-                <height>20</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -3503,7 +3577,7 @@
                </size>
               </property>
               <property name="title">
-               <string>Eingesetzte Einsatzfahrzeuge</string>
+               <string>Eingesetzte Fahrzeuge</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_3">
                <item row="1" column="1">
@@ -3531,7 +3605,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -3547,7 +3621,7 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>0</width>
-                   <height>20</height>
+                   <height>0</height>
                   </size>
                  </property>
                 </spacer>
@@ -3584,7 +3658,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>0</height>
              </size>
             </property>
@@ -3718,7 +3792,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>0</width>
               <height>40</height>
              </size>
             </property>
@@ -3755,6 +3829,7 @@
     <addaction name="saveFileAs_action"/>
     <addaction name="separator"/>
     <addaction name="exportFile_action"/>
+    <addaction name="exportAndOpenFile_action"/>
     <addaction name="separator"/>
     <addaction name="loadCarries_action"/>
     <addaction name="separator"/>
@@ -3771,7 +3846,7 @@
      </font>
     </property>
     <property name="title">
-     <string>E&amp;xtras</string>
+     <string>Ex&amp;tras</string>
     </property>
     <widget class="QMenu" name="exportOptions_menu">
      <property name="title">
@@ -3858,6 +3933,14 @@
     <string>&amp;Bootsfahrten</string>
    </property>
   </action>
+  <action name="exportAndOpenFile_action">
+   <property name="text">
+    <string>E&amp;xportieren und öffnen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+X</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
   <tabstop>report_tabWidget</tabstop>
@@ -3901,6 +3984,7 @@
   <tabstop>setPersonTimeEnd_pushButton</tabstop>
   <tabstop>setPersonTimeBeginNow_pushButton</tabstop>
   <tabstop>setPersonTimeEndNow_pushButton</tabstop>
+  <tabstop>personQualifications_pushButton</tabstop>
   <tabstop>personnelHoursHours_spinBox</tabstop>
   <tabstop>personnelHoursMinutes_spinBox</tabstop>
   <tabstop>personnelHoursCarryHours_spinBox</tabstop>
@@ -3934,8 +4018,10 @@
   <tabstop>boatCrewMember_comboBox</tabstop>
   <tabstop>boatCrewMemberFunction_comboBox</tabstop>
   <tabstop>addBoatCrewMember_pushButton</tabstop>
+  <tabstop>addExtBoatCrewMember_pushButton</tabstop>
   <tabstop>boatCrew_tableWidget</tabstop>
   <tabstop>removeBoatCrewMember_pushButton</tabstop>
+  <tabstop>noBoatCrew_checkBox</tabstop>
   <tabstop>applyBoatDriveChanges_pushButton</tabstop>
   <tabstop>discardBoatDriveChanges_pushButton</tabstop>
   <tabstop>setBoatDriveTimeBeginNow_pushButton</tabstop>

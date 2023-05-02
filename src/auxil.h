@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -23,24 +23,14 @@
 #ifndef AUXIL_H
 #define AUXIL_H
 
-#include "version.h"
-
-#include <vector>
-
-#include <QTime>
-#include <QWidget>
+#include <QRegularExpressionValidator>
 #include <QString>
 #include <QStringList>
-#include <QRegularExpression>
-#include <QRegularExpressionValidator>
-#include <QCryptographicHash>
-#include <QPasswordDigestor>
-#include <QRandomGenerator>
-#include <QDataStream>
-#include <QByteArray>
-#include <QIODevice>
-#include <QInputDialog>
-#include <QLineEdit>
+#include <QTime>
+#include <QWidget>
+
+#include <utility>
+#include <vector>
 
 /*!
  * \brief Helper functions and public common variables.
@@ -54,6 +44,7 @@ public:
     enum class Precipitation : int8_t;
     enum class Cloudiness : int8_t;
     enum class WindStrength : int8_t;
+    enum class WindDirection : int8_t;
 
 public:
     Aux() = delete; ///< Deleted constructor.
@@ -67,7 +58,7 @@ public:
                                                                                                     /// if one version is earlier/later.
     //
     static bool checkPassword(const QString& pHash, const QString& pSalt,
-                              QWidget *const pParent);                  ///< Prompt for a password and check if hash matches reference.
+                              QWidget* pParent);                    ///< Prompt for a password and check if hash matches reference.
     static void generatePasswordHash(const QString& pPhrase,
                                      QString& pNewHash, QString& pNewSalt); ///< Generate new salt and hash based on given passphrase.
     //
@@ -79,12 +70,14 @@ public:
     static void latexFixLineBreaksNoLineBreaks(QString& pString);   ///< Remove all line breaks.
     static void latexUseHyphdash(QString& pString);                 ///< Replace every dash with the "\Hyphdash" command.
     //
-    static QString precipitationToLabel(Precipitation pPrecip);         ///< Get the label for a precipitation type.
-    static Precipitation labelToPrecipitation(const QString& pPrecip);  ///< Get the precipitation type from its label.
-    static QString cloudinessToLabel(Cloudiness pClouds);               ///< Get the label for a cloudiness level.
-    static Cloudiness labelToCloudiness(const QString& pClouds);        ///< Get the clodiness level from its label.
-    static QString windStrengthToLabel(WindStrength pWind);             ///< Get the label for a wind strength.
-    static WindStrength labelToWindStrength(const QString& pWind);      ///< Get the wind strength from its label.
+    static QString precipitationToLabel(Precipitation pPrecip);             ///< Get the label for a precipitation type.
+    static Precipitation labelToPrecipitation(const QString& pPrecip);      ///< Get the precipitation type from its label.
+    static QString cloudinessToLabel(Cloudiness pClouds);                   ///< Get the label for a cloudiness level.
+    static Cloudiness labelToCloudiness(const QString& pClouds);            ///< Get the clodiness level from its label.
+    static QString windStrengthToLabel(WindStrength pWind);                 ///< Get the label for a wind strength.
+    static WindStrength labelToWindStrength(const QString& pWind);          ///< Get the wind strength from its label.
+    static QString windDirectionToLabel(WindDirection pDirection);          ///< Get the label for a wind direction.
+    static WindDirection labelToWindDirection(const QString& pDirection);   ///< Get the wind direction from its label.
     //
     static void stationIdentFromNameLocation(const QString& pName, const QString& pLocation,
                                              QString& pIdent);                      ///< \brief Get a station identifier
@@ -117,7 +110,9 @@ public:
     static const char programVersionType;   ///< Release type ('a' ^= alpha, 'b' ^= beta, 'c' ^= release candidate, '-' ^= normal).
     //
     static const QString programVersionString;          ///< Program version formatted as "MAJ.MIN[abc].PATCH".
-    static const QString programVersionStringPretty;    ///< Program version formatted as "MAJ.MIN[abc]", if PATCH is zero.
+    static const QString programVersionStringPretty;    ///< \brief Program version formatted as "MAJ.MIN (alpha|beta|RC).PATCH",
+                                                        ///  leaving out the ".PATCH" part if PATCH is zero.
+    static const QString fileFormatVersionString;       ///< Version of used report file format as "MAJ.MIN[abc].PATCH".
     //
     static const QRegularExpressionValidator locationsValidator;            ///< Validator for station locations.
     static const QRegularExpressionValidator namesValidator;                ///< Validator for station/boat names.
@@ -175,23 +170,23 @@ public:
      */
     enum class Precipitation : int8_t
     {
-        _NONE = 0,              ///< None
-        _FOG = 1,               ///< "Nebel"
-        _DEW = 2,               ///< "Tau"
-        _HOAR_FROST = 3,        ///< "Reif"
-        _RIME_ICE = 4,          ///< "Raureif"
-        _CLEAR_ICE = 5,         ///< "Klareis"
-        _DRIZZLE = 6,           ///< "Nieselregen"
-        _LIGHT_RAIN = 7,        ///< "Leichter Regen"
-        _MEDIUM_RAIN = 8,       ///< "Mittlerer Regen"
-        _HEAVY_RAIN = 9,        ///< "Starker Regen"
-        _FREEZING_RAIN = 10,    ///< "Gefrierender Regen"
-        _ICE_PELLETS = 11,      ///< "Eiskörner"
-        _HAIL = 12,             ///< "Hagel"
-        _SOFT_HAIL = 13,        ///< "Graupel"
-        _SNOW = 14,             ///< "Schnee"
-        _SLEET = 15,            ///< "Schneeregen"
-        _DIAMOND_DUST = 16,     ///< "Polarschnee"
+        _NONE = 0,              ///< None.
+        _FOG = 1,               ///< "Nebel".
+        _DEW = 2,               ///< "Tau".
+        _HOAR_FROST = 3,        ///< "Reif".
+        _RIME_ICE = 4,          ///< "Raureif".
+        _CLEAR_ICE = 5,         ///< "Klareis".
+        _DRIZZLE = 6,           ///< "Nieselregen".
+        _LIGHT_RAIN = 7,        ///< "Leichter Regen".
+        _MEDIUM_RAIN = 8,       ///< "Mittlerer Regen".
+        _HEAVY_RAIN = 9,        ///< "Starker Regen".
+        _FREEZING_RAIN = 10,    ///< "Gefrierender Regen".
+        _ICE_PELLETS = 11,      ///< "Eiskörner".
+        _HAIL = 12,             ///< "Hagel".
+        _SOFT_HAIL = 13,        ///< "Graupel".
+        _SNOW = 14,             ///< "Schnee".
+        _SLEET = 15,            ///< "Schneeregen".
+        _DIAMOND_DUST = 16,     ///< "Polarschnee".
     };
     /*!
      * \brief A number of cloudiness levels.
@@ -201,18 +196,18 @@ public:
      */
     enum class Cloudiness : int8_t
     {
-        _CLOUDLESS = 0,             ///< "Wolkenlos"
-        _SUNNY = 1,                 ///< "Sonnig"
-        _FAIR = 2,                  ///< "Heiter"
-        _SLIGHTLY_CLOUDY = 3,       ///< "Leicht bewölkt"
-        _MODERATELY_CLOUDY = 4,     ///< "Wolkig"
-        _CONSIDERABLY_CLOUDY = 5,   ///< "Bewölkt"
-        _MOSTLY_CLOUDY = 6,         ///< "Stark bewölkt"
-        _NEARLY_OVERCAST = 7,       ///< "Fast bedeckt"
-        _FULLY_OVERCAST = 8,        ///< "Bedeckt"
+        _CLOUDLESS = 0,             ///< "Wolkenlos".
+        _SUNNY = 1,                 ///< "Sonnig".
+        _FAIR = 2,                  ///< "Heiter".
+        _SLIGHTLY_CLOUDY = 3,       ///< "Leicht bewölkt".
+        _MODERATELY_CLOUDY = 4,     ///< "Wolkig".
+        _CONSIDERABLY_CLOUDY = 5,   ///< "Bewölkt".
+        _MOSTLY_CLOUDY = 6,         ///< "Stark bewölkt".
+        _NEARLY_OVERCAST = 7,       ///< "Fast bedeckt".
+        _FULLY_OVERCAST = 8,        ///< "Bedeckt".
         //
-        _THUNDERCLOUDS = 50,        ///< "Gewitterwolken"
-        _VARIABLE = 100             ///< "Wechselnd bewölkt"
+        _THUNDERCLOUDS = 50,        ///< "Gewitterwolken".
+        _VARIABLE = 100             ///< "Wechselnd bewölkt".
     };
     /*!
      * \brief A number of wind strengths.
@@ -222,19 +217,48 @@ public:
      */
     enum class WindStrength : int8_t
     {
-        _CALM = 0,              ///< "Windstille"
-        _LIGHT_AIR = 1,         ///< "Leiser Zug"
-        _LIGHT_BREEZE = 2,      ///< "Leichte Brise"
-        _GENTLE_BREEZE = 3,     ///< "Schwache Brise"
-        _MODERATE_BREEZE = 4,   ///< "Mäßige Brise"
-        _FRESH_BREEZE = 5,      ///< "Frische Brise"
-        _STRONG_BREEZE = 6,     ///< "Starker Wind"
-        _NEAR_GALE = 7,         ///< "Steifer Wind"
-        _GALE = 8,              ///< "Stürmischer Wind"
-        _STRONG_GALE = 9,       ///< "Sturm"
-        _STORM = 10,            ///< "Schwerer Sturm"
-        _VIOLENT_STORM = 11,    ///< "Orkanartiger Sturm"
-        _HURRICANE = 12         ///< "Orkan"
+        _CALM = 0,              ///< "Windstille".
+        _LIGHT_AIR = 1,         ///< "Leiser Zug".
+        _LIGHT_BREEZE = 2,      ///< "Leichte Brise".
+        _GENTLE_BREEZE = 3,     ///< "Schwache Brise".
+        _MODERATE_BREEZE = 4,   ///< "Mäßige Brise".
+        _FRESH_BREEZE = 5,      ///< "Frische Brise".
+        _STRONG_BREEZE = 6,     ///< "Starker Wind".
+        _NEAR_GALE = 7,         ///< "Steifer Wind".
+        _GALE = 8,              ///< "Stürmischer Wind".
+        _STRONG_GALE = 9,       ///< "Sturm".
+        _STORM = 10,            ///< "Schwerer Sturm".
+        _VIOLENT_STORM = 11,    ///< "Orkanartiger Sturm".
+        _HURRICANE = 12         ///< "Orkan".
+    };
+    /*!
+     * \brief A number of wind directions.
+     *
+     * The available values describe wind directions in the usual steps of 22.5 degrees.
+     * The enum class can be used to describe weather information for the Report.
+     */
+    enum class WindDirection : int8_t
+    {
+        _S = 0,             ///< "Süd".
+        _SSE = 1,           ///< "Südsüdost".
+        _SE = 2,            ///< "Südost".
+        _ESE = 3,           ///< "Ostsüdost".
+        _E = 4,             ///< "Ost".
+        _ENE = 5,           ///< "Ostnordost".
+        _NE = 6,            ///< "Nordost".
+        _NNE = 7,           ///< "Nordnordost".
+        _N = 8,             ///< "Nord".
+        _NNW = 9,           ///< "Nordnordwest".
+        _NW = 10,           ///< "Nordwest".
+        _WNW = 11,          ///< "Westnordwest".
+        _W = 12,            ///< "West".
+        _WSW = 13,          ///< "Westsüdwest".
+        _SW = 14,           ///< "Südwest".
+        _SSW = 15,          ///< "Südsüdwest".
+        //
+        _VARIABLE = 100,    ///< "Wechselnde Richtungen".
+        //
+        _UNKNOWN = 110      ///< Unknown.
     };
 
 public:
@@ -254,8 +278,8 @@ public:
      *                  Note: (some of) \p pArgs can be passed by reference in order to communicate the results.
      * \param pArgs Optional arguments that will be passed to \p pFunction in addition to the precipitation type.
      */
-    template <typename FuncT, typename ... Args>
-    static void iteratePrecipitationTypes(FuncT pFunction, Args& ... pArgs)
+    template <typename FuncT, typename... Args>
+    static void iteratePrecipitationTypes(FuncT pFunction, Args&... pArgs)
     {
         for (Precipitation prec : {Precipitation::_NONE,
                                    Precipitation::_FOG,
@@ -275,7 +299,7 @@ public:
                                    Precipitation::_SLEET,
                                    Precipitation::_DIAMOND_DUST})
         {
-            pFunction(prec, pArgs ...);
+            pFunction(prec, pArgs...);
         }
     }
     /*!
@@ -294,8 +318,8 @@ public:
      *                  Note: (some of) \p pArgs can be passed by reference in order to communicate the results.
      * \param pArgs Optional arguments that will be passed to \p pFunction in addition to the cloudiness level.
      */
-    template <typename FuncT, typename ... Args>
-    static void iterateCloudinessLevels(FuncT pFunction, Args& ... pArgs)
+    template <typename FuncT, typename... Args>
+    static void iterateCloudinessLevels(FuncT pFunction, Args&... pArgs)
     {
         for (Cloudiness clouds : {Cloudiness::_CLOUDLESS,
                                   Cloudiness::_SUNNY,
@@ -309,7 +333,7 @@ public:
                                   Cloudiness::_THUNDERCLOUDS,
                                   Cloudiness::_VARIABLE})
         {
-            pFunction(clouds, pArgs ...);
+            pFunction(clouds, pArgs...);
         }
     }
     /*!
@@ -328,8 +352,8 @@ public:
      *                  Note: (some of) \p pArgs can be passed by reference in order to communicate the results.
      * \param pArgs Optional arguments that will be passed to \p pFunction in addition to the wind strength.
      */
-    template <typename FuncT, typename ... Args>
-    static void iterateWindStrengths(FuncT pFunction, Args& ... pArgs)
+    template <typename FuncT, typename... Args>
+    static void iterateWindStrengths(FuncT pFunction, Args&... pArgs)
     {
         for (WindStrength wind : {WindStrength::_CALM,
                                   WindStrength::_LIGHT_AIR,
@@ -345,7 +369,48 @@ public:
                                   WindStrength::_VIOLENT_STORM,
                                   WindStrength::_HURRICANE})
         {
-            pFunction(wind, pArgs ...);
+            pFunction(wind, pArgs...);
+        }
+    }
+    /*!
+     * \brief Loop over wind directions and execute a specified function for each direction.
+     *
+     * For each wind direction the \p pFunction is called with first parameter being the direction
+     * and perhaps further parameters \p pArgs, i.e. \p pFunction(windDirection, pArgs...).
+     * Non-void return values will be discarded. You may use \p pArgs to communicate results of the function calls.
+     *
+     * \tparam FuncT Specific type of a FunctionObject (\p pFunction) that shall be called for each wind direction.
+     * \tparam ...Args Types of all additional parameters for \p pFunction if there are any.
+     *
+     * \param pFunction Any FunctionObject that accepts at least enum class values of WindDirection as the first parameter
+     *                  and optionally also further parameters \p pArgs. A lambda expression may be used.
+     *                  The function's return value will be discarded.
+     *                  Note: (some of) \p pArgs can be passed by reference in order to communicate the results.
+     * \param pArgs Optional arguments that will be passed to \p pFunction in addition to the wind direction.
+     */
+    template <typename FuncT, typename... Args>
+    static void iterateWindDirections(FuncT pFunction, Args&... pArgs)
+    {
+        for (WindDirection dir : {WindDirection::_UNKNOWN,
+                                  WindDirection::_N,
+                                  WindDirection::_NNW,
+                                  WindDirection::_NW,
+                                  WindDirection::_WNW,
+                                  WindDirection::_W,
+                                  WindDirection::_WSW,
+                                  WindDirection::_SW,
+                                  WindDirection::_SSW,
+                                  WindDirection::_S,
+                                  WindDirection::_SSE,
+                                  WindDirection::_SE,
+                                  WindDirection::_ESE,
+                                  WindDirection::_E,
+                                  WindDirection::_ENE,
+                                  WindDirection::_NE,
+                                  WindDirection::_NNE,
+                                  WindDirection::_VARIABLE})
+        {
+            pFunction(dir, pArgs...);
         }
     }
 };

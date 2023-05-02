@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -21,6 +21,13 @@
 */
 
 #include "databasecache.h"
+
+#include <QStringList>
+#include <QValidator>
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlQuery>
+
+#include <iostream>
 
 //Initialize static class members
 
@@ -76,7 +83,7 @@ bool DatabaseCache::isReadOnly()
  * \param pForce Populate cache even if already populated.
  * \return If already populated or new populate action was successful.
  */
-bool DatabaseCache::populate(std::shared_ptr<QLockFile> pLockFile, bool pForce)
+bool DatabaseCache::populate(const std::shared_ptr<QLockFile> pLockFile, const bool pForce)
 {
     if (populated && !pForce)
         return true;
@@ -147,7 +154,7 @@ bool DatabaseCache::populate(std::shared_ptr<QLockFile> pLockFile, bool pForce)
  * \param pCreate Create new database (and cache) record, if setting is not found in cache.
  * \return True, if setting found or database writing successful, and false otherwise. See detailed function description.
  */
-bool DatabaseCache::getSetting(const QString& pSetting, int& pValue, int pDefault, bool pCreate)
+bool DatabaseCache::getSetting(const QString& pSetting, int& pValue, const int pDefault, const bool pCreate)
 {
     //Search for setting in cache; if not found then return specified default value
     if (settingsInt.find(pSetting) == settingsInt.end())
@@ -180,7 +187,7 @@ bool DatabaseCache::getSetting(const QString& pSetting, int& pValue, int pDefaul
  *
  * \copydetails getSetting()
  */
-bool DatabaseCache::getSetting(const QString& pSetting, double& pValue, double pDefault, bool pCreate)
+bool DatabaseCache::getSetting(const QString& pSetting, double& pValue, const double pDefault, const bool pCreate)
 {
     //Search for setting in cache; if not found then return specified default value
     if (settingsDbl.find(pSetting) == settingsDbl.end())
@@ -213,7 +220,7 @@ bool DatabaseCache::getSetting(const QString& pSetting, double& pValue, double p
  *
  * \copydetails getSetting()
  */
-bool DatabaseCache::getSetting(const QString& pSetting, QString& pValue, QString pDefault, bool pCreate)
+bool DatabaseCache::getSetting(const QString& pSetting, QString& pValue, const QString pDefault, const bool pCreate)
 {
     //Search for setting in cache; if not found then return specified default value
     if (settingsStr.find(pSetting) == settingsStr.end())
@@ -253,7 +260,7 @@ bool DatabaseCache::getSetting(const QString& pSetting, QString& pValue, QString
  * \param pValue New value for the setting.
  * \return If writing to database was successful.
  */
-bool DatabaseCache::setSetting(const QString& pSetting, int pValue)
+bool DatabaseCache::setSetting(const QString& pSetting, const int pValue)
 {
     if (isReadOnly())
         return false;
@@ -300,7 +307,7 @@ bool DatabaseCache::setSetting(const QString& pSetting, int pValue)
  *
  * \copydetails setSetting()
  */
-bool DatabaseCache::setSetting(const QString& pSetting, double pValue)
+bool DatabaseCache::setSetting(const QString& pSetting, const double pValue)
 {
     if (isReadOnly())
         return false;
@@ -721,7 +728,7 @@ bool DatabaseCache::stationRowIdFromNameLocation(const QString& pName, const QSt
  * \param pLocation Destination for the location of the station.
  * \return If the station was found.
  */
-bool DatabaseCache::stationNameLocationFromRowId(int pRowId, QString& pName, QString& pLocation)
+bool DatabaseCache::stationNameLocationFromRowId(const int pRowId, QString& pName, QString& pLocation)
 {
     if (stationsMap.find(pRowId) != stationsMap.end())
     {
@@ -767,7 +774,7 @@ bool DatabaseCache::boatRowIdFromName(const QString& pName, int& pRowId)
  * \param pName Destination for the name of the boat.
  * \return If the boat was found.
  */
-bool DatabaseCache::boatNameFromRowId(int pRowId, QString& pName)
+bool DatabaseCache::boatNameFromRowId(const int pRowId, QString& pName)
 {
     if (boatsMap.find(pRowId) != boatsMap.end())
     {
@@ -876,7 +883,8 @@ bool DatabaseCache::getPerson(Person& pPerson, const QString& pLastName, const Q
  * \param pFirstName Persons' first name.
  * \param pActiveOnly Get only active/enabled persons.
  */
-void DatabaseCache::getPersons(std::vector<Person>& pPersons, const QString& pLastName, const QString& pFirstName, bool pActiveOnly)
+void DatabaseCache::getPersons(std::vector<Person>& pPersons, const QString& pLastName, const QString& pFirstName,
+                               const bool pActiveOnly)
 {
     pPersons.clear();
 
@@ -1035,7 +1043,7 @@ bool DatabaseCache::updatePerson(const QString& pIdent, const Person& pNewPerson
  * \param pIdent Identifier of the person to remove.
  * \return If writing to database and re-loading personnel cache was successful.
  */
-bool DatabaseCache::removePerson(QString pIdent)
+bool DatabaseCache::removePerson(const QString& pIdent)
 {
     if (isReadOnly())
         return false;
@@ -1434,7 +1442,8 @@ bool DatabaseCache::checkPersonFormat(const Person& pPerson)
  * \param pOneAllowed One occurrence of \p pStation allowed (zero else)?
  * \return If there are no occurrences of \p pStation in \p pStations (or maximally one, if \p pOneAllowed is true).
  */
-bool DatabaseCache::checkStationDuplicates(const Aux::Station& pStation, const std::vector<Aux::Station>& pStations, bool pOneAllowed)
+bool DatabaseCache::checkStationDuplicates(const Aux::Station& pStation, const std::vector<Aux::Station>& pStations,
+                                           const bool pOneAllowed)
 {
     int tmpCount = 0;
     for (const Aux::Station& tStation : pStations)
@@ -1463,7 +1472,7 @@ bool DatabaseCache::checkStationDuplicates(const Aux::Station& pStation, const s
  * \param pOneAllowed One occurrence of \p pBoat allowed? Zero else.
  * \return If there are no occurrences of \p pBoat in \p pBoats (or maximally one, if \p pOneAllowed is true).
  */
-bool DatabaseCache::checkBoatDuplicates(const Aux::Boat& pBoat, const std::vector<Aux::Boat>& pBoats, bool pOneAllowed)
+bool DatabaseCache::checkBoatDuplicates(const Aux::Boat& pBoat, const std::vector<Aux::Boat>& pBoats, const bool pOneAllowed)
 {
     int tmpCount = 0;
     for (const Aux::Boat& tBoat : pBoats)

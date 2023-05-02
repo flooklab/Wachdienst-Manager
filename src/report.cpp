@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,12 +22,30 @@
 
 #include "report.h"
 
+#include "databasecache.h"
+#include "qualificationchecker.h"
+
+#include <QDateTime>
+#include <QFile>
+#include <QIODevice>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
+#include <QStringList>
+
+#include <functional>
+#include <iostream>
+#include <list>
+#include <stdexcept>
+#include <tuple>
+
 /*!
  * \brief Constructor.
  *
  * Creates an empty report with default settings (and an empty boat log with default settings as well).
  *
- * Possibly interesting default values:
+ * Possibly interesting non-trivial default values:
  * - Serial number set to 1.
  * - All times set to 00:00 and report date set to 01.01.2000.
  * - Duty purpose set to DutyPurpose::_WATCHKEEPING.
@@ -35,6 +53,7 @@
  *  - Aux::Precipitation::_NONE
  *  - Aux::Cloudiness::_CLOUDLESS
  *  - Aux::WindStrength::_CALM
+ *  - Aux::WindDirection::_UNKNOWN
  */
 Report::Report() :
     fileName(""),
@@ -50,6 +69,7 @@ Report::Report() :
     precipitation(Aux::Precipitation::_NONE),
     cloudiness(Aux::Cloudiness::_CLOUDLESS),
     windStrength(Aux::WindStrength::_CALM),
+    windDirection(Aux::WindDirection::_UNKNOWN),
     temperatureAir(0),
     temperatureWater(0),
     weatherComments(""),
@@ -140,43 +160,74 @@ bool Report::open(const QString& pFileName)
         return false;
     }
 
+    bool tUseProgVersionFallback = false;
+    QString tFileVerStr, tProgVerStr;
+
+    if (!jsonObj.contains("_fileFormat") || !jsonObj.value("_fileFormat").isString())
+    {
+        std::cerr<<"WARNING: Could not determine report file format version! "
+                   "Using saved program version to check file format compatibility instead."<<std::endl;
+
+        tUseProgVersionFallback = true;
+    }
+    else
+        tFileVerStr = jsonObj.value("_fileFormat").toString();
+
     if (!jsonObj.contains("_version") || !jsonObj.value("_version").isString())
     {
-        std::cerr<<"ERROR: Could not determine report format version!"<<std::endl;
-        return false;
+        if (tUseProgVersionFallback)
+        {
+            std::cerr<<"ERROR: Could not determine report's program version!"<<std::endl;
+            return false;
+        }
+        else
+            std::cerr<<"WARNING: Could not determine report's program version!"<<std::endl;
     }
+    else
+        tProgVerStr = jsonObj.value("_version").toString();
+
+    //Use saved program version for compatibility check if actual file format version (which could be older) cannot be determined
+    QString tVerStr = tFileVerStr;
+    if (tUseProgVersionFallback)
+        tVerStr = tProgVerStr;
 
     int tVerMaj = 0, tVerMin = 0, tVerPatch = 0;
     char tVerType = '-';
 
     int tmpInt = 0;
-    QString tVerStr = jsonObj.value("_version").toString();
     if (Aux::programVersionsValidator.validate(tVerStr, tmpInt) != QValidator::State::Acceptable ||
-        !Aux::parseProgramVersion(jsonObj.value("_version").toString(), tVerMaj, tVerMin, tVerPatch, tVerType))
+        !Aux::parseProgramVersion(tVerStr, tVerMaj, tVerMin, tVerPatch, tVerType))
     {
-        std::cerr<<"ERROR: Could not determine report format version!"<<std::endl;
+        std::cerr<<"ERROR: Could not parse version string for file format compatibility check!"<<std::endl;
         return false;
     }
 
     //Check version, decide how to process file
-    if (jsonObj.value("_version").toString() != Aux::programVersionString)
-    {
-        //TODO: add other, more complex checks/logic here for later versions, if document format changes or is extended
 
+    if (tVerStr != Aux::programVersionString)
+    {
         if (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 0, 0) < 0)
         {
-            std::cerr<<"ERROR: Report was saved with incompatible (older) program version!"<<std::endl;
+            std::cerr<<"ERROR: Report was saved with incompatible, old program version ("<<tProgVerStr.toStdString()<<")!"<<std::endl;
             return false;
         }
         else if (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch,
-                                             Aux::programVersionMajor, Aux::programVersionMinor, Aux::programVersionPatch, true) > 0)
+                                             Aux::programVersionMajor, Aux::programVersionMinor, Aux::programVersionPatch) > 0)
         {
-            std::cerr<<"ERROR: Report was saved with newer (incompatible?) program version!"<<std::endl;
+            std::cerr<<"ERROR: Report was saved with incompatible, newer program version ("<<tProgVerStr.toStdString()<<")!"<<std::endl;
             return false;
         }
     }
 
-    //Check, if two main objects are present
+    //Need to convert qualifications format and add special personnel identifier handling below for file formats <= 1.4b.0;
+    //"_fileFormat" property was added in 1.4.0 (after 1.4b.0), hence simply use 'tUseProgVersionFallback' to determine old format
+    bool convertLegacyQualifications = tUseProgVersionFallback;
+
+    //Need to change '_BG' boat function to '_RS' if qualifications do not contain "FA-WRD" since requirement changed from wrong
+    //"DRSA-S" (<= v1.4b.0) to correct "FA-WRD" (>= v1.4.0); use 'tUseProgVersionFallback' to determine version (see above)
+    bool adaptLegacyBoatFunctions = tUseProgVersionFallback;
+
+    //Check, if the two main objects are present
     if (!jsonObj.contains("reportMain") || !jsonObj.value("reportMain").isObject())
     {
         std::cerr<<"ERROR: File does not contain a report!"<<std::endl;
@@ -276,6 +327,9 @@ bool Report::open(const QString& pFileName)
     windStrength = static_cast<Aux::WindStrength>(static_cast<int8_t>(reportObj.value("windStrength").toInt(
                                                                           static_cast<int8_t>(Aux::WindStrength::_CALM)
                                                                           )));
+    windDirection = static_cast<Aux::WindDirection>(static_cast<int8_t>(reportObj.value("windDirection").toInt(
+                                                                          static_cast<int8_t>(Aux::WindDirection::_UNKNOWN)
+                                                                          )));
 
     temperatureAir = reportObj.value("airTemp").toInt(0);
     temperatureWater = reportObj.value("waterTemp").toInt(0);
@@ -313,6 +367,19 @@ bool Report::open(const QString& pFileName)
 
         rescueOperationsCounts[tRescue] = rescueOperationsObj.value(tKeys.at(i)).toInt(0);
     }
+
+    int tTotNumRescues = 0;
+
+    for (auto it : rescueOperationsCounts)
+    {
+        if (it.first == RescueOperation::_MORTAL_DANGER_INVOLVED)
+            continue;
+
+        tTotNumRescues += it.second;
+    }
+
+    if (rescueOperationsCounts[RescueOperation::_MORTAL_DANGER_INVOLVED] > tTotNumRescues)
+        std::cerr<<"WARNING: Number of rescue operations involving mortal danger exceeds total number of rescue operations!"<<std::endl;
 
     //Assignment number from rescue directing center
 
@@ -383,7 +450,7 @@ bool Report::open(const QString& pFileName)
 
     personnelMinutesCarry = reportObj.value("personnelMinutesCarry").toInt(0);
 
-    //Load archived personnel data to be independent of the personnel database
+    //Load archived personnel data in order to be independent of the personnel database
 
     if (!reportObj.contains("personnelData") || !reportObj.value("personnelData").isObject())
     {
@@ -432,6 +499,10 @@ bool Report::open(const QString& pFileName)
             return false;
         }
 
+        //Need to convert qualifications first if loading report that was saved with version < 1.4.0
+        if (convertLegacyQualifications)
+            tQualifications = Person::Qualifications::convertLegacyQualifications(tQualifications);
+
         //Assume person state always active, if part of personnel of a saved report
         bool tActive = true;
 
@@ -439,6 +510,9 @@ bool Report::open(const QString& pFileName)
         addPersonnel(Person(tLastName, tFirstName, Person::createInternalIdent(tLastName, tFirstName, tMembershipNumber),
                             Person::Qualifications(tQualifications), tActive));
     }
+
+    //When loading file format < 1.4.0, need to map legacy external identifiers to actually used new identifiers
+    std::map<QString, QString> extIdentsViaLegacyIdents;
 
     //Add external personnel data
     for (QJsonArray::iterator it = externalPersonnelArray.begin(); it != externalPersonnelArray.end(); ++it)
@@ -466,6 +540,20 @@ bool Report::open(const QString& pFileName)
         {
             std::cerr<<"ERROR: Wrong person data formatting!"<<std::endl;
             return false;
+        }
+
+        //Need to convert qualifications first if loading report that was saved with version < 1.4.0;
+        //also must map personnel identifiers based on original qualifications vs. based on converted qualifications
+        if (convertLegacyQualifications)
+        {
+            QString tLegacyIdent = Person::createLegacyExternalIdent(tLastName, tFirstName, tQualifications, tIdentSuffix);
+
+            tQualifications = Person::Qualifications::convertLegacyQualifications(tQualifications);
+
+            QString tNewIdent = Person::createExternalIdent(tLastName, tFirstName,
+                                                            Person::Qualifications(tQualifications), tIdentSuffix);
+
+            extIdentsViaLegacyIdents[tLegacyIdent] = tNewIdent;
         }
 
         //Assume person state always active, if part of personnel of a saved report
@@ -504,6 +592,10 @@ bool Report::open(const QString& pFileName)
         QJsonObject personObj = (*it).toObject();
 
         QString tIdent = personObj.value("ident").toString("");
+
+        //When loading file format < 1.4.0, use above mapped external identifier instead of legacy external identifier
+        if (convertLegacyQualifications && Person::isExternalIdent(tIdent))
+            tIdent = extIdentsViaLegacyIdents[tIdent];
 
         //Person must be part of previously loaded personnel archive
         if (!personnelExists(tIdent))
@@ -659,6 +751,10 @@ bool Report::open(const QString& pFileName)
         //Check, if boatman exists in personnel list and if qualifications are sufficient
         if (tBoatmanIdent != "")
         {
+            //When loading file format < 1.4.0, use previously mapped external identifier instead of legacy external identifier
+            if (convertLegacyQualifications && Person::isExternalIdent(tBoatmanIdent))
+                tBoatmanIdent = extIdentsViaLegacyIdents[tBoatmanIdent];
+
             if (!personInPersonnel(tBoatmanIdent))
             {
                 std::cerr<<"ERROR: Boatman not in personnel list!"<<std::endl;
@@ -700,25 +796,72 @@ bool Report::open(const QString& pFileName)
             QJsonObject crewMemberObj = (*it2).toObject();
 
             QString tIdent = crewMemberObj.value("crewMemberIdent").toString("");
+
             Person::BoatFunction tBoatFunction = static_cast<Person::BoatFunction>(
                                                      static_cast<int8_t>(crewMemberObj.value("crewMemberFunction").toInt(
                                                                              static_cast<int8_t>(Person::BoatFunction::_OTHER)
                                                                              )));
 
-            //Check, if crew member exists in personnel list and if qualifications are sufficient
-            if (!personInPersonnel(tIdent))
-            {
-                std::cerr<<"ERROR: Crew member not in personnel list!"<<std::endl;
-                return false;
-            }
-            if (!QualificationChecker::checkBoatFunction(tBoatFunction, getIntOrExtPersonnel(tIdent).getQualifications()))
-            {
-                std::cerr<<"ERROR: Insufficient qualification for boat function!"<<std::endl;
-                return false;
-            }
+            //When loading file format < 1.4.0, use previously mapped external identifier instead of legacy external identifier
+            if (convertLegacyQualifications && Person::isExternalIdent(tIdent))
+                tIdent = extIdentsViaLegacyIdents[tIdent];
 
-            tDrive.addCrewMember(tIdent, tBoatFunction);
+            if (!Person::isOtherIdent(tIdent))
+            {
+                //Check, if crew member exists in personnel list and if qualifications are sufficient
+                if (!personInPersonnel(tIdent))
+                {
+                    std::cerr<<"ERROR: Crew member not in personnel list!"<<std::endl;
+                    return false;
+                }
+                if (!QualificationChecker::checkBoatFunction(tBoatFunction, getIntOrExtPersonnel(tIdent).getQualifications()))
+                {
+                    //Automatically fix boat function if failing check is due to too lax qualification requirement in versions < 1.4.0
+                    if (adaptLegacyBoatFunctions && tBoatFunction == Person::BoatFunction::_BG &&
+                        QualificationChecker::checkBoatFunction(Person::BoatFunction::_RS,
+                                                                getIntOrExtPersonnel(tIdent).getQualifications()))
+                    {
+                        tBoatFunction = Person::BoatFunction::_RS;
+                        std::cerr<<"WARNING: Changed boat function from \"BG\" to \"RS\" due to insufficient qualification!"<<std::endl;
+                    }
+                    else
+                    {
+                        std::cerr<<"ERROR: Insufficient qualification for boat function!"<<std::endl;
+                        return false;
+                    }
+                }
+
+                tDrive.addCrewMember(tIdent, tBoatFunction);
+            }
+            else
+            {
+                QString tLastName = crewMemberObj.value("crewMemberLastName").toString("");
+                QString tFirstName = crewMemberObj.value("crewMemberFirstName").toString("");
+                QString tIdentSuffix = Person::extractExtSuffix(tIdent);
+
+                //Check formatting
+                if (Aux::personNamesValidator.validate(tLastName, tmpInt) != QValidator::State::Acceptable ||
+                    Aux::personNamesValidator.validate(tFirstName, tmpInt) != QValidator::State::Acceptable ||
+                    Aux::extIdentSuffixesValidator.validate(tIdentSuffix, tmpInt) != QValidator::State::Acceptable ||
+                    tLastName.trimmed() != tLastName ||
+                    tFirstName.trimmed() != tFirstName)
+                {
+                    std::cerr<<"ERROR: Wrong external crew member data formatting!"<<std::endl;
+                    return false;
+                }
+
+                if (Person::createOtherIdent(tLastName, tFirstName, tIdentSuffix) != tIdent)
+                {
+                    std::cerr<<"ERROR: External crew member name does not match identifier!"<<std::endl;
+                    return false;
+                }
+
+                tDrive.addExtCrewMember(tIdent, Person::BoatFunction::_EXT, tLastName, tFirstName);
+            }
         }
+
+        bool tNoCrewConfirmed = (tDrive.crewSize() == 0 && crewObj.value("noCrewConfirmed").toBool(false));
+        tDrive.setNoCrewConfirmed(tNoCrewConfirmed);
 
         boatLogPtr->addDrive(driveIdx++, std::move(tDrive));
     }
@@ -755,7 +898,7 @@ bool Report::open(const QString& pFileName)
  * \param pTempFile Do not change the report instance's file name.
  * \return If successful.
  */
-bool Report::save(const QString& pFileName, bool pTempFile)
+bool Report::save(const QString& pFileName, const bool pTempFile)
 {
     //Open file
     QSaveFile file(pFileName);
@@ -785,6 +928,7 @@ bool Report::save(const QString& pFileName, bool pTempFile)
     reportObj.insert("precipitation", static_cast<int8_t>(precipitation));
     reportObj.insert("cloudiness", static_cast<int8_t>(cloudiness));
     reportObj.insert("windStrength", static_cast<int8_t>(windStrength));
+    reportObj.insert("windDirection", static_cast<int8_t>(windDirection));
 
     reportObj.insert("airTemp", temperatureAir);
     reportObj.insert("waterTemp", temperatureWater);
@@ -937,11 +1081,22 @@ bool Report::save(const QString& pFileName, bool pTempFile)
             crewMemberObj.insert("crewMemberIdent", tIdent);
             crewMemberObj.insert("crewMemberFunction", static_cast<int8_t>(tBoatFunction));
 
+            //Need to store the name as well in case of an external crew member
+            if (Person::isOtherIdent(tIdent))
+            {
+                QString tLastName, tFirstName;
+                tDrive.getExtCrewMemberName(tIdent, tLastName, tFirstName);
+
+                crewMemberObj.insert("crewMemberLastName", tLastName);
+                crewMemberObj.insert("crewMemberFirstName", tFirstName);
+            }
+
             crewArray.append(crewMemberObj);
         }
 
         QJsonObject crewObj;
         crewObj.insert("crew", crewArray);
+        crewObj.insert("noCrewConfirmed", tDrive.getNoCrewConfirmed());
         driveObj.insert("boatCrew", crewObj);
 
         drivesArray.append(driveObj);
@@ -954,9 +1109,11 @@ bool Report::save(const QString& pFileName, bool pTempFile)
     //Create main/top JSON object
     QJsonObject jsonObj;
 
-    //Add meta-information
+    //Add meta information
     jsonObj.insert("_magic", "prg:wd.mgr");
     jsonObj.insert("_version", Aux::programVersionString);
+    jsonObj.insert("_fileFormat", Aux::fileFormatVersionString);
+    jsonObj.insert("_timestamp", QDateTime::currentDateTimeUtc().toString(Qt::DateFormat::ISODate));
 
     //Add main content
     jsonObj.insert("reportMain", reportObj);
@@ -1004,8 +1161,9 @@ QString Report::getFileName() const
  * Additionally the report serial number is set to last report's serial number plus one.
  *
  * \param pLastReport Last report to load/calculate carryovers from.
+ * \return If previous carryovers were changed.
  */
-void Report::loadCarryovers(const Report& pLastReport)
+bool Report::loadCarryovers(const Report& pLastReport)
 {
     //Need to include old carryovers from last report
     int oldPersonnelCarry = pLastReport.personnelMinutesCarry;
@@ -1059,12 +1217,24 @@ void Report::loadCarryovers(const Report& pLastReport)
     if (newEngineHoursFinal == 0)
         newEngineHoursFinal = newEngineHoursInitial;
 
-    //Copy loaded/calculated values to this report (and increment serial number!)
-    number = pLastReport.number + 1;
+    //Increment serial number
+    int newSerialNumber = pLastReport.number + 1;
+
+    //Check if new carryovers are different from old ones
+    bool valuesChanged = number != newSerialNumber ||
+                         personnelMinutesCarry != newPersonnelCarry ||
+                         boatLogPtr->getBoatMinutesCarry() != newBoatCarry ||
+                         boatLogPtr->getEngineHoursInitial() != newEngineHoursInitial ||
+                         boatLogPtr->getEngineHoursFinal() != newEngineHoursFinal;
+
+    //Copy loaded/calculated values to this report
+    number = newSerialNumber;
     personnelMinutesCarry = newPersonnelCarry;
     boatLogPtr->setBoatMinutesCarry(newBoatCarry);
     boatLogPtr->setEngineHoursInitial(newEngineHoursInitial);
     boatLogPtr->setEngineHoursFinal(newEngineHoursFinal);
+
+    return valuesChanged;
 }
 
 //
@@ -1084,7 +1254,7 @@ int Report::getNumber() const
  *
  * \param pNumber New report serial number.
  */
-void Report::setNumber(int pNumber)
+void Report::setNumber(const int pNumber)
 {
     number = pNumber;
 }
@@ -1166,7 +1336,7 @@ Report::DutyPurpose Report::getDutyPurpose() const
  *
  * \param pPurpose New duty purpose.
  */
-void Report::setDutyPurpose(DutyPurpose pPurpose)
+void Report::setDutyPurpose(const DutyPurpose pPurpose)
 {
     dutyPurpose = pPurpose;
 }
@@ -1208,7 +1378,7 @@ QDate Report::getDate() const
  *
  * \param pDate New report date.
  */
-void Report::setDate(QDate pDate)
+void Report::setDate(const QDate pDate)
 {
     date = pDate;
 }
@@ -1228,7 +1398,7 @@ QTime Report::getBeginTime() const
  *
  * \param pTime New duty begin time.
  */
-void Report::setBeginTime(QTime pTime)
+void Report::setBeginTime(const QTime pTime)
 {
     begin = pTime;
 }
@@ -1248,7 +1418,7 @@ QTime Report::getEndTime() const
  *
  * \param pTime New duty end time.
  */
-void Report::setEndTime(QTime pTime)
+void Report::setEndTime(const QTime pTime)
 {
     end = pTime;
 }
@@ -1270,7 +1440,7 @@ Aux::Precipitation Report::getPrecipitation() const
  *
  * \param pPrecipitation New precipitation type.
  */
-void Report::setPrecipitation(Aux::Precipitation pPrecipitation)
+void Report::setPrecipitation(const Aux::Precipitation pPrecipitation)
 {
     precipitation = pPrecipitation;
 }
@@ -1290,7 +1460,7 @@ Aux::Cloudiness Report::getCloudiness() const
  *
  * \param pCloudiness New cloudiness level.
  */
-void Report::setCloudiness(Aux::Cloudiness pCloudiness)
+void Report::setCloudiness(const Aux::Cloudiness pCloudiness)
 {
     cloudiness = pCloudiness;
 }
@@ -1310,9 +1480,29 @@ Aux::WindStrength Report::getWindStrength() const
  *
  * \param pWindStrength New wind strength.
  */
-void Report::setWindStrength(Aux::WindStrength pWindStrength)
+void Report::setWindStrength(const Aux::WindStrength pWindStrength)
 {
     windStrength = pWindStrength;
+}
+
+/*!
+ * \brief Get the wind direction.
+ *
+ * \return Wind direction.
+ */
+Aux::WindDirection Report::getWindDirection() const
+{
+    return windDirection;
+}
+
+/*!
+ * \brief Set the wind direction.
+ *
+ * \param pWindDirection New wind direction.
+ */
+void Report::setWindDirection(const Aux::WindDirection pWindDirection)
+{
+    windDirection = pWindDirection;
 }
 
 //
@@ -1332,7 +1522,7 @@ int Report::getAirTemperature() const
  *
  * \param pTemp New air temperature in degrees Celsius.
  */
-void Report::setAirTemperature(int pTemp)
+void Report::setAirTemperature(const int pTemp)
 {
     temperatureAir = pTemp;
 }
@@ -1352,7 +1542,7 @@ int Report::getWaterTemperature() const
  *
  * \param pTemp New water temperature in degrees Celsius.
  */
-void Report::setWaterTemperature(int pTemp)
+void Report::setWaterTemperature(const int pTemp)
 {
     temperatureWater = pTemp;
 }
@@ -1394,7 +1584,7 @@ int Report::getOperationProtocolsCtr() const
  *
  * \param pNumber New number of operation protocols.
  */
-void Report::setOperationProtocolsCtr(int pNumber)
+void Report::setOperationProtocolsCtr(const int pNumber)
 {
     operationProtocolsCtr = pNumber;
 }
@@ -1414,7 +1604,7 @@ int Report::getPatientRecordsCtr() const
  *
  * \param pNumber New number of patient records.
  */
-void Report::setPatientRecordsCtr(int pNumber)
+void Report::setPatientRecordsCtr(const int pNumber)
 {
     patientRecordsCtr = pNumber;
 }
@@ -1434,7 +1624,7 @@ int Report::getRadioCallLogsCtr() const
  *
  * \param pNumber New number of radio call logs.
  */
-void Report::setRadioCallLogsCtr(int pNumber)
+void Report::setRadioCallLogsCtr(const int pNumber)
 {
     radioCallLogsCtr = pNumber;
 }
@@ -1476,7 +1666,7 @@ int Report::getPersonnelMinutesCarry() const
  *
  * \param pMinutes New personnel hours carry in minutes.
  */
-void Report::setPersonnelMinutesCarry(int pMinutes)
+void Report::setPersonnelMinutesCarry(const int pMinutes)
 {
     personnelMinutesCarry = pMinutes;
 }
@@ -1504,7 +1694,7 @@ int Report::getPersonnelSize() const
  * \param pSorted Sort the identifiers by persons' properties?
  * \return List of person identifiers.
  */
-std::vector<QString> Report::getPersonnel(bool pSorted) const
+std::vector<QString> Report::getPersonnel(const bool pSorted) const
 {
     std::vector<QString> tIdents;
 
@@ -1659,7 +1849,7 @@ Person Report::getPerson(const QString& pIdent) const
  * \param pBegin Arrival time.
  * \param pEnd Leaving time.
  */
-void Report::addPerson(Person&& pPerson, Person::Function pFunction, QTime pBegin, QTime pEnd)
+void Report::addPerson(Person&& pPerson, const Person::Function pFunction, const QTime pBegin, const QTime pEnd)
 {
     addPersonFunctionTimes(pPerson.getIdent(), pFunction, pBegin, pEnd);
     addPersonnel(std::move(pPerson));
@@ -1704,7 +1894,7 @@ Person::Function Report::getPersonFunction(const QString& pIdent) const
  * \param pIdent Person's identifier.
  * \param pFunction New personnel function.
  */
-void Report::setPersonFunction(const QString& pIdent, Person::Function pFunction)
+void Report::setPersonFunction(const QString& pIdent, const Person::Function pFunction)
 {
     if (personnelFunctionTimesMap.find(pIdent) != personnelFunctionTimesMap.end())
         personnelFunctionTimesMap.at(pIdent).first = pFunction;
@@ -1736,7 +1926,7 @@ QTime Report::getPersonBeginTime(const QString& pIdent) const
  * \param pIdent Person's identifier.
  * \param pTime New arrival time.
  */
-void Report::setPersonBeginTime(const QString& pIdent, QTime pTime)
+void Report::setPersonBeginTime(const QString& pIdent, const QTime pTime)
 {
     if (personnelFunctionTimesMap.find(pIdent) != personnelFunctionTimesMap.end())
         personnelFunctionTimesMap.at(pIdent).second.first = pTime;
@@ -1768,7 +1958,7 @@ QTime Report::getPersonEndTime(const QString& pIdent) const
  * \param pIdent Person's identifier.
  * \param pTime New leaving time.
  */
-void Report::setPersonEndTime(const QString& pIdent, QTime pTime)
+void Report::setPersonEndTime(const QString& pIdent, const QTime pTime)
 {
     if (personnelFunctionTimesMap.find(pIdent) != personnelFunctionTimesMap.end())
         personnelFunctionTimesMap.at(pIdent).second.second = pTime;
@@ -1808,7 +1998,7 @@ std::map<Report::RescueOperation, int> Report::getRescueOperationCtrs() const
  * \param pRescue Rescue operation type.
  * \return Number of rescue operations of type \p pRescue.
  */
-int Report::getRescueOperationCtr(RescueOperation pRescue) const
+int Report::getRescueOperationCtr(const RescueOperation pRescue) const
 {
     if (rescueOperationsCounts.find(pRescue) != rescueOperationsCounts.end())
         return rescueOperationsCounts.at(pRescue);
@@ -1824,7 +2014,7 @@ int Report::getRescueOperationCtr(RescueOperation pRescue) const
  * \param pRescue Rescue operation type.
  * \param pCount New number of rescue operations of type \p pRescue.
  */
-void Report::setRescueOperationCtr(RescueOperation pRescue, int pCount)
+void Report::setRescueOperationCtr(const RescueOperation pRescue, const int pCount)
 {
     if (rescueOperationsCounts.find(pRescue) != rescueOperationsCounts.end())
         rescueOperationsCounts.at(pRescue) = pCount;
@@ -1864,7 +2054,7 @@ void Report::setAssignmentNumber(QString pNumber)
  * \param pSorted Get a sorted vector.
  * \return Vector of vehicles as {{NAME, {T_ARRIVE, T_LEAVE}}, ...}.
  */
-std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getVehicles(bool pSorted) const
+std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getVehicles(const bool pSorted) const
 {
     if (!pSorted)
         return vehicles;
@@ -1932,7 +2122,7 @@ void Report::setVehicles(std::vector<std::pair<QString, std::pair<QTime, QTime>>
  * \param pPurpose The duty purpose to get a label for.
  * \return The corresponding label for \p pPurpose.
  */
-QString Report::dutyPurposeToLabel(DutyPurpose pPurpose)
+QString Report::dutyPurposeToLabel(const DutyPurpose pPurpose)
 {
     switch (pPurpose)
     {
@@ -1999,26 +2189,32 @@ Report::DutyPurpose Report::labelToDutyPurpose(const QString& pPurpose)
  * \param pRescue The rescue operation type to get a label for.
  * \return The corresponding label for \p pRescue.
  */
-QString Report::rescueOperationToLabel(RescueOperation pRescue)
+QString Report::rescueOperationToLabel(const RescueOperation pRescue)
 {
     switch (pRescue)
     {
         case RescueOperation::_FIRST_AID:
-            return "Erste-Hilfe-Einsätze";
+            return "Erste-Hilfe-Einsatz";
         case RescueOperation::_FIRST_AID_MATERIAL:
             return "Ausgabe von EH-/SAN-Material";
-        case RescueOperation::_SWIMMER_ACROSS:
-            return "Hilfeleistungen Querschwimmer";
-        case RescueOperation::_SWIMMER_GENERAL:
-            return "Sonstige Schwimmer-Einsätze";
-        case RescueOperation::_CAPSIZE:
-            return "Bootskenterungen";
+        case RescueOperation::_WATER_PREVENTIVE_MEASURES:
+            return "Vorbeugende Maßnahmen Wassersportler";
+        case RescueOperation::_WATER_RESCUE_GENERAL:
+            return "Rettung von Personen vor Ertrinken";
+        case static_cast<RescueOperation>(RescueOperation_CAPSIZE_deprecated):  //Note: deprecated option; keep this here
+            return "Bootskenterung";                                            //for compatibility with old saved reports
         case RescueOperation::_MATERIAL_RETRIEVAL:
-            return "Bergung von Sachgütern";
+            return "Bergung von Sachgut";
+        case RescueOperation::_CAPSIZE_WATER_RESCUE:
+            return "Bootskenterung (mit Hilfe Personen)";
+        case RescueOperation::_CAPSIZE_TECH_ASSISTANCE:
+            return "Bootskenterung (technische Hilfe)";
+        case RescueOperation::_MISSING_PERSON:
+            return "Personensuche";
         case RescueOperation::_OTHER_ASSISTANCE:
             return "Sonstige Hilfeleistungen";
         case RescueOperation::_MORTAL_DANGER_INVOLVED:
-            return "Hilfeleistungen mit Lebensgefahr";
+            return "Rettungen aus Lebensgefahr";
         default:
             return "Sonstige Hilfeleistungen";
     }
@@ -2033,28 +2229,63 @@ QString Report::rescueOperationToLabel(RescueOperation pRescue)
  * \param pRescue The rescue operation type to get a notice label for.
  * \return The corresponding notice label for \p pRescue.
  */
-QString Report::rescueOperationToDocNotice(RescueOperation pRescue)
+QString Report::rescueOperationToDocNotice(const RescueOperation pRescue)
 {
     switch (pRescue)
     {
         case RescueOperation::_FIRST_AID:
-            return "Verbrauchtes Material in Verbrauchsliste eingetragen?\n"
-                   "Patientenprotokoll vollständig und angehängt?";
+        {
+            return "Patientenprotokoll vollständig und angehängt?\n"
+                   "Verbrauchtes Material in Verbrauchsliste eingetragen?";
+        }
         case RescueOperation::_FIRST_AID_MATERIAL:
+        {
             return "Verbrauchtes Material in Verbrauchsliste eingetragen?";
-        case RescueOperation::_SWIMMER_ACROSS:
-            return "Details unter Bemerkungen vermerkt oder alternativ\n"
+        }
+        case RescueOperation::_WATER_PREVENTIVE_MEASURES:
+        {
+            return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
                    "Einsatzprotokoll ausgefüllt und angehängt?";
-        case RescueOperation::_SWIMMER_GENERAL:
-            return "Einsatzprotokoll ausgefüllt und angehängt?";
-        case RescueOperation::_CAPSIZE:
-            return "Falls nötig: Einsatzprotokoll ausgefüllt und angehängt?";
+        }
+        case RescueOperation::_WATER_RESCUE_GENERAL:
+        {
+            return "Einsatz- und Patientenprotokoll ausgefüllt und angehängt?\n"
+                   "Leiter Einsatz informiert?";
+        }
+        case static_cast<RescueOperation>(RescueOperation_CAPSIZE_deprecated):  //Note: deprecated option; keep this here
+        {                                                                       //for compatibility with old saved reports
+            return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
+                   "Einsatz-/Patientenprotokoll ausgefüllt und angehängt?";
+        }
         case RescueOperation::_MATERIAL_RETRIEVAL:
-            return "";
-        case RescueOperation::_OTHER_ASSISTANCE:
+        {
             return "Details unter Bemerkungen vermerkt?";
+        }
+        case RescueOperation::_CAPSIZE_WATER_RESCUE:
+        {
+            return "Einsatz-/Patientenprotokoll ausgefüllt und angehängt?\n"
+                   "Leiter Einsatz informiert?";
+        }
+        case RescueOperation::_CAPSIZE_TECH_ASSISTANCE:
+        {
+            return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
+                   "Einsatzprotokoll ausgefüllt und angehängt?";
+        }
+        case RescueOperation::_MISSING_PERSON:
+        {
+            return "Einsatzprotokoll und Suchmeldung ausgefüllt und angehängt?\n"
+                   "Leiter Einsatz informiert?";
+        }
+        case RescueOperation::_OTHER_ASSISTANCE:
+        {
+            return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
+                   "Einsatzprotokoll ausgefüllt und angehängt?";
+        }
         case RescueOperation::_MORTAL_DANGER_INVOLVED:
-            return "Einsatzprotokoll ausgefüllt und angehängt?";
+        {
+            return "Einsatz- und Patientenprotokoll ausgefüllt und angehängt?\n"
+                   "Leiter Einsatz informiert?";
+        }
         default:
             return "";
     }
@@ -2071,24 +2302,51 @@ QString Report::rescueOperationToDocNotice(RescueOperation pRescue)
  */
 Report::RescueOperation Report::labelToRescueOperation(const QString& pRescue)
 {
-    if (pRescue == "Erste-Hilfe-Einsätze")
+    if (pRescue == "Erste-Hilfe-Einsatz")
         return RescueOperation::_FIRST_AID;
     else if (pRescue == "Ausgabe von EH-/SAN-Material")
         return RescueOperation::_FIRST_AID_MATERIAL;
-    else if (pRescue == "Hilfeleistungen Querschwimmer")
-        return RescueOperation::_SWIMMER_ACROSS;
-    else if (pRescue == "Sonstige Schwimmer-Einsätze")
-        return RescueOperation::_SWIMMER_GENERAL;
-    else if (pRescue == "Bootskenterungen")
-        return RescueOperation::_CAPSIZE;
-    else if (pRescue == "Bergung von Sachgütern")
+    else if (pRescue == "Vorbeugende Maßnahmen Wassersportler")
+        return RescueOperation::_WATER_PREVENTIVE_MEASURES;
+    else if (pRescue == "Rettung von Personen vor Ertrinken")
+        return RescueOperation::_WATER_RESCUE_GENERAL;
+    else if (pRescue == "Bootskenterung")                                           //Note: deprecated option; keep this here
+        return static_cast<RescueOperation>(RescueOperation_CAPSIZE_deprecated);    //for compatibility with old saved reports
+    else if (pRescue == "Bergung von Sachgut")
         return RescueOperation::_MATERIAL_RETRIEVAL;
+    else if (pRescue == "Bootskenterung (mit Hilfe Personen)")
+        return RescueOperation::_CAPSIZE_WATER_RESCUE;
+    else if (pRescue == "Bootskenterung (technische Hilfe)")
+        return RescueOperation::_CAPSIZE_TECH_ASSISTANCE;
+    else if (pRescue == "Personensuche")
+        return RescueOperation::_MISSING_PERSON;
     else if (pRescue == "Sonstige Hilfeleistungen")
         return RescueOperation::_OTHER_ASSISTANCE;
-    else if (pRescue == "Hilfeleistungen mit Lebensgefahr")
+    else if (pRescue == "Rettungen aus Lebensgefahr")
         return RescueOperation::_MORTAL_DANGER_INVOLVED;
     else
         return RescueOperation::_OTHER_ASSISTANCE;
+}
+
+//
+
+/*!
+ * \brief Get all available (non-deprecated) rescue operation types.
+ *
+ * Returns a set of all of those RescueOperation types that iterateRescueOperations() would loop over.
+ *
+ * \return Set of available rescue operation types.
+ */
+std::set<Report::RescueOperation> Report::getAvailableRescueOperations()
+{
+    //Lambda expression to add a rescue operation to a set of rescue operations
+    auto accAvailRescOps = [](RescueOperation pRescue, std::set<RescueOperation>& pRescues) -> void { pRescues.insert(pRescue); };
+
+    //Use the 'RescueOperation' iteration function to accumulate the available rescue operation types
+    std::set<RescueOperation> availRescOps;
+    iterateRescueOperations(accAvailRescOps, availRescOps);
+
+    return availRescOps;
 }
 
 //Private
@@ -2162,9 +2420,9 @@ void Report::addPersonnel(Person&& pPerson)
 {
     QString ident = pPerson.getIdent();
 
-    if (ident.startsWith('i'))
+    if (Person::isInternalIdent(ident))
         internalPersonnelMap.insert({std::move(ident), std::move(pPerson)});
-    else if (ident.startsWith('e'))
+    else if (Person::isExternalIdent(ident))
         externalPersonnelMap.insert({std::move(ident), std::move(pPerson)});
 }
 
@@ -2196,7 +2454,7 @@ void Report::removePersonnel(const QString& pIdent)
  * \param pBegin Arrival time.
  * \param pEnd Leaving time.
  */
-void Report::addPersonFunctionTimes(const QString& pIdent, Person::Function pFunction, QTime pBegin, QTime pEnd)
+void Report::addPersonFunctionTimes(const QString& pIdent, const Person::Function pFunction, const QTime pBegin, const QTime pEnd)
 {
     personnelFunctionTimesMap.insert({pIdent, {pFunction, {pBegin, pEnd}}});
 }

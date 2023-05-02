@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -21,6 +21,30 @@
 */
 
 #include "pdfexporter.h"
+
+#include "auxil.h"
+#include "boatdrive.h"
+#include "boatlog.h"
+#include "databasecache.h"
+#include "person.h"
+#include "settingscache.h"
+
+#include <QFile>
+#include <QFileInfo>
+#include <QImage>
+#include <QIODevice>
+#include <QProcess>
+#include <QTemporaryDir>
+#include <QTemporaryFile>
+#include <QTime>
+
+#include <functional>
+#include <iostream>
+#include <list>
+#include <map>
+#include <memory>
+#include <set>
+#include <vector>
 
 //Public
 
@@ -41,8 +65,8 @@
  * \param pBoatDrivesTableMaxLength See reportToLaTeX().
  * \return If compilation and copying was successful.
  */
-bool PDFExporter::exportPDF(const Report& pReport, const QString& pFileName,
-                            int pPersonnelTableMaxLength, int pBoatDrivesTableMaxLength)
+bool PDFExporter::exportPDF(const Report pReport, const QString& pFileName,
+                            const int pPersonnelTableMaxLength, const int pBoatDrivesTableMaxLength)
 {
     //Generate content of LaTeX document
     QString texString;
@@ -88,18 +112,45 @@ bool PDFExporter::exportPDF(const Report& pReport, const QString& pFileName,
     }
     texFile.close();
 
-    //Write association logo to temporary directory
+    //Write association logo to temporary directory; use custom logo if defined and exists
 
     QString logoFileName = "logo.png";
-    QFile logoFile(":/resources/images/dlrg-logo.png");
 
-    if (!logoFile.copy(tmpDir.filePath(logoFileName)))
+    QString customLogoPath = SettingsCache::getStrSetting("app_export_customLogoPath", true);
+
+    if (customLogoPath == "" || !QFileInfo::exists(customLogoPath))
     {
-        std::cerr<<"ERROR: Could not create association logo file!"<<std::endl;
-        return false;
+        if (customLogoPath != "")
+            std::cerr<<"WARNING: User-defined association logo does not exist! Using default logo."<<std::endl;
+
+        QFile defaultLogoFile(":/resources/images/dlrg-logo.png");
+
+        if (!defaultLogoFile.copy(tmpDir.filePath(logoFileName)))
+        {
+            std::cerr<<"ERROR: Could not create association logo file!"<<std::endl;
+            return false;
+        }
+    }
+    else
+    {
+        QImage customLogo;
+
+        if (!customLogo.load(customLogoPath))
+        {
+            std::cerr<<"ERROR: Could not open user-defined association logo file!"<<std::endl;
+            return false;
+        }
+
+        if (!customLogo.save(tmpDir.filePath(logoFileName)))
+        {
+            std::cerr<<"ERROR: Could not create association logo file!"<<std::endl;
+            return false;
+        }
     }
 
     //Compile the document
+
+    bool compilationFailed = false;
 
     QProcess process;
     process.setWorkingDirectory(tmpDir.path());
@@ -111,17 +162,45 @@ bool PDFExporter::exportPDF(const Report& pReport, const QString& pFileName,
     if (process.error() == QProcess::Timedout)
     {
         process.kill();
-        process.close();
         std::cerr<<"ERROR: XeLaTeX process timed out after 30s! Syntax error?"<<std::endl;
-        return false;
+        compilationFailed = true;
     }
-    if (process.exitStatus() != QProcess::NormalExit)
+    else if (process.exitStatus() != QProcess::NormalExit)
     {
-        process.close();
         std::cerr<<"ERROR: XeLaTeX process stopped with non-zero exit code!"<<std::endl;
-        return false;
+        compilationFailed = true;
     }
     process.close();
+
+    //Try to copy log file of failed compilation to designated PDF file path before temporary directory gets deleted
+    if (compilationFailed)
+    {
+        QFileInfo pdfFileInfo(pFileName);
+        QString logFileNameTemplate = pdfFileInfo.path() + "/" + pdfFileInfo.completeBaseName() + "-XXXXXX.log";
+
+        //Use temporary file to determine an available file name
+        std::unique_ptr<QTemporaryFile> tempLogFile = std::make_unique<QTemporaryFile>(logFileNameTemplate);
+
+        if (!tempLogFile->open())
+        {
+            std::cerr<<"ERROR: Could not save log file of failed compilation!"<<std::endl;
+            return false;
+        }
+
+        QString sourceLogFileName = tmpDir.filePath(texFileBaseName) + ".log";
+        QString destLogFileName = tempLogFile->fileName();
+
+        //Destroy temporary file so that determined file name can be used for copying the log file
+        tempLogFile->close();
+        tempLogFile.reset();
+
+        if (!QFile::copy(sourceLogFileName, destLogFileName))
+            std::cerr<<"ERROR: Could not save log file of failed compilation!"<<std::endl;
+        else
+            std::cerr<<"INFO: Copied log file of failed compilation to \""<<destLogFileName.toStdString()<<"\"!"<<std::endl;
+
+        return false;
+    }
 
     //Copy PDF from temporary directory to requested path
     if ((QFileInfo::exists(pFileName) && !QFile::remove(pFileName)) || !QFile::copy(tmpDir.filePath(texPDFFileName), pFileName))
@@ -138,28 +217,38 @@ bool PDFExporter::exportPDF(const Report& pReport, const QString& pFileName,
 /*!
  * \brief Generate LaTeX document from report.
  *
- * Insert \p pReport contents into a report LaTeX code template to form a report document.
- * Generated LaTeX code is assigned to \p pTeXString.
+ * Inserts \p pReport contents into a report LaTeX code template to form a report document.
+ *
+ * No boat log page is generated if boat log keeping has been disabled via the "app_boatLog_disabled" setting.
+ *
+ * The generated LaTeX code is assigned to \p pTeXString.
  *
  * \param pReport The report to use to create the PDF.
  * \param pTeXString Destination for the generated LaTeX code.
  * \param pPersonnelTableMaxLength Row count limit for personnel table. Inserts additional page to continue table if this exceeded.
  * \param pBoatDrivesTableMaxLength Row count limit for boat drives table. Inserts additional page to continue table if this exceeded.
  */
-void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int pPersonnelTableMaxLength, int pBoatDrivesTableMaxLength)
+void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
+                                const int pPersonnelTableMaxLength, const int pBoatDrivesTableMaxLength)
 {
     QString rawTexString0 = "\\documentclass[a4paper, notitlepage, 10pt]{scrreprt}\n"
        "\n"
-       "\\usepackage[T1]{fontenc}\n"
-       "\\usepackage[utf8]{inputenc}\n"
-       "\\usepackage[ngerman]{babel}\n"
+       "\\usepackage{fontspec}\n"
+       "\\usepackage{polyglossia}\n"
+       "\\setdefaultlanguage[babelshorthands=true]{german}\n"
+       "\n"
+       "\\usepackage{hyperref}\n"
+       "\\hypersetup{\n"
+       "    pdfpagemode=,\n"
+       "    pdfstartview=,\n"
+       "    pdftitle={Wachbericht %3},\n"
+       "    pdfkeywords={wdmgr-version:%4}\n"
+       "}\n"
        "\n"
        "\\usepackage[top=0.4in, left=0.5in, bottom=0.4in, right=0.4in]{geometry}\n"
        "\\usepackage{calc}\n"
        "\n"
        "\\usepackage{amssymb}\n"
-       "\n"
-       "\\usepackage{siunitx}\n"
        "\n"
        "\\usepackage{ulem}\n"
        "\n"
@@ -173,6 +262,9 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
        "\\usepackage{graphicx}\n"
        "\n"
        "%1"
+       "\\newcommand{\\rotatedWindArrow}[1]{\\raisebox{%2}{\\makebox[9pt][c]{\\rotatebox[origin=c]{#1}{$\\uparrow$}}}}\n"
+       "\\newcommand{\\windChanging}{\\raisebox{%2}{\\makebox[9pt][c]{$\\circlearrowleft$}}}\n"
+       "\n"
        "\\setlength{\\parindent}{0pt}\n"
        "\n"
        "\\begin{document}\n";
@@ -193,14 +285,18 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         QString tFontSans = tFontMain;
         QString tFontMono = tFontMain;
 
-        tFontsString = QString("\\usepackage{fontspec}\n"
-                               "\\setmainfont{%1}\n"
+        tFontsString = QString("\\setmainfont{%1}\n"
                                "\\setsansfont{%2}\n"
                                "\\setmonofont{%3}\n"
                                "\n").arg(tFontMain, tFontSans, tFontMono);
     }
 
-    QString texString0 = rawTexString0.arg(tFontsString);
+    //Adjust wind direction symbol vertical alignment in case of DLRG font
+    QString windRaiseboxAmount = "0.5pt";
+    if (tFontFamily == "DLRG Univers 55 Roman")
+        windRaiseboxAmount = "1.0pt";
+
+    QString texString0 = rawTexString0.arg(tFontsString, windRaiseboxAmount, pReport.getDate().toString("dd.MM.yyyy"), Aux::programVersionString);
 
     //Report header
 
@@ -246,8 +342,12 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     }
 
     //Station radio call name
+
     QString tStationRadioCallName = pReport.getRadioCallName();
     Aux::latexUseHyphdash(tStationRadioCallName);
+
+    if (tStationRadioCallName == "")
+        tStationRadioCallName = "---";
 
     QString rawTexString1 = "{\\LARGE\\textbf{Wachbericht}}\n"
        "\n"
@@ -366,6 +466,16 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     //Weather conditions
 
+    QString tWindDirectionSymbol = "";
+    Aux::WindDirection windDirection = pReport.getWindDirection();
+    if (static_cast<int8_t>(windDirection) >= 0 && static_cast<int8_t>(windDirection) <= 15)
+    {
+        //Can use enumeration value to directly calculate wind arrow rotation angle
+        tWindDirectionSymbol = " \\hspace{2pt}\\rotatedWindArrow{" + QString::number(22.5*static_cast<int8_t>(windDirection)) + "}";
+    }
+    else if (windDirection == Aux::WindDirection::_VARIABLE)
+        tWindDirectionSymbol = " \\hspace{2pt}\\windChanging";
+
     QString tWeatherComments = pReport.getWeatherComments();
     Aux::latexEscapeSpecialChars(tWeatherComments);
     Aux::latexFixLineBreaks(tWeatherComments);
@@ -376,11 +486,11 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     QString rawTexString3 = "\\begin{minipage}{\\linewidth}\n"
        "\\subsection*{Wetter}\n"
        "\\renewcommand{\\arraystretch}{1.2}\n"
-       "\\begin{tabular}{>{\\raggedright}p{0.155\\linewidth}>{\\raggedright}p{0.065\\linewidth}>{\\raggedright}p{0.11\\linewidth}\n"
-       "                 >{\\raggedright}p{0.18\\linewidth}>{\\raggedright}p{0.12\\linewidth}\n"
-       "                 >{\\raggedright\\arraybackslash}p{0.25\\linewidth}}\n"
-       "Lufttemperatur: & \\SI{%1}{\\degreeCelsius} & Bewölkung: & %3 & Wind: & %5 \\\\\n"
-       "Wassertemperatur: & \\SI{%2}{\\degreeCelsius} & Niederschlag: & %4 & Bemerkungen: & \\hspace{0pt}%6 \n"
+       "\\begin{tabular}{>{\\raggedright}p{0.155\\linewidth}>{\\raggedright}p{0.06\\linewidth}>{\\raggedright}p{0.11\\linewidth}\n"
+       "                 >{\\raggedright}p{0.175\\linewidth}>{\\raggedright}p{0.115\\linewidth}\n"
+       "                 >{\\raggedright\\arraybackslash}p{0.265\\linewidth}}\n"
+       "Lufttemperatur: & %1\\,\\textdegree{}C & Bewölkung: & %3 & Wind: & %5%6 \\\\\n"
+       "Wassertemperatur: & %2\\,\\textdegree{}C & Niederschlag: & %4 & Bemerkungen: & \\hspace{0pt}%7 \n"
        "\\end{tabular}\n"
        "\\end{minipage}\n"
        "\\vspace{7pt}\n\\vfill\n\n";
@@ -389,62 +499,67 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
                                            QString::number(pReport.getWaterTemperature()),
                                            Aux::cloudinessToLabel(pReport.getCloudiness()),
                                            Aux::precipitationToLabel(pReport.getPrecipitation()),
-                                           Aux::windStrengthToLabel(pReport.getWindStrength()), tWeatherComments);
+                                           Aux::windStrengthToLabel(pReport.getWindStrength()).replace(" Bft", "\\,Bft"),
+                                           tWindDirectionSymbol, tWeatherComments);
 
     QString texString4 = "\\newsavebox{\\rescuesBox}\n"
        "\\savebox{\\rescuesBox}{\n"
        "\\begin{minipage}{0.45\\linewidth}\n"
        "\\subsection*{Hilfeleistungen}\n"
        "\\renewcommand{\\arraystretch}{0.6}\n"
-       "\\begin{tabular}{>{\\raggedright}p{0.8\\linewidth}>{\\raggedleft\\arraybackslash}p{0.12\\linewidth}}\n"
-       "\\textbf{Art der Hilfeleistung} & \\textbf{Anzahl} \\\\ \\toprule\n";
-
-    //Add table row for each type of rescue operation, summarizing the numbers of carried out operations
-
-    //Find number of different rescue operation types first, to properly format table
-
-    //Lambda expression to count number of rescue operation types. To be executed for each available 'RescueOperation'.
-    auto tCntFunc = [](Report::RescueOperation pRescue, int& pNumberLeistungen) -> void { ++pNumberLeistungen; (void)pRescue; };
-
-    int tNumberRescueTypes = 0;
-    int tCurrentRescueType = 1;
-
-    Report::iterateRescueOperations(tCntFunc, tNumberRescueTypes);
+       "\\begin{tabular}{>{\\raggedright}p{0.86\\linewidth}>{\\raggedleft\\arraybackslash}p{0.12\\linewidth}}\n"
+       "\\textbf{Art der Hilfeleistung} & \\textbf{Anzahl} \\\\";
 
     /*
      * Lambda expression to add a table row displaying the number of carried out rescue operations of the specified type.
      * To be executed for each available 'RescueOperation'.
      */
     auto tRescOpFunc = [](Report::RescueOperation pRescue, const std::map<Report::RescueOperation, int>& pRescuesCountMap,
-                          QString& pTexString4, int pNumberRescueTypes, int& pCurrentRescueType) -> void
+                          QString& pTexString4, int& pCurrentRescueTypeNum) -> void
     {
+        if (pCurrentRescueTypeNum++ == 0)
+            pTexString4.append(" \\toprule\n");
+        else if (pRescue == Report::RescueOperation::_MORTAL_DANGER_INVOLVED)
+            pTexString4.append(" \\bottomrule\\addlinespace[\\belowrulesep]\n");
+        else
+            pTexString4.append(" \\midrule\n");
+
         pTexString4.append(QString("%1 & %2 \\\\").arg(Report::rescueOperationToLabel(pRescue),
                                                        QString::number(pRescuesCountMap.at(pRescue))));
-
-        if (pCurrentRescueType++ < pNumberRescueTypes)
-            pTexString4.append(" \\midrule\n");
-        else
-            pTexString4.append(" \\bottomrule\n");
     };
 
-    //Add new row for each 'RescueOperation'
-    auto tRescOpCtrs = pReport.getRescueOperationCtrs();
-    Report::iterateRescueOperations(tRescOpFunc, tRescOpCtrs, texString4, tNumberRescueTypes, tCurrentRescueType);
+    //Add table row for each type of rescue operation, summarizing the numbers of carried out operations;
+    //determine available (non-deprecated) rescue operation types and place deprecated ones (possibly loaded from file) in front
 
-    texString4.append(QString("\\end{tabular}\n"
+    std::map<Report::RescueOperation, int> tRescOpCtrs = pReport.getRescueOperationCtrs();
+
+    std::set<Report::RescueOperation> tAvailRescOps = Report::getAvailableRescueOperations();
+
+    int tCurrentRescueTypeNum = 0;
+
+    //Add new row for each deprecated 'RescueOperation' with non-zero count
+    for (auto it : tRescOpCtrs)
+        if (tAvailRescOps.find(it.first) == tAvailRescOps.end() && it.second != 0)
+            tRescOpFunc(it.first, tRescOpCtrs, texString4, tCurrentRescueTypeNum);
+
+    //Add new row for each available 'RescueOperation'
+    Report::iterateRescueOperations(tRescOpFunc, tRescOpCtrs, texString4, tCurrentRescueTypeNum);
+
+    texString4.append(" \\bottomrule\n"
+       "\\end{tabular}\n"
        "\\end{minipage}\n"
-       "}\n"));
+       "}\n");
 
     //Vehicles
 
     QString texString5 = "\\newsavebox{\\vehiclesBox}\n"
        "\\savebox{\\vehiclesBox}{\n"
        "\\begin{minipage}{0.45\\linewidth}\n"
-       "\\subsection*{Eingesetzte Einsatzfahrzeuge}\n"
+       "\\subsection*{Eingesetzte Fahrzeuge}\n"
        "\\renewcommand{\\arraystretch}{0.6}\n"
-       "\\begin{tabular}{>{\\raggedright}p{0.66\\linewidth}>{\\raggedright\\arraybackslash}p{0.10\\linewidth}\n"
-       "                >{\\raggedright\\arraybackslash}p{0.09\\linewidth}}\n"
-       "\\textbf{Fahrzeug} & \\textbf{Von} & \\textbf{Bis} \\\\ \\toprule\n";
+       "\\begin{tabular}{>{\\raggedright}p{0.65\\linewidth}>{\\raggedright\\arraybackslash}p{0.10\\linewidth}\n"
+       "                >{\\raggedright\\arraybackslash}p{0.10\\linewidth}}\n"
+       "\\textbf{Funkrufname} & \\textbf{Von} & \\textbf{Bis} \\\\ \\toprule\n";
 
     auto tNumVehicles = pReport.getVehicles().size();
     decltype(tNumVehicles) tVehicleNumber = 0;
@@ -473,7 +588,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
        "\\savebox{\\assignmentNumberBox}{\n"
        "\\begin{minipage}{0.45\\linewidth}\\hfill\n"
        "\\begin{tabular}{>{\\raggedleft\\arraybackslash}p{0.45\\linewidth}}\n"
-       "\\multicolumn{1}{c}{\\textbf{Einsatznummer LSt:}} \\\\ \\toprule\\vspace{-3pt}\n"
+       "\\multicolumn{1}{c}{\\textbf{Einsatznummer LSt}} \\\\ \\toprule\\vspace{-3pt}\n"
        "%1\n"
        "\\end{tabular}\n"
        "\\end{minipage}\n").arg(pReport.getAssignmentNumber().size() > 0 ? pReport.getAssignmentNumber() : "---"));
@@ -517,22 +632,22 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
     //Enclosures
 
-    bool tEnclosedBoatLog = true;   //Boat log always enclosed
+    bool tEnclosedBoatLog = !SettingsCache::getBoolSetting("app_boatLog_disabled", true);   //Boat log automatically enclosed if enabled
     int tEnclosedOperationProtocols = pReport.getOperationProtocolsCtr();
     int tEnclosedPatientRecords = pReport.getPatientRecordsCtr();
     int tEnclosedRadioCallLogs = pReport.getRadioCallLogsCtr();
 
-    QString tEnclosedOperationProtocolsStr = "($\\times$\\," + QString::number(tEnclosedOperationProtocols) + ")";
-    QString tEnclosedPatientRecordsStr = "($\\times$\\," + QString::number(tEnclosedPatientRecords) + ")";
-    QString tEnclosedRadioCallLogsStr = "($\\times$\\," + QString::number(tEnclosedRadioCallLogs) + ")";
+    QString tEnclosedOperationProtocolsStr = "(\\texttimes\\," + QString::number(tEnclosedOperationProtocols) + ")";
+    QString tEnclosedPatientRecordsStr = "(\\texttimes\\," + QString::number(tEnclosedPatientRecords) + ")";
+    QString tEnclosedRadioCallLogsStr = "(\\texttimes\\," + QString::number(tEnclosedRadioCallLogs) + ")";
 
     //Omit numbers, if they are zero
     if (tEnclosedOperationProtocols == 0)
-        tEnclosedOperationProtocolsStr = "\\hphantom{($\\times$\\,0)}";
+        tEnclosedOperationProtocolsStr = "\\hphantom{(\\texttimes\\,0)}";
     if (tEnclosedPatientRecords == 0)
-        tEnclosedPatientRecordsStr = "\\hphantom{($\\times$\\,0)}";
+        tEnclosedPatientRecordsStr = "\\hphantom{(\\texttimes\\,0)}";
     if (tEnclosedRadioCallLogs == 0)
-        tEnclosedRadioCallLogsStr = "\\hphantom{($\\times$\\,0)}";
+        tEnclosedRadioCallLogsStr = "\\hphantom{(\\texttimes\\,0)}";
 
     QString tOtherEnclosures = pReport.getOtherEnclosures();
     Aux::latexEscapeSpecialChars(tOtherEnclosures);
@@ -686,13 +801,18 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         tBoatNameStr = tBoatAcronym + " " + tBoatName;
 
     //Boat radio call name
+
     QString tBoatRadioCallName = boatLog.getRadioCallName();
     Aux::latexUseHyphdash(tBoatRadioCallName);
+
+    if (tBoatRadioCallName == "")
+        tBoatRadioCallName = "---";
 
     QString rawTexString9 = "{\\LARGE\\textbf{Bootstagebuch}}\n"
         "\n"
         "\\vspace{-2pt}\\hspace{-0.5in}\n"
-        "\\begin{minipage}[b][0pt][t]{\\linewidth+0.5in+0.4in-2pt-8pt}\\vspace{-51pt+8pt}\\hfill\\includegraphics[width=105pt]{logo}\\end{minipage}\n"
+        "\\begin{minipage}[b][0pt][t]{\\linewidth+0.5in+0.4in-2pt-8pt}%\n"
+        "\\vspace{-51pt+8pt}\\hfill\\includegraphics[width=105pt]{logo}\\end{minipage}\n"
         "\n"
         "\\begin{minipage}{\\linewidth}\n"
         "\\renewcommand{\\arraystretch}{1.55}\n"
@@ -750,18 +870,14 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
     QString tDriveRowString = "\\textbf{%1} & \\makecell[rt]{%2\\\\--%3} & \\hspace{0pt}%4 & \\hspace{0pt}%5 & %6 & "
                               "\\hspace{0pt}%7 & %8 \\\\";
 
-    //Boat drives list
-    auto tDrives = boatLog.getDrives();
-    int tDrivesSize = tDrives.size();
-
     int tDriveNumber = 1;       //Enumerate drives
     int tTotalBoatMinutes = 0;  //Print total boat drive hours at the end of the table
     int tTotalDrivesFuel = 0;   //Sum up amount of fuel added during/after individual drives
 
-    bool splitDrivesTable = (tDrivesSize > pBoatDrivesTableMaxLength);  //Continue long table on next page
+    bool splitDrivesTable = (boatLog.getDrivesCount() > pBoatDrivesTableMaxLength); //Continue long table on next page
 
     //Add a table row for each drive
-    for (const BoatDrive& tDrive : tDrives)
+    for (const BoatDrive& tDrive : boatLog.getDrives())
     {
         //Name of boatman
 
@@ -779,7 +895,17 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
 
         std::vector<Person> tCrew;
         for (const auto& it : tDrive.crew())
-            tCrew.push_back(pReport.getPerson(it.first));
+        {
+            if (!Person::isOtherIdent(it.first))
+                tCrew.push_back(pReport.getPerson(it.first));
+            else
+            {
+                QString tLastName, tFirstName;
+                tDrive.getExtCrewMemberName(it.first, tLastName, tFirstName);
+
+                tCrew.push_back(Person(tLastName, tFirstName, it.first, Person::Qualifications(QStringList{}), true));
+            }
+        }
 
         int tCrewMemberNumber = 1;
 
@@ -900,7 +1026,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         "\\end{tabular}\n"
         "\\hfill\n"
         "\\begin{tabular}{l}\n"
-        "\\textbf{Boot geslipt:}\\\\\n"
+        "\\textbf{Boot geslippt:}\\\\\n"
         "$%3$ Zu Dienstanfang\\\\\n"
         "$%4$ Zu Dienstende\n"
         "\\end{tabular}\n"
@@ -964,7 +1090,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
         tDriveNumber = 0;
 
         //Add a table row for each drive
-        for (const BoatDrive& tDrive : tDrives)
+        for (const BoatDrive& tDrive : boatLog.getDrives())
         {
             //Skip entries that are already in first part of the boat drives table
             if (++tDriveNumber < pBoatDrivesTableMaxLength)
@@ -1056,12 +1182,21 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString, int 
                                    "\\vfill\n"));
     }
 
-    QString texString15 = "\\end{document}\n";
-
     //Assemble all parts to one document
-    QString texString = texString0 + texString1 + texString2 + texString3 + texString4 + texString5 + texString6 +
-                        texString7 + texString8 + pagebreakString + texString9 + texString10 + texString11 +
-                        texString12 + texString13 + texString14 + texString15;
+
+    QString texStringReport = texString0 + texString1 + texString2 + texString3 + texString4 +
+                                           texString5 + texString6 + texString7 + texString8;
+
+    QString texStringBoatLog = texString9 + texString10 + texString11 + texString12 + texString13 + texString14;
+
+    QString texStringEnd = "\\end{document}\n";
+
+    QString texString;
+
+    if (SettingsCache::getBoolSetting("app_boatLog_disabled", true))
+        texString = texStringReport + texStringEnd;
+    else
+        texString = texStringReport + pagebreakString + texStringBoatLog + texStringEnd;
 
     //Swap document to the function argument
     pTeXString.swap(texString);

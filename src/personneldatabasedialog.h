@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -23,24 +23,8 @@
 #ifndef PERSONNELDATABASEDIALOG_H
 #define PERSONNELDATABASEDIALOG_H
 
-#include "auxil.h"
-#include "person.h"
-#include "databasecache.h"
-#include "settingscache.h"
-#include "personneleditordialog.h"
-
-#include <thread>
-
-#include <QString>
-
 #include <QDialog>
-#include <QMessageBox>
-#include <QTableWidget>
-#include <QAbstractItemView>
-#include <QItemSelectionModel>
-#include <QModelIndexList>
-#include <QHeaderView>
-#include <QPushButton>
+#include <QWidget>
 
 namespace Ui {
 class PersonnelDatabaseDialog;
@@ -58,7 +42,7 @@ class PersonnelDatabaseDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit PersonnelDatabaseDialog(QWidget *const pParent = nullptr); ///< Constructor.
+    explicit PersonnelDatabaseDialog(QWidget* pParent = nullptr);       ///< Constructor.
     ~PersonnelDatabaseDialog();                                         ///< Destructor.
 
 private:
@@ -71,7 +55,7 @@ private slots:
     void on_personnel_tableWidget_cellDoubleClicked(int, int);          ///< Edit the selected persons.
 
 private:
-    Ui::PersonnelDatabaseDialog *ui;    //UI
+    Ui::PersonnelDatabaseDialog* ui;    //UI
     //
     bool editDisabled;                  //Disable writing to the database
 };

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -23,43 +23,26 @@
 #ifndef PDFEXPORTER_H
 #define PDFEXPORTER_H
 
-#include "auxil.h"
 #include "report.h"
-#include "person.h"
-#include "boatlog.h"
-#include "boatdrive.h"
-#include "databasecache.h"
-#include "settingscache.h"
-
-#include <iostream>
-#include <vector>
-#include <set>
-#include <map>
-#include <functional>
 
 #include <QString>
-#include <QTime>
-#include <QTemporaryDir>
-#include <QFileInfo>
-#include <QFile>
-#include <QIODevice>
-#include <QProcess>
 
 /*!
  * \brief Export a Report as a PDF file using LaTeX.
  *
- * A Report can be converted/saved to a PDF file by calling exportPDF().
- * In order to do this, the report information is arranged in a LaTeX document
- * and then compiled using XeLaTeX. For this the "app_export_xelatexPath" setting
- * must be set and contain a valid path to a XeLaTeX executable.
+ * A Report can be converted/saved to a PDF file by calling exportPDF(). In order to do this,
+ * the report information is arranged in a LaTeX document and then compiled using XeLaTeX.
+ * For this the "app_export_xelatexPath" setting must be set and contain a valid path to
+ * a XeLaTeX executable. Note that no boat log page will be generated if boat log
+ * keeping has been disabled via the "app_boatLog_disabled" setting.
  */
 class PDFExporter
 {
 public:
     PDFExporter() = delete;                                                                         ///< Deleted constructor.
     //
-    static bool exportPDF(const Report& pReport, const QString& pFileName,
-                          int pPersonnelTableMaxLength = 15, int pBoatDrivesTableMaxLength = 9);    ///< Export report as PDF file.
+    static bool exportPDF(Report pReport, const QString& pFileName,
+                          int pPersonnelTableMaxLength = 13, int pBoatDrivesTableMaxLength = 9);    ///< Export report as PDF file.
 
 private:
     static void reportToLaTeX(const Report& pReport, QString& pTeXString,

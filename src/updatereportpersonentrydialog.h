@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -24,16 +24,10 @@
 #define UPDATEREPORTPERSONENTRYDIALOG_H
 
 #include "person.h"
-#include "qualificationchecker.h"
-
-#include <QString>
-#include <QStringList>
-#include <QTime>
 
 #include <QDialog>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QTimeEdit>
+#include <QTime>
+#include <QWidget>
 
 namespace Ui {
 class UpdateReportPersonEntryDialog;
@@ -49,14 +43,16 @@ class UpdateReportPersonEntryDialog;
  * by calling getFunction(), getBeginTime() and getEndTime().
  *
  * Only functions that comply with the persons qualifications can be selected.
+ *
+ * Editing of the times can be disabled from the constructor (see UpdateReportPersonEntryDialog()).
  */
 class UpdateReportPersonEntryDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit UpdateReportPersonEntryDialog(const Person& pPerson, Person::Function pFunction,
-                                           QTime pBeginTime, QTime pEndTime, QWidget *const pParent = nullptr); ///< Constructor.
+    explicit UpdateReportPersonEntryDialog(const Person& pPerson, Person::Function pFunction, QTime pBeginTime, QTime pEndTime,
+                                           bool pDisableEditTimes = false, QWidget* pParent = nullptr);         ///< Constructor.
     ~UpdateReportPersonEntryDialog();                                                                           ///< Destructor.
     //
     Person::Function getFunction() const;   ///< Get the currently selected function.
@@ -64,7 +60,7 @@ public:
     QTime getEndTime() const;               ///< Get the currently set end time.
 
 private:
-    Ui::UpdateReportPersonEntryDialog *ui;  //UI
+    Ui::UpdateReportPersonEntryDialog* ui;  //UI
 };
 
 #endif // UPDATEREPORTPERSONENTRYDIALOG_H

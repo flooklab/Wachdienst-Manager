@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -23,6 +23,9 @@
 #include "aboutdialog.h"
 #include "ui_aboutdialog.h"
 
+#include <QLabel>
+#include <QString>
+
 /*!
  * \brief Constructor.
  *
@@ -40,9 +43,10 @@ AboutDialog::AboutDialog(QWidget *const pParent) :
 {
     ui->setupUi(this);
 
-    //Show current program version and Qt version used for compilation
+    //Show current program version, Qt version used for compilation and a notice about the "DLRG" word mark
     ui->info_label->setText("Wachdienst-Manager " + Aux::programVersionStringPretty + ".\n\n" +
-                            "Verwendet Qt. Erstellt mit Version " + QT_VERSION_STR + ".");
+                            "Verwendet Qt. Erstellt mit Version " + QT_VERSION_STR + ".\n\n" +
+                            "Der DLRG-Schriftzug ist eine Marke der Deutsche Lebens-Rettungs-Gesellschaft e. V.");
 }
 
 /*!

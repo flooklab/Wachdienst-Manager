@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,35 @@
 
 #include "settingsdialog.h"
 #include "ui_settingsdialog.h"
+
+#include "databasecache.h"
+#include "settingscache.h"
+
+#include <QAbstractButton>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDialogButtonBox>
+#include <QFileDialog>
+#include <QGroupBox>
+#include <QHeaderView>
+#include <QLayout>
+#include <QLineEdit>
+#include <QList>
+#include <QMargins>
+#include <QMessageBox>
+#include <QRadioButton>
+#include <QRect>
+#include <QRegularExpressionValidator>
+#include <QSpinBox>
+#include <QStringList>
+#include <QTableWidget>
+#include <QTableWidgetItem>
+#include <QTabWidget>
+#include <QTimeEdit>
+
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 /*!
  * \brief Constructor.
@@ -167,13 +196,29 @@ void SettingsDialog::readDatabase()
     ui->defaultFilePath_lineEdit->setText(SettingsCache::getStrSetting("app_default_fileDialogDir"));
 
     ui->xelatexPath_lineEdit->setText(SettingsCache::getStrSetting("app_export_xelatexPath"));
+    ui->logoPath_lineEdit->setText(SettingsCache::getStrSetting("app_export_customLogoPath"));
     ui->font_lineEdit->setText(SettingsCache::getStrSetting("app_export_fontFamily"));
 
     ui->autoExport_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_autoOnSave"));
     ui->autoExportAskFilename_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_autoOnSave_askForFileName"));
     ui->twoSidedPrint_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_twoSidedPrint"));
 
+    //Extended settings
+
+    ui->disableBoatLog_checkBox->setChecked(SettingsCache::getBoolSetting("app_boatLog_disabled"));
     ui->boatDriveAutoApplyChanges_checkBox->setChecked(SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"));
+
+    QString boatmanRequiredLicense = SettingsCache::getStrSetting("app_personnel_minQualis_boatman");
+
+    ui->boatingLicenseA_radioButton->setChecked(true);
+    if (boatmanRequiredLicense == "B")
+        ui->boatingLicenseB_radioButton->setChecked(true);
+    else if (boatmanRequiredLicense == "A&B")
+        ui->boatingLicenseAB_radioButton->setChecked(true);
+    else if (boatmanRequiredLicense == "A|B")
+        ui->boatingLicenseAny_radioButton->setChecked(true);
+
+    ui->singleInstance_checkBox->setChecked(SettingsCache::getBoolSetting("app_singleInstance"));
 
     //Password
 
@@ -341,6 +386,9 @@ bool SettingsDialog::writeDatabase() const
     if (!SettingsCache::setStrSetting("app_export_xelatexPath", ui->xelatexPath_lineEdit->text()))
         return false;
 
+    if (!SettingsCache::setStrSetting("app_export_customLogoPath", ui->logoPath_lineEdit->text()))
+        return false;
+
     if (!SettingsCache::setStrSetting("app_export_fontFamily", ui->font_lineEdit->text()))
         return false;
 
@@ -353,11 +401,28 @@ bool SettingsDialog::writeDatabase() const
     if (!SettingsCache::setBoolSetting("app_export_twoSidedPrint", ui->twoSidedPrint_checkBox->isChecked()))
         return false;
 
+    //Extended settings
+
+    if (!SettingsCache::setBoolSetting("app_boatLog_disabled", ui->disableBoatLog_checkBox->isChecked()))
+        return false;
+
     if (!SettingsCache::setBoolSetting("app_reportWindow_autoApplyBoatDriveChanges",
                                        ui->boatDriveAutoApplyChanges_checkBox->isChecked()))
     {
         return false;
     }
+
+    if (ui->boatingLicenseA_radioButton->isChecked())
+        SettingsCache::setStrSetting("app_personnel_minQualis_boatman", "A");
+    else if (ui->boatingLicenseB_radioButton->isChecked())
+        SettingsCache::setStrSetting("app_personnel_minQualis_boatman", "B");
+    else if (ui->boatingLicenseAB_radioButton->isChecked())
+        SettingsCache::setStrSetting("app_personnel_minQualis_boatman", "A&B");
+    else if (ui->boatingLicenseAny_radioButton->isChecked())
+        SettingsCache::setStrSetting("app_personnel_minQualis_boatman", "A|B");
+
+    if (!SettingsCache::setBoolSetting("app_singleInstance", ui->singleInstance_checkBox->isChecked()))
+        return false;
 
     //Password
 
@@ -696,7 +761,7 @@ void SettingsDialog::accept()
  *
  * \param index New selected tab index.
  */
-void SettingsDialog::on_settings_tabWidget_currentChanged(int index)
+void SettingsDialog::on_settings_tabWidget_currentChanged(const int index)
 {
     //Need to initially resize documents table once after dialog fully constructed; do this when documents tab selected
     if (index == ui->settings_tabWidget->indexOf(ui->documents_tab))
@@ -741,7 +806,7 @@ void SettingsDialog::on_chooseDefaultFilePath_pushButton_pressed()
 /*!
  * \brief Set XeLaTeX executable using a file dialog.
  *
- * Sets the XeLaTeX executable path line edit text to a file name seleccted by a file chooser dialog.
+ * Sets the XeLaTeX executable path line edit text to a file name selected by a file chooser dialog.
  *
  * On windows the dialog filter is set to "*.exe" files.
  * On linux the dialog filter is set to "*".
@@ -762,6 +827,21 @@ void SettingsDialog::on_chooseXelatexPath_pushButton_pressed()
         return;
 
     ui->xelatexPath_lineEdit->setText(fileName);
+}
+
+/*!
+ * \brief Set custom association logo image file path.
+ *
+ * Sets the logo image file path line edit text to a file name selected by a file chooser dialog.
+ */
+void SettingsDialog::on_chooseLogoPath_pushButton_pressed()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Logo-Datei", "", "Bilddateien (*.png *.jpg *.jpeg *.bmp *.gif)");
+
+    if (fileName == "")
+        return;
+
+    ui->logoPath_lineEdit->setText(fileName);
 }
 
 /*!
@@ -845,6 +925,13 @@ void SettingsDialog::on_removeStation_pushButton_pressed()
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
 
+    QMessageBox msgBox(QMessageBox::Question, "Station entfernen?", "Station wird entfernt!\nFortfahren?",
+                       QMessageBox::Abort | QMessageBox::Yes, this);
+    msgBox.setDefaultButton(QMessageBox::Abort);
+
+    if (msgBox.exec() != QMessageBox::Yes)
+        return;
+
     QString tIdent = Aux::stationIdentFromLabel(ui->stations_comboBox->currentText());
 
     //Check that station is not set as home station for one of the boats
@@ -852,7 +939,7 @@ void SettingsDialog::on_removeStation_pushButton_pressed()
     {
         if (it.second.homeStation == tIdent)
         {
-            QMessageBox(QMessageBox::Warning, "Warnung", "Station ist für ein Boot als Heimatstation gesetzt!",
+            QMessageBox(QMessageBox::Critical, "Fehler", "Station ist für ein Boot als Heimatstation gesetzt!",
                         QMessageBox::Ok, this).exec();
             return;
         }
@@ -1016,7 +1103,7 @@ void SettingsDialog::on_stationRadioCallNameAlt_lineEdit_textEdited(const QStrin
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void SettingsDialog::on_copyStationRadioCallNameAlt_radioButton_toggled(bool checked)
+void SettingsDialog::on_copyStationRadioCallNameAlt_radioButton_toggled(const bool checked)
 {
     if (checked)
     {
@@ -1097,6 +1184,13 @@ void SettingsDialog::on_addBoat_pushButton_pressed()
 void SettingsDialog::on_removeBoat_pushButton_pressed()
 {
     if (ui->boats_comboBox->currentIndex() == -1)
+        return;
+
+    QMessageBox msgBox(QMessageBox::Question, "Boot entfernen?", "Boot wird entfernt!\nFortfahren?",
+                       QMessageBox::Abort | QMessageBox::Yes, this);
+    msgBox.setDefaultButton(QMessageBox::Abort);
+
+    if (msgBox.exec() != QMessageBox::Yes)
         return;
 
     boats.erase(ui->boats_comboBox->currentText());
@@ -1228,7 +1322,7 @@ void SettingsDialog::on_boatRadioCallNameAlt_lineEdit_textEdited(const QString& 
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void SettingsDialog::on_copyBoatRadioCallNameAlt_radioButton_toggled(bool checked)
+void SettingsDialog::on_copyBoatRadioCallNameAlt_radioButton_toggled(const bool checked)
 {
     if (checked)
     {
@@ -1245,7 +1339,7 @@ void SettingsDialog::on_copyBoatRadioCallNameAlt_radioButton_toggled(bool checke
  *
  * \param index The new home station's combo box item index.
  */
-void SettingsDialog::on_boatHomeStation_comboBox_currentIndexChanged(int index)
+void SettingsDialog::on_boatHomeStation_comboBox_currentIndexChanged(const int index)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1267,7 +1361,7 @@ void SettingsDialog::on_boatHomeStation_comboBox_currentIndexChanged(int index)
  *
  * \param arg1 The new number of documents.
  */
-void SettingsDialog::on_numDocuments_spinBox_valueChanged(int arg1)
+void SettingsDialog::on_numDocuments_spinBox_valueChanged(const int arg1)
 {
     int tOldRowCount = ui->documents_tableWidget->rowCount();
 
@@ -1329,7 +1423,7 @@ void SettingsDialog::on_chooseDocument_pushButton_pressed()
  * \param row Row of the edited item.
  * \param column Column of the edited item.
  */
-void SettingsDialog::on_documents_tableWidget_cellChanged(int row, int column)
+void SettingsDialog::on_documents_tableWidget_cellChanged(const int row, const int column)
 {
     if (row == -1 || column == -1)
         return;
@@ -1340,5 +1434,23 @@ void SettingsDialog::on_documents_tableWidget_cellChanged(int row, int column)
         QMessageBox(QMessageBox::Warning, "Nicht erlaubtes Zeichen", "Zeichen '%' und '$' nicht erlaubt!",
                     QMessageBox::Ok, this).exec();
         ui->documents_tableWidget->item(row, column)->setText("");
+    }
+}
+
+//
+
+/*!
+ * \brief Show restart hint when newly activating single instance mode.
+ *
+ * Shows a message box asking the user to restart the application in order for the activated single instance mode to become active.
+ *
+ * \param arg1 Check box check state.
+ */
+void SettingsDialog::on_singleInstance_checkBox_stateChanged(const int arg1)
+{
+    if ((arg1 == Qt::CheckState::Checked) && !SettingsCache::getBoolSetting("app_singleInstance"))
+    {
+        QMessageBox(QMessageBox::Information, "Nur eine Instanz erlauben",
+                    "Damit diese Änderung wirksam wird, muss das Programm neu gestartet werden!", QMessageBox::Ok, this).exec();
     }
 }

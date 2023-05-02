@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -21,6 +21,9 @@
 */
 
 #include "boatlog.h"
+
+#include <iterator>
+#include <stdexcept>
 
 /*!
  * \brief Constructor.
@@ -43,7 +46,6 @@ BoatLog::BoatLog() :
     fuelFinal(0),
     boatMinutesCarry(0)
 {
-
 }
 
 //Public
@@ -125,7 +127,7 @@ bool BoatLog::getSlippedInitial() const
  *
  * \param pSlipped Boat lowered to water at begin of duty?
  */
-void BoatLog::setSlippedInitial(bool pSlipped)
+void BoatLog::setSlippedInitial(const bool pSlipped)
 {
     slippedInitial = pSlipped;
 }
@@ -145,7 +147,7 @@ bool BoatLog::getSlippedFinal() const
  *
  * \param pSlipped Boat taken out of water?
  */
-void BoatLog::setSlippedFinal(bool pSlipped)
+void BoatLog::setSlippedFinal(const bool pSlipped)
 {
     slippedFinal = pSlipped;
 }
@@ -171,7 +173,7 @@ QTime BoatLog::getReadyFrom() const
  *
  * \param pTime From what time the boat is ready.
  */
-void BoatLog::setReadyFrom(QTime pTime)
+void BoatLog::setReadyFrom(const QTime pTime)
 {
     readyFrom = pTime;
 }
@@ -195,7 +197,7 @@ QTime BoatLog::getReadyUntil() const
  *
  * \param pTime Until what time the boat is ready.
  */
-void BoatLog::setReadyUntil(QTime pTime)
+void BoatLog::setReadyUntil(const QTime pTime)
 {
     readyUntil = pTime;
 }
@@ -217,7 +219,7 @@ double BoatLog::getEngineHoursInitial() const
  *
  * \param pHours New initial boat engine hours.
  */
-void BoatLog::setEngineHoursInitial(double pHours)
+void BoatLog::setEngineHoursInitial(const double pHours)
 {
     engineHoursInitial = pHours;
 }
@@ -237,7 +239,7 @@ double BoatLog::getEngineHoursFinal() const
  *
  * \param pHours New final boat engine hours.
  */
-void BoatLog::setEngineHoursFinal(double pHours)
+void BoatLog::setEngineHoursFinal(const double pHours)
 {
     engineHoursFinal = pHours;
 }
@@ -259,7 +261,7 @@ int BoatLog::getFuelInitial() const
  *
  * \param pLiters Added fuel in liters.
  */
-void BoatLog::setFuelInitial(int pLiters)
+void BoatLog::setFuelInitial(const int pLiters)
 {
     fuelInitial = pLiters;
 }
@@ -279,7 +281,7 @@ int BoatLog::getFuelFinal() const
  *
  * \param pLiters Added fuel in liters.
  */
-void BoatLog::setFuelFinal(int pLiters)
+void BoatLog::setFuelFinal(const int pLiters)
 {
     fuelFinal = pLiters;
 }
@@ -301,7 +303,7 @@ int BoatLog::getBoatMinutesCarry() const
  *
  * \param pMinutes New boat drive hours carry in minutes.
  */
-void BoatLog::setBoatMinutesCarry(int pMinutes)
+void BoatLog::setBoatMinutesCarry(const int pMinutes)
 {
     boatMinutesCarry = pMinutes;
 }
@@ -341,7 +343,7 @@ std::list<std::reference_wrapper<const BoatDrive>> BoatLog::getDrives() const
  *
  * \throws std::out_of_range \p pIdx out of range.
  */
-BoatDrive& BoatLog::getDrive(int pIdx)
+BoatDrive& BoatLog::getDrive(const int pIdx)
 {
     auto idx = static_cast<std::list<BoatDrive>::size_type>(pIdx);
 
@@ -366,7 +368,7 @@ BoatDrive& BoatLog::getDrive(int pIdx)
  * \param pIdx Number/position of the new drive.
  * \param pDrive New drive to be added.
  */
-void BoatLog::addDrive(int pIdx, BoatDrive&& pDrive)
+void BoatLog::addDrive(const int pIdx, BoatDrive&& pDrive)
 {
     auto idx = static_cast<std::list<BoatDrive>::size_type>(pIdx);
 
@@ -389,7 +391,7 @@ void BoatLog::addDrive(int pIdx, BoatDrive&& pDrive)
  *
  * \param pIdx Number/position of the drive to be removed.
  */
-void BoatLog::removeDrive(int pIdx)
+void BoatLog::removeDrive(const int pIdx)
 {
     if (drives.empty())
         return;
@@ -414,7 +416,7 @@ void BoatLog::removeDrive(int pIdx)
  * \param pIdx1 Number/position of the first of two drives to be exchanged.
  * \param pIdx2 Number/position of the second of two drives to be exchanged.
  */
-void BoatLog::swapDrives(int pIdx1, int pIdx2)
+void BoatLog::swapDrives(const int pIdx1, const int pIdx2)
 {
     if (pIdx1 == pIdx2)
         return;

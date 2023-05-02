@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -25,13 +25,11 @@
 
 #include "boatdrive.h"
 
-#include <list>
-#include <iterator>
-#include <stdexcept>
-#include <functional>
-
 #include <QString>
 #include <QTime>
+
+#include <functional>
+#include <list>
 
 /*!
  * \brief Group together boat-related information of a Report.

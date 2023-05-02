@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -23,17 +23,13 @@
 #ifndef DATABASECREATOR_H
 #define DATABASECREATOR_H
 
-#include "version.h"
-
-#include <QString>
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-
 /*!
  * \brief Basic database handling.
  *
  * Create new tables for the configuration and personnel databases (createConfigDatabase(), createPersonnelDatabase())
- * and check existing database versions (checkConfigVersion(), checkPersonnelVersion()).
+ * and check existing database versions (checkConfigVersion(), checkPersonnelVersion()). If databases use incompatible
+ * formats from older software versions (checkConfigVersionOlder(), checkPersonnelVersionOlder()) it might be possible
+ * to convert their format to the current version via upgradeConfigDatabase() and upgradePersonnelDatabase().
  *
  * Note: Database connections with names "configDb" and "personnelDb" must
  * already exist and these databases must be opened before using this class.
@@ -41,13 +37,23 @@
 class DatabaseCreator
 {
 public:
-    DatabaseCreator() = delete;             ///< Deleted constructor.
+    DatabaseCreator() = delete;                     ///< Deleted constructor.
     //
-    static bool createConfigDatabase();     ///< Create a new, empty configuration database.
-    static bool createPersonnelDatabase();  ///< Create a new, empty personnel database.
+    static bool createConfigDatabase();             ///< Create a new, empty configuration database.
+    static bool createPersonnelDatabase();          ///< Create a new, empty personnel database.
+    static bool upgradeConfigDatabase();            ///< Upgrade format of old configuration database to the compiled version.
+    static bool upgradePersonnelDatabase();         ///< Upgrade format of old personnel database to the compiled version.
     //
-    static bool checkConfigVersion();       ///< Check if the configuration database version is supported.
-    static bool checkPersonnelVersion();    ///< Check if the personnel database version is supported.
+    static bool checkConfigVersion();               ///< Check if the configuration database version matches the compiled version.
+    static bool checkPersonnelVersion();            ///< Check if the personnel database version matches the compiled version.
+    static bool checkConfigVersionOlder();          ///< Check if the configuration database version is older than the compiled version.
+    static bool checkPersonnelVersionOlder();       ///< Check if the personnel database version is older than the compiled version.
+
+private:
+    static int getConfigVersion();                  ///< Read the configuration database version.
+    static bool setConfigVersion(int pVersion);     ///< Write the configuration database version.
+    static int getPersonnelVersion();               ///< Read the personnel database version.
+    static bool setPersonnelVersion(int pVersion);  ///< Write the personnel database version.
 };
 
 #endif // DATABASECREATOR_H

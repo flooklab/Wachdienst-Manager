@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -23,25 +23,16 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#if defined(PROGRAM_VERSION)
-    #error macro conflict
-#elif defined(PROGRAM_VERSION_MAJOR)
-    #error macro conflict
-#elif defined(PROGRAM_VERSION_MINOR)
-    #error macro conflict
-#elif defined(PROGRAM_VERSION_PATCH)
-    #error macro conflict
-#elif defined(CONFIG_DATABASE_USER_VERSION)
-    #error macro conflict
-#elif defined(PERSONNEL_DATABASE_USER_VERSION)
-    #error macro conflict
-#endif
+namespace Version
+{
+inline constexpr char const* ProgramVersionMajor = "1";
+inline constexpr char const* ProgramVersionMinor = "4";
+inline constexpr char const* ProgramVersionPatch = "0";
 
-#define PROGRAM_VERSION_MAJOR "1"
-#define PROGRAM_VERSION_MINOR "3"
-#define PROGRAM_VERSION_PATCH "0"
+inline constexpr char const* FileFormatVersion = "1.4.0";
 
-#define CONFIG_DATABASE_USER_VERSION 1l
-#define PERSONNEL_DATABASE_USER_VERSION 1l
+inline constexpr int ConfigDatabaseUserVersion = 1;
+inline constexpr int PersonnelDatabaseUserVersion = 2;
+}
 
 #endif // VERSION_H

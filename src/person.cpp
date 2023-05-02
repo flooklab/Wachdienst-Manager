@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,9 @@
 
 #include "person.h"
 
+#include <QByteArray>
+#include <QCryptographicHash>
+
 /*!
  * \brief Constructor.
  *
@@ -34,14 +37,13 @@
  * \param pQualifications Person's qualifications.
  * \param pActive Person active/enabled?
  */
-Person::Person(QString pLastName, QString pFirstName, QString pIdent, struct Qualifications pQualifications, bool pActive) :
+Person::Person(QString pLastName, QString pFirstName, QString pIdent, const Qualifications pQualifications, const bool pActive) :
     lastName(std::move(pLastName)),
     firstName(std::move(pFirstName)),
     identifier(std::move(pIdent)),
     qualifications(pQualifications),
     active(pActive)
 {
-
 }
 
 //Public
@@ -66,6 +68,8 @@ Person Person::dummyPerson()
  * Starts with an 'i' followed by first letter of \p pFirstName and first letter of \p pLastName followed by \p pMembershipNumber.
  * Due to the membership number this identifier is intended to be unique.
  *
+ * See also PersonnelEditorDialog::PersonType.
+ *
  * \param pLastName Last name of the person.
  * \param pFirstName First name of the person.
  * \param pMembershipNumber Membership number of the person.
@@ -77,12 +81,12 @@ QString Person::createInternalIdent(const QString& pLastName, const QString& pFi
 }
 
 /*!
- * \brief Create person identifier for internal personnel.
+ * \brief Create person identifier for external personnel.
  *
- * Starts with an 'e' followed by first letter of \p pFirstName and first letter of \p pLastName followed by a hash
- * made from a mixture of name and qualifications. Unlike with createInternalIdent(), here only some level of uniqueness
- * is introduced by the hash and hence a suffix \p pSuffix can be provided to distinguish conflicting identifiers.
- * The suffix is appended with a separating period, if not empty.
+ * Creates a person identifier for external personnel, which starts with the prefix 'e' and
+ * contains a hash made from the person name and its qualifications. See createHashedIdent().
+ *
+ * See also PersonnelEditorDialog::PersonType.
  *
  * \param pLastName Last name of the person.
  * \param pFirstName First name of the person.
@@ -91,23 +95,94 @@ QString Person::createInternalIdent(const QString& pLastName, const QString& pFi
  * \return The identifier.
  */
 QString Person::createExternalIdent(const QString& pLastName, const QString& pFirstName,
-                                    const Qualifications& pQualifications, QString pSuffix)
+                                    const Qualifications& pQualifications, const QString& pSuffix)
 {
-    //Either no suffix or suffix prepended with a dot
-    if (pSuffix != "")
-        pSuffix.prepend('.');
-
-    QString tRawStr = pLastName + pFirstName + pQualifications.toString();
-    QByteArray tByteArray = tRawStr.toUtf8();
-
-    //Use similar format to internal ident; replace membership number by
-    //a hash based on person name and qualifications; add suffix (if any)
-
-    return "e" + pFirstName.left(1) + pLastName.left(1) +
-            QString::fromStdString(
-                QCryptographicHash::hash(tByteArray, QCryptographicHash::Algorithm::Md5).toHex().toStdString()
-                ).left(8) + pSuffix;
+    return createHashedIdent(pLastName, pFirstName, pQualifications.toString(), 'e', pSuffix);
 }
+
+/*!
+ * \brief Create legacy person identifier for external personnel.
+ *
+ * Creates a person identifier for external personnel like in createExternalIdent(),
+ * but uses qualifications in the legacy format from software versions before 1.4.0.
+ *
+ * Here the legacy qualifications must be directly provided as a comma-separated string in order to preserve the old format.
+ *
+ * \param pLastName Last name of the person.
+ * \param pFirstName First name of the person.
+ * \param pQualifications Qualifications of the person in legacy format as comma-separated string.
+ * \param pSuffix Identifier suffix (to achieve uniqueness).
+ * \return The identifier.
+ */
+QString Person::createLegacyExternalIdent(const QString& pLastName, const QString& pFirstName,
+                                          const QString& pQualifications, const QString& pSuffix)
+{
+    return createHashedIdent(pLastName, pFirstName, pQualifications, 'e', pSuffix);
+}
+
+/*!
+ * \brief Create person identifier for "other" people.
+ *
+ * Creates a person identifier for non-personnel people, which do not have qualifications.
+ * It starts with the prefix 'o' and contains a hash made from the person name. Unlike with
+ * createInternalIdent() or createExternalIdent(), here the level of uniqueness is limited to the
+ * uniqueness of the name. A suffix \p pSuffix may be provided to distinguish conflicting identifiers.
+ * See createHashedIdent().
+ *
+ * See also PersonnelEditorDialog::PersonType.
+ *
+ * \param pLastName Last name of the person.
+ * \param pFirstName First name of the person.
+ * \param pSuffix Identifier suffix (to achieve uniqueness).
+ * \return The identifier.
+ */
+QString Person::createOtherIdent(const QString& pLastName, const QString& pFirstName, const QString& pSuffix)
+{
+    return createHashedIdent(pLastName, pFirstName, "", 'o', pSuffix);
+}
+
+//
+
+/*!
+ * \brief Check if person identifier represents an internal person.
+ *
+ * Checks if \p pIdent starts with the prefix that is used by createInternalIdent() to mark internal identifiers.
+ *
+ * \param pIdent The person identifier to check.
+ * \return If \p pIdent is an internal person.
+ */
+bool Person::isInternalIdent(const QString& pIdent)
+{
+    return pIdent.startsWith('i');
+}
+
+/*!
+ * \brief Check if person identifier represents an external person.
+ *
+ * Checks if \p pIdent starts with the prefix that is used by createExternalIdent() to mark external identifiers.
+ *
+ * \param pIdent The person identifier to check.
+ * \return If \p pIdent is an external person.
+ */
+bool Person::isExternalIdent(const QString& pIdent)
+{
+    return pIdent.startsWith('e');
+}
+
+/*!
+ * \brief Check if person identifier represents an "other" person.
+ *
+ * Checks if \p pIdent starts with the prefix that is used by createOtherIdent() to mark "other" identifiers.
+ *
+ * \param pIdent The person identifier to check.
+ * \return If \p pIdent is an "other" person.
+ */
+bool Person::isOtherIdent(const QString& pIdent)
+{
+    return pIdent.startsWith('o');
+}
+
+//
 
 /*!
  * \brief Extract membership number from internal person identifier.
@@ -123,9 +198,10 @@ QString Person::extractMembershipNumber(const QString& pInternalIdent)
 }
 
 /*!
- * \brief Extract suffix from external person identifier.
+ * \brief Extract suffix from external or "other" person identifier.
  *
- * Extracts the suffix part of an external identifier \p pExternalIdent that was generated with createExternalIdent().
+ * Extracts the suffix part of the external identifier \p pExternalIdent that was generated with createExternalIdent().
+ * This also works with an identifier for "other" people generated with createOtherIdent().
  *
  * \param pExternalIdent An external identifier.
  * \return The identifier suffix.
@@ -135,7 +211,7 @@ QString Person::extractExtSuffix(const QString& pExternalIdent)
     QStringList tStrList = pExternalIdent.split('.');
 
     if (tStrList.size() == 2)
-        return tStrList.at(2);
+        return tStrList.at(1);
 
     return "";
 }
@@ -177,7 +253,7 @@ QString Person::getIdent() const
  *
  * \return Person qualifications.
  */
-struct Person::Qualifications Person::getQualifications() const
+Person::Qualifications Person::getQualifications() const
 {
     return qualifications;
 }
@@ -203,7 +279,7 @@ bool Person::getActive() const
  * \param pFunction The personnel function to get a label for.
  * \return The corresponding label for \p pFunction.
  */
-QString Person::functionToLabel(Function pFunction)
+QString Person::functionToLabel(const Function pFunction)
 {
     switch (pFunction)
     {
@@ -286,7 +362,7 @@ Person::Function Person::labelToFunction(const QString& pFunction)
  * \param pSecond Right-hand side of comparison.
  * \return 1, if \p pFirst is first, -1, if \p pSecond is first and 0 else.
  */
-int Person::functionOrder(Function pFirst, Function pSecond)
+int Person::functionOrder(const Function pFirst, const Function pSecond)
 {
     if (pFirst == pSecond)
         return 0;
@@ -308,7 +384,7 @@ int Person::functionOrder(Function pFirst, Function pSecond)
  * \param pFunction The boat function to get a label for.
  * \return The corresponding label for \p pFunction.
  */
-QString Person::boatFunctionToLabel(BoatFunction pFunction)
+QString Person::boatFunctionToLabel(const BoatFunction pFunction)
 {
     switch (pFunction)
     {
@@ -324,6 +400,8 @@ QString Person::boatFunctionToLabel(BoatFunction pFunction)
             return "SR";
         case BoatFunction::_ET:
             return "ET";
+        case BoatFunction::_EXT:
+            return "EXT";
         case BoatFunction::_OTHER:
             return "SONST";
         default:
@@ -354,6 +432,8 @@ Person::BoatFunction Person::labelToBoatFunction(const QString& pFunction)
         return BoatFunction::_SR;
     else if (pFunction == "ET")
         return BoatFunction::_ET;
+    else if (pFunction == "EXT")
+        return BoatFunction::_EXT;
     else if (pFunction == "SONST")
         return BoatFunction::_OTHER;
     else
@@ -371,7 +451,7 @@ Person::BoatFunction Person::labelToBoatFunction(const QString& pFunction)
  * \param pSecond Right-hand side of comparison.
  * \return 1, if \p pFirst is first, -1, if \p pSecond is first and 0 else.
  */
-int Person::boatFunctionOrder(BoatFunction pFirst, BoatFunction pSecond)
+int Person::boatFunctionOrder(const BoatFunction pFirst, const BoatFunction pSecond)
 {
     if (pFirst == pSecond)
         return 0;
@@ -380,6 +460,44 @@ int Person::boatFunctionOrder(BoatFunction pFirst, BoatFunction pSecond)
         return 1;
     else
         return -1;
+}
+
+//Private
+
+/*!
+ * \brief Create a hashed person identifier.
+ *
+ * Creates a person identifier that contains a hash made from the person name and its qualifications.
+ *
+ * Starts with the \p pPrefix followed by first letter of \p pFirstName and first letter of \p pLastName followed by a hash
+ * made from a mixture of name and qualifications. Unlike with createInternalIdent(), here only some level of uniqueness
+ * is introduced by the hash and hence a suffix \p pSuffix can be provided to distinguish conflicting identifiers.
+ * The suffix is appended with a separating period, if not empty.
+ *
+ * \param pLastName Last name of the person.
+ * \param pFirstName First name of the person.
+ * \param pQualifications Qualifications of the person as comma-separated string.
+ * \param pPrefix Identifier prefix.
+ * \param pSuffix Identifier suffix (to achieve uniqueness).
+ * \return The identifier.
+ */
+QString Person::createHashedIdent(const QString& pLastName, const QString& pFirstName, const QString& pQualifications,
+                                  const char pPrefix, QString pSuffix)
+{
+    //Either no suffix or suffix prepended with a dot
+    if (pSuffix != "")
+        pSuffix.prepend('.');
+
+    QString tRawStr = pLastName + pFirstName + pQualifications;
+    QByteArray tByteArray = tRawStr.toUtf8();
+
+    //Use similar format to internal ident; replace membership number by
+    //a hash based on person name and qualifications; add suffix (if any)
+
+    return QString(pPrefix) + pFirstName.left(1) + pLastName.left(1) +
+            QString::fromStdString(
+                QCryptographicHash::hash(tByteArray, QCryptographicHash::Algorithm::Md5).toHex().toStdString()
+                ).left(8) + pSuffix;
 }
 
 //Qualifications struct
@@ -393,13 +511,14 @@ int Person::boatFunctionOrder(BoatFunction pFirst, BoatFunction pSecond)
  */
 Person::Qualifications::Qualifications(const QStringList& pQualifications) :
     eh(false),
-    rsa(false),
-    faWrd(false),
+    drsaS(false),
     sanA(false),
+    faWrd(false),
     bfA(false),
+    bfB(false),
+    bos(false),
     sr1(false),
     et(false),
-    bos(false),
     wf(false),
     zf(false)
 {
@@ -407,20 +526,22 @@ Person::Qualifications::Qualifications(const QStringList& pQualifications) :
     {
         if (quali == "EH")
             eh = true;
-        else if (quali == "RSA")
-            rsa = true;
-        else if (quali == "FA-WRD")
-            faWrd = true;
+        else if (quali == "DRSA-S")
+            drsaS = true;
         else if (quali == "SAN-A")
             sanA = true;
-        else if (quali == "BF")
+        else if (quali == "FA-WRD")
+            faWrd = true;
+        else if (quali == "BF-A")
             bfA = true;
-        else if (quali == "SR-1")
-            sr1 = true;
-        else if (quali == "ET")
-            et = true;
+        else if (quali == "BF-B")
+            bfB = true;
         else if (quali == "BOS")
             bos = true;
+        else if (quali == "SR-1")
+            sr1 = true;
+        else if (quali == "ET-1/2")
+            et = true;
         else if (quali == "WF")
             wf = true;
         else if (quali == "ZUGF")
@@ -450,7 +571,49 @@ Person::Qualifications::Qualifications(const QString& pQualifications) :
  */
 QStringList Person::Qualifications::listAllQualifications()
 {
-    return {"EH", "RSA", "FA-WRD", "SAN-A", "BF", "SR-1", "ET", "BOS", "WF", "ZUGF"};
+    return {"EH", "DRSA-S", "SAN-A", "FA-WRD", "BF-A", "BF-B", "BOS", "SR-1", "ET-1/2", "WF", "ZUGF"};
+}
+
+//
+
+/*!
+ * \brief Convert qualifications from old to new format.
+ *
+ * Converts a list of qualification strings using the old definitions from the format used in software versions
+ * before 1.4.0 to a list using the new definitions from the format that is used since version 1.4.0.
+ *
+ * \param pQualifications Comma-separated list of single qualification strings in the format used before version 1.4.0.
+ * \return Comma-separated list of single qualification strings in the format used since version 1.4.0.
+ */
+QString Person::Qualifications::convertLegacyQualifications(const QString& pQualifications)
+{
+    QStringList tQualis = pQualifications.split(',');
+
+    for (QString& quali : tQualis)
+    {
+        if (quali == "EH")
+        {}
+        else if (quali == "RSA")
+            quali = "DRSA-S";
+        else if (quali == "SAN-A")
+        {}
+        else if (quali == "FA-WRD")
+        {}
+        else if (quali == "BF")
+            quali = "BF-A";
+        else if (quali == "BOS")
+        {}
+        else if (quali == "SR-1")
+        {}
+        else if (quali == "ET")
+            quali = "ET-1/2";
+        else if (quali == "WF")
+        {}
+        else if (quali == "ZUGF")
+        {}
+    }
+
+    return Qualifications(tQualis).toString();
 }
 
 //
@@ -464,22 +627,26 @@ QString Person::Qualifications::toString() const
 {
     QString retVal;
 
+    //Note: Must not change order of existing qualifications here!
+
     if (eh)
         retVal.append("EH,");
-    if (rsa)
-        retVal.append("RSA,");
-    if (faWrd)
-        retVal.append("FA-WRD,");
+    if (drsaS)
+        retVal.append("DRSA-S,");
     if (sanA)
         retVal.append("SAN-A,");
+    if (faWrd)
+        retVal.append("FA-WRD,");
     if (bfA)
-        retVal.append("BF,");
+        retVal.append("BF-A,");
+    if (bfB)
+        retVal.append("BF-B,");
+    if (bos)
+        retVal.append("BOS,");
     if (sr1)
         retVal.append("SR-1,");
     if (et)
-        retVal.append("ET,");
-    if (bos)
-        retVal.append("BOS,");
+        retVal.append("ET-1/2,");
     if (wf)
         retVal.append("WF,");
     if (zf)

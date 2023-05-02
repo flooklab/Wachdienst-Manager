@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -40,13 +40,13 @@ public:
     QualificationChecker() = delete;    ///< Deleted constructor.
     //
     static bool checkPersonnelFunction(Person::Function pFunction,
-                                       const struct Person::Qualifications& pQualifications);   ///< \brief Check if a person is qualified
-                                                                                                ///  for a certain personnel function.
+                                       const Person::Qualifications& pQualifications);  ///< \brief Check if a person is qualified
+                                                                                        ///  for a certain personnel function.
     static bool checkBoatFunction(Person::BoatFunction pFunction,
-                                  const struct Person::Qualifications& pQualifications);        ///< \brief Check if a person is qualified
-                                                                                                ///  for a certain boat function.
-    static bool checkBoatman(const struct Person::Qualifications& pQualifications);             ///< \brief Check if a person is qualified
-                                                                                                ///  to be a boatman.
+                                  const Person::Qualifications& pQualifications);       ///< \brief Check if a person is qualified
+                                                                                        ///  for a certain boat function.
+    static bool checkBoatman(const Person::Qualifications& pQualifications);            ///< \brief Check if a person is qualified
+                                                                                        ///  to be a boatman.
 };
 
 #endif // QUALIFICATIONCHECKER_H

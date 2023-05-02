@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,8 @@
 
 #include "qualificationchecker.h"
 
+#include "settingscache.h"
+
 //Public
 
 /*!
@@ -31,7 +33,7 @@
  * \param pQualifications Qualifications of concerned person.
  * \return If \p pFunction is allowed according to \p pQualifications.
  */
-bool QualificationChecker::checkPersonnelFunction(Person::Function pFunction, const struct Person::Qualifications& pQualifications)
+bool QualificationChecker::checkPersonnelFunction(const Person::Function pFunction, const Person::Qualifications& pQualifications)
 {
     switch (pFunction)
     {
@@ -40,11 +42,11 @@ bool QualificationChecker::checkPersonnelFunction(Person::Function pFunction, co
                 return true;
             return false;
         case Person::Function::_SL:
-            if (pQualifications.bfA)
+            if (checkBoatman(pQualifications))
                 return true;
             return false;
         case Person::Function::_BF:
-            if (pQualifications.bfA)
+            if (checkBoatman(pQualifications))
                 return true;
             return false;
         case Person::Function::_WR:
@@ -52,7 +54,7 @@ bool QualificationChecker::checkPersonnelFunction(Person::Function pFunction, co
                 return true;
             return false;
         case Person::Function::_RS:
-            if (pQualifications.rsa)
+            if (pQualifications.drsaS)
                 return true;
             return false;
         case Person::Function::_PR:
@@ -91,16 +93,16 @@ bool QualificationChecker::checkPersonnelFunction(Person::Function pFunction, co
  * \param pQualifications Qualifications of concerned person.
  * \return If \p pFunction is allowed according to \p pQualifications.
  */
-bool QualificationChecker::checkBoatFunction(Person::BoatFunction pFunction, const struct Person::Qualifications& pQualifications)
+bool QualificationChecker::checkBoatFunction(const Person::BoatFunction pFunction, const Person::Qualifications& pQualifications)
 {
     switch (pFunction)
     {
         case Person::BoatFunction::_BG:
-            if (pQualifications.rsa)
+            if (pQualifications.faWrd)
                 return true;
             return false;
         case Person::BoatFunction::_RS:
-            if (pQualifications.rsa)
+            if (pQualifications.drsaS)
                 return true;
             return false;
         case Person::BoatFunction::_PR:
@@ -130,7 +132,18 @@ bool QualificationChecker::checkBoatFunction(Person::BoatFunction pFunction, con
  * \param pQualifications Qualifications of concerned person.
  * \return If person is allowed to be a boatman according to \p pQualifications.
  */
-bool QualificationChecker::checkBoatman(const struct Person::Qualifications& pQualifications)
+bool QualificationChecker::checkBoatman(const Person::Qualifications& pQualifications)
 {
-    return pQualifications.bfA;
+    QString boatmanRequiredLicense = SettingsCache::getStrSetting("app_personnel_minQualis_boatman");
+
+    if (boatmanRequiredLicense == "A")
+        return pQualifications.bfA;
+    else if (boatmanRequiredLicense == "B")
+        return pQualifications.bfB;
+    else if (boatmanRequiredLicense == "A&B")
+        return pQualifications.bfA && pQualifications.bfB;
+    else if (boatmanRequiredLicense == "A|B")
+        return pQualifications.bfA || pQualifications.bfB;
+
+    return false;
 }

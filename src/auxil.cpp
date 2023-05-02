@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,13 +22,25 @@
 
 #include "auxil.h"
 
+#include "version.h"
+
+#include <QByteArray>
+#include <QCryptographicHash>
+#include <QDataStream>
+#include <QInputDialog>
+#include <QIODevice>
+#include <QLineEdit>
+#include <QPasswordDigestor>
+#include <QRandomGenerator>
+#include <QRegularExpression>
+
 //Initialize static class members
 
-const int Aux::programVersionMajor = QString(PROGRAM_VERSION_MAJOR).toInt();
-const int Aux::programVersionMinor = QString(PROGRAM_VERSION_MINOR).split(QRegularExpression("[abc]")).at(0).toInt();
-const int Aux::programVersionPatch = QString(PROGRAM_VERSION_PATCH).toInt();
-const char Aux::programVersionType = QString(PROGRAM_VERSION_MINOR).contains(QRegularExpression("[abc]")) ?
-                                         QString(PROGRAM_VERSION_MINOR).back().toLatin1() : '-';
+const int Aux::programVersionMajor = QString(Version::ProgramVersionMajor).toInt();
+const int Aux::programVersionMinor = QString(Version::ProgramVersionMinor).split(QRegularExpression("[abc]")).at(0).toInt();
+const int Aux::programVersionPatch = QString(Version::ProgramVersionPatch).toInt();
+const char Aux::programVersionType = QString(Version::ProgramVersionMinor).contains(QRegularExpression("[abc]")) ?
+                                         QString(Version::ProgramVersionMinor).back().toLatin1() : '-';
 //
 const QString Aux::programVersionString = QString::number(Aux::programVersionMajor) + "." +
                                           QString::number(Aux::programVersionMinor) +
@@ -36,10 +48,13 @@ const QString Aux::programVersionString = QString::number(Aux::programVersionMaj
                                           QString::number(Aux::programVersionPatch);
 const QString Aux::programVersionStringPretty = QString::number(Aux::programVersionMajor) + "." +
                                                 QString::number(Aux::programVersionMinor) +
-                                                (Aux::programVersionType == '-' ? "" : (Aux::programVersionType == 'c' ? "RC" :
-                                                                                        QString(Aux::programVersionType))) +
+                                                (Aux::programVersionType == '-' ? "" : (Aux::programVersionType == 'a' ? " alpha" :
+                                                                                        (Aux::programVersionType == 'b' ? " beta" :
+                                                                                         (Aux::programVersionType == 'c' ? " RC" :
+                                                                                          QString(Aux::programVersionType))))) +
                                                 ((Aux::programVersionPatch > 0) ?
                                                      ("." + QString::number(Aux::programVersionPatch)) : "");
+const QString Aux::fileFormatVersionString = QString(Version::FileFormatVersion);
 //
 const QRegularExpressionValidator Aux::locationsValidator =
         QRegularExpressionValidator(QRegularExpression("[a-zA-ZäöüÄÖÜßæåøÆÅØ\\s\\-\\/\\(\\)]+"));
@@ -66,7 +81,7 @@ const QRegularExpressionValidator Aux::programVersionsValidator =
 //
 const QStringList Aux::boatFuelTypePresets = {"Super", "Super plus", "Normalbenzin", "Diesel"};
 const QStringList Aux::boatDrivePurposePresets = {"Kontrollfahrt", "Begleitung Regatta", "Begleitung Segeltraining",
-                                                  "Tonnen setzen", "Tonnen einholen", "Übung", "Einsatz"};
+                                                  "Tonnen setzen", "Tonnen einholen", "Übung", "Einsatz", "Ausbildung"};
 
 //Public
 
@@ -160,7 +175,8 @@ bool Aux::parseProgramVersion(QString pVersion, int& pMajor, int& pMinor, int& p
  * \param pIgnorePatch Do not compare patch numbers?
  * \return -1 / 0 / +1, if A<B / A==B / A>B.
  */
-int Aux::compareProgramVersions(int pMajorA, int pMinorA, int pPatchA, int pMajorB, int pMinorB, int pPatchB, bool pIgnorePatch)
+int Aux::compareProgramVersions(const int pMajorA, const int pMinorA, const int pPatchA,
+                                const int pMajorB, const int pMinorB, const int pPatchB, const bool pIgnorePatch)
 {
     if (pMajorA < pMajorB)
         return -1;
@@ -264,7 +280,7 @@ void Aux::generatePasswordHash(const QString& pPhrase, QString& pNewHash, QStrin
  * \param pTime Original time.
  * \return Rounded time.
  */
-QTime Aux::roundQuarterHour(QTime pTime)
+QTime Aux::roundQuarterHour(const QTime pTime)
 {
     int hours = pTime.hour();
     int minutes = pTime.minute();
@@ -373,7 +389,7 @@ void Aux::latexUseHyphdash(QString& pString)
  * \param pPrecip The precipitation type to get a label for.
  * \return The corresponding label for \p pPrecip.
  */
-QString Aux::precipitationToLabel(Precipitation pPrecip)
+QString Aux::precipitationToLabel(const Precipitation pPrecip)
 {
     switch (pPrecip)
     {
@@ -474,7 +490,7 @@ Aux::Precipitation Aux::labelToPrecipitation(const QString& pPrecip)
  * \param pClouds The cloudiness level to get a label for.
  * \return The corresponding label for \p pClouds.
  */
-QString Aux::cloudinessToLabel(Cloudiness pClouds)
+QString Aux::cloudinessToLabel(const Cloudiness pClouds)
 {
     switch (pClouds)
     {
@@ -551,7 +567,7 @@ Aux::Cloudiness Aux::labelToCloudiness(const QString& pClouds)
  * \param pWind The wind strength to get a label for.
  * \return The corresponding label for \p pWind.
  */
-QString Aux::windStrengthToLabel(WindStrength pWind)
+QString Aux::windStrengthToLabel(const WindStrength pWind)
 {
     switch (pWind)
     {
@@ -625,6 +641,111 @@ Aux::WindStrength Aux::labelToWindStrength(const QString& pWind)
         return WindStrength::_HURRICANE;
     else
         return WindStrength::_CALM;
+}
+
+/*!
+ * \brief Get the label for a wind direction.
+ *
+ * Get a (unique) nicely formatted label for \p pDirection to e.g. show it in the application as a combo box item.
+ * Converting back is possible using labelToWindDirection().
+ *
+ * \param pDirection The wind direction to get a label for.
+ * \return The corresponding label for \p pDirection.
+ */
+QString Aux::windDirectionToLabel(const WindDirection pDirection)
+{
+    switch (pDirection)
+    {
+        case WindDirection::_S:
+            return "S (Süd)";
+        case WindDirection::_SSE:
+            return "SSE (Südsüdost)";
+        case WindDirection::_SE:
+            return "SE (Südost)";
+        case WindDirection::_ESE:
+            return "ESE (Ostsüdost)";
+        case WindDirection::_E:
+            return "E (Ost)";
+        case WindDirection::_ENE:
+            return "ENE (Ostnordost)";
+        case WindDirection::_NE:
+            return "NE (Nordost)";
+        case WindDirection::_NNE:
+            return "NNE (Nordnordost)";
+        case WindDirection::_N:
+            return "N (Nord)";
+        case WindDirection::_NNW:
+            return "NNW (Nordnordwest)";
+        case WindDirection::_NW:
+            return "NW (Nordwest)";
+        case WindDirection::_WNW:
+            return "WNW (Westnordwest)";
+        case WindDirection::_W:
+            return "W (West)";
+        case WindDirection::_WSW:
+            return "WSW (Westsüdwest)";
+        case WindDirection::_SW:
+            return "SW (Südwest)";
+        case WindDirection::_SSW:
+            return "SSW (Südsüdwest)";
+        case WindDirection::_VARIABLE:
+            return "Wechselnde Richtungen";
+        case WindDirection::_UNKNOWN:
+            return "Unbekannt";
+        default:
+            return "Unbekannt";
+    }
+}
+
+/*!
+ * \brief Get the wind direction from its label.
+ *
+ * Get the wind direction corresponding to a (unique) label \p pDirection,
+ * which can in turn be obtained from windDirectionToLabel().
+ *
+ * \param pDirection The label representing the requested wind direction.
+ * \return The wind direction corresponding to label \p pDirection.
+ */
+Aux::WindDirection Aux::labelToWindDirection(const QString& pDirection)
+{
+    if (pDirection == "S (Süd)")
+        return WindDirection::_S;
+    else if (pDirection == "SSE (Südsüdost)")
+        return WindDirection::_SSE;
+    else if (pDirection == "SE (Südost)")
+        return WindDirection::_SE;
+    else if (pDirection == "ESE (Ostsüdost)")
+        return WindDirection::_ESE;
+    else if (pDirection == "E (Ost)")
+        return WindDirection::_E;
+    else if (pDirection == "ENE (Ostnordost)")
+        return WindDirection::_ENE;
+    else if (pDirection == "NE (Nordost)")
+        return WindDirection::_NE;
+    else if (pDirection == "NNE (Nordnordost)")
+        return WindDirection::_NNE;
+    else if (pDirection == "N (Nord)")
+        return WindDirection::_N;
+    else if (pDirection == "NNW (Nordnordwest)")
+        return WindDirection::_NNW;
+    else if (pDirection == "NW (Nordwest)")
+        return WindDirection::_NW;
+    else if (pDirection == "WNW (Westnordwest)")
+        return WindDirection::_WNW;
+    else if (pDirection == "W (West)")
+        return WindDirection::_W;
+    else if (pDirection == "WSW (Westsüdwest)")
+        return WindDirection::_WSW;
+    else if (pDirection == "SW (Südwest)")
+        return WindDirection::_SW;
+    else if (pDirection == "SSW (Südsüdwest)")
+        return WindDirection::_SSW;
+    else if (pDirection == "Wechselnde Richtungen")
+        return WindDirection::_VARIABLE;
+    else if (pDirection == "Unbekannt")
+        return WindDirection::_UNKNOWN;
+    else
+        return WindDirection::_UNKNOWN;
 }
 
 //

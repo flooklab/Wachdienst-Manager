@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -25,65 +25,28 @@
 
 #include "auxil.h"
 #include "report.h"
-#include "boatdrive.h"
-#include "databasecache.h"
-#include "settingscache.h"
-#include "pdfexporter.h"
-#include "qualificationchecker.h"
-#include "personneleditordialog.h"
-#include "updatereportpersonentrydialog.h"
 
-#include <vector>
-#include <map>
-#include <list>
-#include <thread>
-#include <atomic>
-#include <functional>
-
-#include <QList>
-#include <QString>
-#include <QStringList>
-#include <QRegularExpressionValidator>
-#include <QTimer>
-#include <QShortcut>
-#include <QKeySequence>
 #include <QCloseEvent>
-#include <QDesktopServices>
-#include <QStandardPaths>
-#include <QFileInfo>
-#include <QDir>
-#include <QUrl>
 #include <QDate>
-#include <QTime>
 #include <QDragEnterEvent>
 #include <QDropEvent>
-#include <QMimeData>
-#include <QStandardItem>
-#include <QStandardItemModel>
-
-#include <QMainWindow>
-#include <QFileDialog>
-#include <QInputDialog>
-#include <QMessageBox>
 #include <QGridLayout>
-#include <QGroupBox>
-#include <QSpinBox>
-#include <QPushButton>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QTableWidget>
-#include <QPlainTextEdit>
-#include <QAbstractItemView>
-#include <QHeaderView>
 #include <QLabel>
-#include <QStatusBar>
-#include <QCompleter>
-#include <QLCDNumber>
-#include <QCalendarWidget>
-#include <QItemSelectionModel>
-#include <QModelIndexList>
-#include <QToolTip>
+#include <QLineEdit>
+#include <QMainWindow>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QString>
+#include <QStringList>
+#include <QTime>
+#include <QTimeEdit>
+#include <QWidget>
+
+#include <atomic>
+#include <list>
+#include <map>
+#include <memory>
+#include <vector>
 
 namespace Ui {
 class ReportWindow;
@@ -100,14 +63,18 @@ class ReportWindow;
  * An exception is the data for the currently selected boat drive,
  * which is only written back when the "Apply" button is pressed.
  *
- * All persons from the personnel database (internal persons)
- * can be directly added as personnel. External persons can also
- * be individually created and added for each report. Both internal
- * and external persons can be used as boatmen or boat crew members
- * according to their set qualifications. The used personnel is
- * always stored along with the report for archival purposes,
- * such that old reports can be safely opened/edited
- * independently of the curent state of the database.
+ * All persons from the personnel database (internal persons) can be directly added as personnel.
+ * External persons can also be individually created and added as personnel for each report. All
+ * personnel can be directly used as boatmen or boat crew members according to their set qualifications.
+ * External persons that do not belong to the duty personnel can also be manually added as crew members.
+ * The used personnel is always stored along with the report for archival purposes, such that old
+ * reports can be safely opened/edited independently of the curent state of the database.
+ *
+ * If the boat log keeping has been disabled via the "app_boatLog_disabled" setting then
+ * the boat log tab will be hidden. Note, however, that any boat log information that might
+ * have been loaded from a report file with filled boat log will be kept and saved again when
+ * saving the report in order to prevent accidental data loss. When exporting the report
+ * to PDF then no boat log page will be generated (see PDFExporter::reportToLaTeX()).
  *
  * Note: If not already done while creating the report,
  * one can also load the carryovers from the last report
@@ -118,26 +85,28 @@ class ReportWindow;
  * remaining entries in the continued table, then it can be
  * worth a try to squeeze the whole table on the first page by
  * increasing the maximum table length via the "Extras" sub-menu.
+ * The same applies to the boat drives table as well.
  */
 class ReportWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit ReportWindow(Report&& pReport, QWidget *const pParent = nullptr);  ///< Constructor.
+    explicit ReportWindow(Report&& pReport, QWidget* pParent = nullptr);        ///< Constructor.
     ~ReportWindow();                                                            ///< Destructor.
 
 private:
-    virtual void closeEvent(QCloseEvent* pEvent);                               ///< Reimplementation of QMainWindow::closeEvent().
+    void closeEvent(QCloseEvent* pEvent) override;                              ///< Reimplementation of QMainWindow::closeEvent().
     //
-    virtual void dragEnterEvent(QDragEnterEvent* pEvent);                       ///< Reimplementation of QMainWindow::dragEnterEvent().
-    virtual void dropEvent(QDropEvent* pEvent);                                 ///< Reimplementation of QMainWindow::dropEvent().
+    void dragEnterEvent(QDragEnterEvent* pEvent) override;                      ///< Reimplementation of QMainWindow::dragEnterEvent().
+    void dropEvent(QDropEvent* pEvent) override;                                ///< Reimplementation of QMainWindow::dropEvent().
     //
     void loadReportData();                                                      ///< Fill all widgets with the report data.
     //
     void saveReport(const QString& pFileName);                                  ///< Save the report.
     void autoSave();                                                            ///< Save the report to a standard location (as backup).
-    void exportReport(const QString& pFileName, bool pAskOverwrite);            ///< Export the report.
+    void exportReportToFileName(const QString& pFileName, bool pAskOverwrite);  ///< Export the report.
+    void exportReport(bool pOpenPDF = false);                                   ///< Ask for a PDF file name and export the report.
     void autoExport();                                      ///< Export to automatic or manual file name depending on setting.
     //
     void setUnsavedChanges(bool pValue = true);             ///< Set whether there are unsaved changes and update title.
@@ -152,7 +121,7 @@ private:
     void updateTotalPersonnelHours();                       ///< Update the total (carry + new) personnel hours display.
     void updateTotalBoatHours();                            ///< Update the total (carry + new) boat drive hours display.
     void updatePersonnelHours();                            ///< Update the accumulated personnel hours display.
-    void updatePersonnelTable();                            ///< Update the personnel table widget (and personnel hours).
+    void updatePersonnelTable(std::vector<QString> pAddToSelection = {});   ///< Update the personnel table widget (and personnel hours).
     void updateBoatDrivesFuel();                            ///< Update the spin box summing up fuel added after individual boat drives.
     void updateBoatDrivesHours();                           ///< Update the accumulated boat drive hours display.
     void updateBoatDrivesTable();                           ///< Update the boat drives table widget (and fuel and boat drive hours).
@@ -172,8 +141,12 @@ private:
     void setPersonnelHoursCarry(int pMinutes);                  ///< Set hours and minutes display of personnel hours carry.
     void setBoatHoursCarry(int pMinutes);                       ///< Set hours and minutes display of boat drive hours carry.
     //
-    bool personWithFunctionPresent(Person::Function pFunction) const;   ///< Check, if a function is set for any person of personnel.
-    bool personInUse(const QString& pIdent) const;                      ///< Check, if a person is boatman or crew member of any drive.
+    int countPersonsWithFunction(Person::Function pFunction) const;     ///< Check how often a function is set for persons of personnel.
+    bool personWithFunctionPresent(Person::Function pFunction) const;   ///< Check if a function is set for any person of personnel.
+    //
+    bool personUsedForBoatDrive(const QString& pIdent) const;           ///< Check if a person is boatman or crew member of any drive.
+    bool personUsedAsBoatman(const QString& pIdent) const;              ///< Check if a person is boatman of any drive.
+    bool personUsedAsBoatCrewMember(const QString& pIdent) const;       ///< Check if a person is crew member of any drive.
     //
     QString personLabelFromIdent(const QString& pIdent) const;          ///< Get a formatted combo box label from a person identifier.
     QString personIdentFromLabel(const QString& pLabel) const;          ///< Get the person identifier from a combo box label.
@@ -182,19 +155,21 @@ private slots:
     void on_rescueOperationSpinBoxValueChanged(int pValue,
                                                Report::RescueOperation pRescue);    ///< Set report rescue operation counter.
     void on_openDocumentPushButtonPressed(const QString& pDocFile);                 ///< Open one of the important documents.
-    void on_vehicleRemovePushButtonPressed(QPushButton* pRemoveRowButton);          ///< Remove a rescue vehicle from the list.
-    void on_vehicleLineEditTextEdited(QPushButton* pRemoveRowButton);               ///< Change the radio call name of a rescue vehicle.
-    void on_vehicleLineEditReturnPressed(QPushButton* pRemoveRowButton);            ///< Add an empty row for another rescue vehicle.
-    void on_vehicleTimeEditTimeChanged(QPushButton* pRemoveRowButton);              ///< Change a vehicle's arrival/leaving times.
+    void on_vehicleRemovePushButtonPressed(const QPushButton* pRemoveRowButton);    ///< Remove a rescue vehicle from the list.
+    void on_vehicleLineEditTextEdited(const QPushButton* pRemoveRowButton);         ///< Change the radio call name of a rescue vehicle.
+    void on_vehicleLineEditReturnPressed(const QPushButton* pRemoveRowButton);      ///< Add an empty row for another rescue vehicle.
+    void on_vehicleTimeEditTimeChanged(const QPushButton* pRemoveRowButton);        ///< Change a vehicle's arrival/leaving times.
     //
     void on_updateClocksTimerTimeout();                                             ///< Update the time displayed in every tab.
     void on_autoSaveTimerTimeout();                                                 ///< Auto-save the report.
     void on_timestampShortcutActivated();                                           ///< Show (non-modal) message box with current time.
+    void on_findPersonShortcutActivated();                                          ///< Select all personnel matching the entered name.
     void on_exportFailed();                                                         ///< Show message box explaining that export failed.
     //
     void on_saveFile_action_triggered();                                            ///< Save the report to (the same) file.
     void on_saveFileAs_action_triggered();                                          ///< Save the report to a (different) file.
-    void on_exportFile_action_triggered();                                          ///< Export the report as a PDF file.
+    void on_exportFile_action_triggered();                                          ///< Export the report as PDF file.
+    void on_exportAndOpenFile_action_triggered();                                   ///< Export the report as PDF file and open the PDF.
     void on_loadCarries_action_triggered();                                         ///< Load old report carryovers from a file.
     void on_newReport_action_triggered();                                           ///< Create a new report in a different window.
     void on_openReport_action_triggered();                                          ///< Open a report from a file in a different window.
@@ -227,6 +202,7 @@ private slots:
     void on_cloudiness_comboBox_currentTextChanged(const QString& arg1);            ///< Set the report level of cloudiness.
     void on_windStrength_comboBox_currentTextChanged(const QString& arg1);          ///< Set the report wind strength.
     void on_windStrength_comboBox_customContextMenuRequested(const QPoint& pos);    ///< Show a tooltip elucidating the wind strengths.
+    void on_windDirection_comboBox_currentTextChanged(const QString& arg1);         ///< Set the report wind direction.
     void on_weatherComments_plainTextEdit_textChanged();                            ///< Set the report weather comments.
     //
     void on_operationProtocolsCtr_spinBox_valueChanged(int arg1);           ///< Set the report number of enclosed operation protocols.
@@ -247,6 +223,7 @@ private slots:
     void on_setPersonTimeEnd_pushButton_pressed();                  ///< Set selected persons' end times to end time edit's time.
     void on_setPersonTimeBeginNow_pushButton_pressed();             ///< Set selected persons' begin times to now (nearest quarter).
     void on_setPersonTimeEndNow_pushButton_pressed();               ///< Set selected persons' end times to now (nearest quarter).
+    void on_personQualifications_pushButton_pressed();                      ///< View or change selected persons' qualifications.
     void on_personnel_tableWidget_cellDoubleClicked(int, int);              ///< See on_updatePerson_pushButton_pressed().
     //
     void on_personnelHoursHours_spinBox_valueChanged(int);                  ///< Update total personnel hours display.
@@ -291,8 +268,10 @@ private slots:
     void on_boatDriveComments_plainTextEdit_textChanged();                      ///< Set unapplied boat drive changes.
     void on_boatCrewMember_comboBox_currentTextChanged(const QString& arg1);    ///< \brief Update selectable boat functions according to
                                                                                 ///  selected new crew member person's qualifications.
-    void on_addBoatCrewMember_pushButton_pressed();         ///< Add crew member to displayed drive's crew member table.
-    void on_removeBoatCrewMember_pushButton_pressed();      ///< Remove selected crew member from displayed drive's crew member table.
+    void on_addBoatCrewMember_pushButton_pressed();     ///< Add crew member to displayed drive's crew member table.
+    void on_addExtBoatCrewMember_pushButton_pressed();  ///< Add external crew member to displayed drive's crew member table.
+    void on_removeBoatCrewMember_pushButton_pressed();  ///< Remove selected crew member from displayed drive's crew member table.
+    void on_noBoatCrew_checkBox_stateChanged(int arg1); ///< Remove crew members from displayed drive's crew member table, if checked.
     //
     void on_boatHoursHours_spinBox_valueChanged(int);               ///< Update total boat hours display.
     void on_boatHoursMinutes_spinBox_valueChanged(int);             ///< Update total boat hours display.
@@ -302,14 +281,14 @@ private slots:
     void on_assignmentNumber_lineEdit_textEdited(const QString& arg1);  ///< Set report assignment number.
 
 signals:
-    void closed(const ReportWindow *const pWindow); ///< Signal emitted when window closes (for re-showing startup window).
+    void closed(const ReportWindow* pWindow);       ///< Signal emitted when window closes (for re-showing startup window).
     void exportFailed();                            ///< Signal emitted by export thread on failure to show message box in main thread.
     void openAnotherReportRequested(const QString& pFileName, bool pChooseFile = false);    ///< \brief Signal emitted when another
                                                                                             ///  report window shall be opened
                                                                                             ///  by the startup window.
 
 private:
-    Ui::ReportWindow *ui;   //UI
+    Ui::ReportWindow* ui;   //UI
     //
     /*!
      * \brief A row of the rescue operations table.
@@ -331,12 +310,12 @@ private:
      */
     struct VehiclesRow
     {
-        QPushButton* removeRowPushButton;   ///< Pointer to a push button for removing the row.
-        QLineEdit* vehicleNameLineEdit;     ///< Pointer to a line edit for entering the vehicle's (radio call) name.
-        QTimeEdit* arriveTimeEdit;          ///< Pointer to a time edit for entering the vehicle's arrival time.
-        QTimeEdit* leaveTimeEdit;           ///< Pointer to a time edit for entering the vehicle's leaving time.
-        QLabel* timesSepLabel;              ///< Pointer to a label separating the time edits.
-        std::vector<QMetaObject::Connection> connections;   ///< Signal-slot connections for this struct's widgets.
+        QPushButton *const removeRowPushButton; ///< Pointer to a push button for removing the row.
+        QLineEdit *const vehicleNameLineEdit;   ///< Pointer to a line edit for entering the vehicle's (radio call) name.
+        QTimeEdit *const arriveTimeEdit;        ///< Pointer to a time edit for entering the vehicle's arrival time.
+        QTimeEdit *const leaveTimeEdit;         ///< Pointer to a time edit for entering the vehicle's leaving time.
+        QLabel *const timesSepLabel;            ///< Pointer to a label separating the time edits.
+        const std::vector<QMetaObject::Connection> connections; ///< Signal-slot connections for this struct's widgets.
     };
     std::list<VehiclesRow> vehiclesTableRows;   //Pointers to dyn. added widgets for each vehicle
     QGridLayout* vehiclesGroupBoxLayout;        //Layout of group box containing vehicles table
@@ -353,6 +332,7 @@ private:
     bool unappliedBoatDriveChanges;             //Any not applied changes to currently selected boat drive?
     //
     std::atomic_bool exporting;                 //Export thread currently running?
+    std::atomic_bool latestExportFailed;        //Last export failed?
     //
     int exportPersonnelTableMaxLength;          //Maximum length of exported PDFs personnel table; will be split if length is exceeded
     int exportBoatDrivesTableMaxLength;         //Maximum length of exported PDFs boat drives table; will be split if length is exceeded

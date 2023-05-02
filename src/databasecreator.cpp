@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,13 @@
 
 #include "databasecreator.h"
 
+#include "person.h"
+#include "version.h"
+
+#include <QString>
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlQuery>
+
 //Public
 
 /*!
@@ -35,10 +42,10 @@
  */
 bool DatabaseCreator::createConfigDatabase()
 {
+    bool success = setConfigVersion(Version::ConfigDatabaseUserVersion);
+
     QSqlDatabase configDb = QSqlDatabase::database("configDb");
     QSqlQuery configQuery(configDb);
-
-    bool success = configQuery.exec("PRAGMA user_version = " + QString::number(CONFIG_DATABASE_USER_VERSION) + ";");
 
     success &= configQuery.exec("CREATE TABLE Application ("
                                 "Setting TEXT,"
@@ -81,10 +88,10 @@ bool DatabaseCreator::createConfigDatabase()
  */
 bool DatabaseCreator::createPersonnelDatabase()
 {
+    bool success = setPersonnelVersion(Version::PersonnelDatabaseUserVersion);
+
     QSqlDatabase personnelDb = QSqlDatabase::database("personnelDb");
     QSqlQuery personnelQuery(personnelDb);
-
-    bool success = personnelQuery.exec("PRAGMA user_version = " + QString::number(PERSONNEL_DATABASE_USER_VERSION) + ";");
 
     success &= personnelQuery.exec("CREATE TABLE Personnel ("
                                    "LastName TEXT,"
@@ -97,10 +104,66 @@ bool DatabaseCreator::createPersonnelDatabase()
     return success;
 }
 
+/*!
+ * \brief Upgrade format of old configuration database to the compiled version.
+ *
+ * Note: Does nothing and returns false, as the configuration database version is still unchanged from the original version.
+ *
+ * \return If upgrade was required and successful.
+ */
+bool DatabaseCreator::upgradeConfigDatabase()
+{
+    return false;
+}
+
+/*!
+ * \brief Upgrade format of old personnel database to the compiled version.
+ *
+ * Upgrades personnel databases from version 1 to version 2.
+ *
+ * \return If upgrade was required and successful.
+ */
+bool DatabaseCreator::upgradePersonnelDatabase()
+{
+    if (!checkPersonnelVersionOlder())
+        return false;
+
+    if (getPersonnelVersion() == 1 && Version::PersonnelDatabaseUserVersion == 2)
+    {        
+        QSqlDatabase personnelDb = QSqlDatabase::database("personnelDb");
+
+        QSqlQuery personnelQuery(personnelDb);
+
+        personnelQuery.prepare("SELECT Qualifications, rowid FROM Personnel;");
+
+        if (!personnelQuery.exec())
+            return false;
+
+        QSqlQuery updateQualisQuery(personnelDb);
+
+        while (personnelQuery.next())
+        {
+            QString tNewQualis = Person::Qualifications::convertLegacyQualifications(personnelQuery.value("Qualifications").toString());
+            int tRowId = personnelQuery.value("rowid").toInt();
+
+            updateQualisQuery.prepare("UPDATE Personnel SET Qualifications=:qualis WHERE rowid=:row;");
+            updateQualisQuery.bindValue(":qualis", tNewQualis);
+            updateQualisQuery.bindValue(":row", tRowId);
+
+            if (!updateQualisQuery.exec())
+                return false;
+        }
+
+        return setPersonnelVersion(Version::PersonnelDatabaseUserVersion);
+    }
+
+    return false;
+}
+
 //
 
 /*!
- * \brief Check if the configuration database version is supported.
+ * \brief Check if the configuration database version matches the compiled version.
  *
  * Uses opened configuration database connected with name "configDb".
  *
@@ -108,20 +171,12 @@ bool DatabaseCreator::createPersonnelDatabase()
  */
 bool DatabaseCreator::checkConfigVersion()
 {
-    QSqlDatabase configDb = QSqlDatabase::database("configDb");
-    QSqlQuery configQuery(configDb);
-
-    if (configQuery.exec("PRAGMA user_version;") && configQuery.next())
-    {
-        if (configQuery.value("user_version").toInt() == CONFIG_DATABASE_USER_VERSION)
-            return true;
-    }
-
-    return false;
+    int tVersion = getConfigVersion();
+    return tVersion != -1 && tVersion == Version::ConfigDatabaseUserVersion;
 }
 
 /*!
- * \brief Check if the personnel database version is supported.
+ * \brief Check if the personnel database version matches the compiled version.
  *
  * Uses opened personnel database connected with name "personnelDb".
  *
@@ -129,14 +184,94 @@ bool DatabaseCreator::checkConfigVersion()
  */
 bool DatabaseCreator::checkPersonnelVersion()
 {
+    int tVersion = getPersonnelVersion();
+    return tVersion != -1 && tVersion == Version::PersonnelDatabaseUserVersion;
+}
+
+/*!
+ * \brief Check if the configuration database version is older than the compiled version.
+ *
+ * Uses opened configuration database connected with name "configDb".
+ *
+ * \return If configuration database's 'user_version' is valid but older than the compiled database version.
+ */
+bool DatabaseCreator::checkConfigVersionOlder()
+{
+    int tVersion = getConfigVersion();
+    return tVersion != -1 && tVersion < Version::ConfigDatabaseUserVersion;
+}
+
+/*!
+ * \brief Check if the personnel database version is older than the compiled version.
+ *
+ * Uses opened personnel database connected with name "personnelDb".
+ *
+ * \return If personnel database's 'user_version' is valid but older than the compiled database version.
+ */
+bool DatabaseCreator::checkPersonnelVersionOlder()
+{
+    int tVersion = getPersonnelVersion();
+    return tVersion != -1 && tVersion < Version::PersonnelDatabaseUserVersion;
+}
+
+//Private
+
+/*!
+ * \brief Read the configuration database version.
+ *
+ * \return Configuration database's 'user_version', if query successful, and -1 otherwise.
+ */
+int DatabaseCreator::getConfigVersion()
+{
+    QSqlDatabase configDb = QSqlDatabase::database("configDb");
+    QSqlQuery configQuery(configDb);
+
+    if (configQuery.exec("PRAGMA user_version;") && configQuery.next())
+        return configQuery.value("user_version").toInt();
+    else
+        return -1;
+}
+
+/*!
+ * \brief Write the configuration database version.
+ *
+ * \param pVersion New value for configuration database's 'user_version'.
+ * \return If successful.
+ */
+bool DatabaseCreator::setConfigVersion(const int pVersion)
+{
+    QSqlDatabase configDb = QSqlDatabase::database("configDb");
+    QSqlQuery configQuery(configDb);
+
+    return configQuery.exec("PRAGMA user_version = " + QString::number(pVersion) + ";");
+}
+
+/*!
+ * \brief Read the personnel database version.
+ *
+ * \return Personnel database's 'user_version', if query successful, and -1 otherwise.
+ */
+int DatabaseCreator::getPersonnelVersion()
+{
     QSqlDatabase personnelDb = QSqlDatabase::database("personnelDb");
     QSqlQuery personnelQuery(personnelDb);
 
     if (personnelQuery.exec("PRAGMA user_version;") && personnelQuery.next())
-    {
-        if (personnelQuery.value("user_version").toInt() == PERSONNEL_DATABASE_USER_VERSION)
-            return true;
-    }
+        return personnelQuery.value("user_version").toInt();
+    else
+        return -1;
+}
 
-    return false;
+/*!
+ * \brief Write the personnel database version.
+ *
+ * \param pVersion New value for personnel database's 'user_version'.
+ * \return If successful.
+ */
+bool DatabaseCreator::setPersonnelVersion(const int pVersion)
+{
+    QSqlDatabase personnelDb = QSqlDatabase::database("personnelDb");
+    QSqlQuery personnelQuery(personnelDb);
+
+    return personnelQuery.exec("PRAGMA user_version = " + QString::number(pVersion) + ";");
 }

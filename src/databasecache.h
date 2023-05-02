@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -26,17 +26,12 @@
 #include "auxil.h"
 #include "person.h"
 
-#include <iostream>
+#include <QLockFile>
+#include <QString>
+
+#include <map>
 #include <memory>
 #include <vector>
-#include <map>
-
-#include <QString>
-#include <QStringList>
-#include <QValidator>
-#include <QLockFile>
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
 
 /*!
  * \brief Access configuration and personnel database records (using a cache functionality).
@@ -63,9 +58,9 @@ public:
                                                                                         ///  from settings and personnel databases.
     //
     static bool getSetting(const QString& pSetting, int& pValue,
-                           int pDefault = 0, bool pCreate = false);     ///< Get a cached, integer type setting.
+                           int pDefault = 0, bool pCreate = false);         ///< Get a cached, integer type setting.
     static bool getSetting(const QString& pSetting, double& pValue,
-                           double pDefault = .0, bool pCreate = false); ///< Get a cached, floating-point type setting.
+                           double pDefault = 0.0, bool pCreate = false);    ///< Get a cached, floating-point type setting.
     static bool getSetting(const QString& pSetting, QString& pValue,
                            QString pDefault = "", bool pCreate = false);    ///< Get a cached, string type setting.
     static bool setSetting(const QString& pSetting, int pValue);        ///< Write an integer type setting to cache and database.
@@ -99,7 +94,7 @@ public:
     //
     static bool addPerson(const Person& pNewPerson);                            ///< Add new person to personnel cache and database.
     static bool updatePerson(const QString& pIdent, const Person& pNewPerson);  ///< Update person in personnel cache and database.
-    static bool removePerson(QString pIdent);                                   ///< Remove person from personnel cache and database.
+    static bool removePerson(const QString& pIdent);                            ///< Remove person from personnel cache and database.
 
 private:
     static bool loadIntSettings();  ///< Load all integer type settings from database into cache.

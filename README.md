@@ -36,8 +36,6 @@ Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdie
   - Benötigte Software: [Qt 6](https://www.qt.io/product/qt6), [CMake](https://cmake.org/).
 
 - Vorbereitung:
-  - DLRG-Logo (zum Beispiel das Logo aus https://de.wikipedia.org/wiki/Datei:DLRG_Logo.svg mit Inkscape exportieren)
-    mit Größe {475px x 386px} unter ".\resources\images\dlrg-logo.png" speichern (**Urheberrechte beachten!**)
   - Eingabekonsole (`cmd.exe`) starten
 
 - Build:
@@ -57,7 +55,7 @@ Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdie
   - Inhalt von ".\deploy" nach ".\installer\installer\packages\org.dlrg.wachdienstmanager\data\Wachdienst-Manager" kopieren
   - ".\resources\icons\application-icon.ico" nach ".\installer\installer\packages\org.dlrg.wachdienstmanager\data\Wachdienst-Manager" kopieren
   - In Verzeichnis ".\installer" wechseln
-  - `...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\binarycreator.exe --offline-only -t ...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\installerbase.exe -p installer\packages -c installer\config\config.xml Wachdienst-Manager-1.2.0_Setup.exe` ausführen (ggf. Version anpassen)
+  - `...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\binarycreator.exe --offline-only -t ...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\installerbase.exe -p installer\packages -c installer\config\config.xml Wachdienst-Manager-1.4.0_Setup.exe` ausführen (ggf. Version anpassen)
 
 - *Optionale* Quellcode-Dokumentation (benötigt [Doxygen](https://github.com/doxygen/doxygen)):
   - In Verzeichnis ".\doc" wechseln
@@ -65,7 +63,7 @@ Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdie
 
 ## Lizenzhinweise
 
-Copyright (C) 2021–2022 M. Frohne  
+Copyright (C) 2021–2023 M. Frohne  
 
 Wachdienst-Manager ist freie Software: Sie können ihn unter den Bedingungen der
 von der Free Software Foundation veröffentlichten GNU Affero General Public License,

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,30 +20,33 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#include "databasecreator.h"
 #include "databasecache.h"
-#include "settingscache.h"
-#include "startupwindow.h"
+#include "databasecreator.h"
 #include "pdfexporter.h"
 #include "report.h"
-
-#include <iostream>
-#include <memory>
+#include "settingscache.h"
+#include "singleinstancesynchronizer.h"
+#include "startupwindow.h"
 
 #include <QApplication>
-#include <QStyleFactory>
-#include <QTranslator>
-#include <QIcon>
-#include <QMessageBox>
-#include <QString>
-#include <QStringList>
 #include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QFileDialog>
-#include <QStandardPaths>
-#include <QtSql/QSqlDatabase>
+#include <QFileInfo>
+#include <QIcon>
 #include <QLockFile>
+#include <QMessageBox>
+#include <QStandardPaths>
+#include <QString>
+#include <QStringList>
+#include <QStyleFactory>
+#include <QTranslator>
+#include <QtSql/QSqlDatabase>
+
+#include <atomic>
+#include <iostream>
+#include <memory>
+#include <thread>
 
 int main(int argc, char *argv[])
 {
@@ -94,15 +97,19 @@ int main(int argc, char *argv[])
     }
 
     //If config directory contains a file 'dbPath.conf', read alternative config directory from the file and use that in the following
-    if (QFileInfo::exists(configDir.filePath("dbPath.conf")))
+
+    QString dbPathConfFileName = configDir.filePath("dbPath.conf");
+    const bool dbPathConfFileExists = QFileInfo::exists(dbPathConfFileName);
+
+    if (dbPathConfFileExists)
     {
-        QFile dbPathConfFile(configDir.filePath("dbPath.conf"));
+        QFile dbPathConfFile(dbPathConfFileName);
 
         if (!dbPathConfFile.open(QIODevice::ReadOnly))
         {
             dbPathConfFile.close();
             std::cerr<<"ERROR: Could not read alternative configuration directory path from \"dbPath.conf\"!"<<std::endl;
-            QMessageBox(QMessageBox::Critical, "Fehler", "Fehler beim Lesen des alternativen Konfigurations-Verzeichnis-Pfads!").exec();
+            QMessageBox(QMessageBox::Critical, "Fehler", "Fehler beim Lesen des alternativen Datenbank-Verzeichnis-Pfads!").exec();
             return EXIT_FAILURE;
         }
 
@@ -120,13 +127,13 @@ int main(int argc, char *argv[])
                 {
                     std::cerr<<"ERROR: Could not create alternative configuration directory!"<<std::endl;
                     QMessageBox(QMessageBox::Critical, "Fehler",
-                                                       "Fehler beim Erstellen des alternativen Konfigurations-Verzeichnisses!").exec();
+                                                       "Fehler beim Erstellen des alternativen Datenbank-Verzeichnisses!").exec();
                     return EXIT_FAILURE;
                 }
                 else
                 {
                     QMessageBox(QMessageBox::Information, "Verzeichnis angelegt",
-                                                          "Ein alternatives Konfigurations-Verzeichnis wurde angelegt!").exec();
+                                                          "Ein alternatives Datenbank-Verzeichnis wurde angelegt!").exec();
                 }
             }
 
@@ -134,19 +141,64 @@ int main(int argc, char *argv[])
             {
                 std::cerr<<"ERROR: Could not change into the alternative configuration directory!"<<std::endl;
                 QMessageBox(QMessageBox::Critical, "Fehler",
-                                                   "Fehler beim Wechseln in das alternative Konfigurations-Verzeichnis!").exec();
+                                                   "Fehler beim Wechseln in das alternative Datenbank-Verzeichnis!").exec();
+                return EXIT_FAILURE;
+            }
+        }
+    }
+
+    //Check if database files exist
+
+    QString confDbFileName = configDir.filePath("configuration.sqlite3");
+    const bool confDbExists = QFileInfo::exists(confDbFileName);
+
+    QString personnelDbFileName = configDir.filePath("personnel.sqlite3");
+    const bool persDbExists = QFileInfo::exists(personnelDbFileName);
+
+    //If neither of 'dbPath.conf' or database files exist assume first startup and ask for alternative config directory (for dbPath.conf)
+    if (!dbPathConfFileExists && !confDbExists && !persDbExists)
+    {
+        QMessageBox msgBox(QMessageBox::Question, "Datenbank-Verzeichnis", "Soll ein vom Standard-Verzeichnis abweichendes "
+                           "Verzeichnis für die Konfigurations- und Personal-Datenbanken verwendet werden?",
+                           QMessageBox::Yes | QMessageBox::No);
+        msgBox.setDefaultButton(QMessageBox::No);
+
+        if (msgBox.exec() == QMessageBox::Yes)
+        {
+            QString alternativeDbPath = QFileDialog::getExistingDirectory(nullptr, "Datenbank-Verzeichnis auswählen", "",
+                                                                          QFileDialog::ShowDirsOnly);
+
+            if (alternativeDbPath != "")
+            {
+                QFile dbPathConfFile(dbPathConfFileName);
+
+                if (!dbPathConfFile.open(QIODevice::WriteOnly) || dbPathConfFile.write(alternativeDbPath.toUtf8()) == -1)
+                {
+                    dbPathConfFile.close();
+                    std::cerr<<"ERROR: Could not write alternative configuration directory path to \"dbPath.conf\"!"<<std::endl;
+                    QMessageBox(QMessageBox::Critical, "Fehler",
+                                "Fehler beim Schreiben des alternativen Datenbank-Verzeichnis-Pfads!").exec();
+                    return EXIT_FAILURE;
+                }
+
+                dbPathConfFile.close();
+
+                QMessageBox(QMessageBox::Information, "Neustart", "Das Programm wird jetzt beendet und kann danach "
+                            "neu gestartet werden! Es wird dann das alternative Datenbank-Verzeichnis \"" +
+                            alternativeDbPath + "\" verwendet.").exec();
+
+                return EXIT_SUCCESS;
+            }
+            else
+            {
+                std::cerr<<"ERROR: No valid path was chosen!"<<std::endl;
+                QMessageBox(QMessageBox::Critical, "Fehler", "Kein gültiges Verzeichnis ausgewählt!").exec();
                 return EXIT_FAILURE;
             }
         }
     }
 
     //Open general configuration and personnel databases from configuration directory
-
-    QString confDbFileName = configDir.filePath("configuration.sqlite3");
-    bool confDbExists = QFileInfo::exists(confDbFileName);
-
-    QString personnelDbFileName = configDir.filePath("personnel.sqlite3");
-    bool persDbExists = QFileInfo::exists(personnelDbFileName);
 
     QSqlDatabase confDatabase = QSqlDatabase::addDatabase("QSQLITE", "configDb");
     confDatabase.setDatabaseName(confDbFileName);
@@ -181,7 +233,7 @@ int main(int argc, char *argv[])
     lockFilePtr->setStaleLockTime(0);
     lockFilePtr->tryLock(1000);
 
-    //Setup fresh databases if they do not exist
+    //Set up fresh databases if they do not exist
 
     if (!confDbExists)
     {
@@ -213,12 +265,73 @@ int main(int argc, char *argv[])
         }
     }
 
-    //Check if database versions are supported
-    if (!DatabaseCreator::checkConfigVersion() || !DatabaseCreator::checkPersonnelVersion())
+    //Check if database versions are supported, upgrade them if necessary
+
+    if (!DatabaseCreator::checkConfigVersion())
     {
-        std::cerr<<"ERROR: Unsupported database version!"<<std::endl;
-        QMessageBox(QMessageBox::Critical, "Fehler", "Nicht unterstützte Datenbank-Version!").exec();
-        return EXIT_FAILURE;
+        std::cerr<<"ERROR: Unsupported configuration database version!"<<std::endl;
+        QMessageBox(QMessageBox::Critical, "Fehler", "Nicht unterstützte Konfigurations-Datenbank-Version!").exec();
+
+        if (DatabaseCreator::checkConfigVersionOlder())
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Datenbank-Upgrade", "Die Konfigurations-Datenbank-Version ist älter als die "
+                               "aktuelle Version. Es kann daher versucht werden, die Datenbank in das aktuelle Format zu "
+                               "konvertieren. Soll das Upgrade jetzt durchgeführt werden? (Backup empfohlen!)",
+                               QMessageBox::Yes | QMessageBox::Abort);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
+            if (msgBox.exec() == QMessageBox::Yes)
+            {
+                if (DatabaseCreator::upgradeConfigDatabase())
+                {
+                    QMessageBox(QMessageBox::Information, "Upgrade erfolgreich",
+                                "Die Konfigurations-Datenbank wurde erfolgreich in das aktuelle Format konvertiert!").exec();
+                }
+                else
+                {
+                    QMessageBox(QMessageBox::Critical, "Fehler",
+                                                       "Das Upgrade der Konfigurations-Datenbank war nicht erfolgreich!").exec();
+                    return EXIT_FAILURE;
+                }
+            }
+            else
+                return EXIT_FAILURE;
+        }
+        else
+            return EXIT_FAILURE;
+    }
+
+    if (!DatabaseCreator::checkPersonnelVersion())
+    {
+        std::cerr<<"ERROR: Unsupported personnel database version!"<<std::endl;
+        QMessageBox(QMessageBox::Critical, "Fehler", "Nicht unterstützte Personal-Datenbank-Version!").exec();
+
+        if (DatabaseCreator::checkPersonnelVersionOlder())
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Datenbank-Upgrade", "Die Personal-Datenbank-Version ist älter als die "
+                               "aktuelle Version. Es kann daher versucht werden, die Datenbank in das aktuelle Format zu "
+                               "konvertieren. Soll das Upgrade jetzt durchgeführt werden? (Backup empfohlen!)",
+                               QMessageBox::Yes | QMessageBox::Abort);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
+            if (msgBox.exec() == QMessageBox::Yes)
+            {
+                if (DatabaseCreator::upgradePersonnelDatabase())
+                {
+                    QMessageBox(QMessageBox::Information, "Upgrade erfolgreich",
+                                "Die Personal-Datenbank wurde erfolgreich in das aktuelle Format konvertiert!").exec();
+                }
+                else
+                {
+                    QMessageBox(QMessageBox::Critical, "Fehler", "Das Upgrade der Personal-Datenbank war nicht erfolgreich!").exec();
+                    return EXIT_FAILURE;
+                }
+            }
+            else
+                return EXIT_FAILURE;
+        }
+        else
+            return EXIT_FAILURE;
     }
 
     //Cache database entries
@@ -237,21 +350,58 @@ int main(int argc, char *argv[])
         fileDialog.setDirectory(defaultFileDir);
     }
 
+    //Determine whether to run in single instance mode and, if so, whether to proceed in "master" or "slave" mode
+
+    bool singleInstance = SettingsCache::getBoolSetting("app_singleInstance");
+
+    if (singleInstance && !SingleInstanceSynchronizer::init())
+    {
+        std::cerr<<"ERROR: Could not set up application instance synchronization! "
+                 <<"Disabling single instance mode for this instance."<<std::endl;
+        QMessageBox(QMessageBox::Critical, "Fehler", "Konnte keine Programm-Instanz-Synchronisation herstellen!\n"
+                                                     "Einzel-Instanz-Modus wird für diese Instanz deaktiviert.").exec();
+
+        singleInstance = false;
+    }
+
+    const bool singleInstanceMaster = singleInstance && SingleInstanceSynchronizer::isMaster();
+
     //Create main window
     StartupWindow startupWindow;
 
-    //Start application in different ways depending on command line arguments
+    //In single instance "master" mode run a listener thread to receive requests from "slave" instances
 
-    if (argc == 2)
+    std::thread masterListenerThread;
+    std::atomic_bool stopListenerThread(false);
+
+    if (singleInstance && singleInstanceMaster)
     {
-        const QString& cmdArg1 = argv[1];
+        masterListenerThread = std::thread([&startupWindow, &stopListenerThread]() -> void
+                                           {
+                                               SingleInstanceSynchronizer::listen(startupWindow, stopListenerThread);
+                                           });
+    }
+
+    //Start application in different ways depending on command line arguments; if running in single instance "slave" mode then
+    //just forward corresponding requests to running "master" instance and exit (except in case of "-E" or "-F" options!)
+
+    const QStringList cmdArgs = a.arguments();
+    const int cmdArgsCount = cmdArgs.count();
+
+    if (cmdArgsCount == 2)
+    {
+        const QString& cmdArg1 = cmdArgs[1];
 
         if (cmdArg1.startsWith('-'))    //Expecting one option
         {
             if (cmdArg1 == "-n")
             {
                 //Show the new report assistent dialog immediately
-                startupWindow.newReport();
+
+                if (singleInstance && !singleInstanceMaster)
+                    SingleInstanceSynchronizer::sendNewReport();
+                else
+                    startupWindow.newReport();
             }
             else
             {
@@ -263,25 +413,44 @@ int main(int argc, char *argv[])
         else    //Expecting one file name
         {
             //Assume file exists and is saved report; open the report and show the report window immediately
-            if (!startupWindow.openReport(cmdArg1))
-                return EXIT_FAILURE;
+
+            if (singleInstance && !singleInstanceMaster)
+                SingleInstanceSynchronizer::sendOpenReport(cmdArg1);
+            else
+            {
+                if (!startupWindow.openReport(cmdArg1))
+                    return EXIT_FAILURE;
+            }
         }
     }
-    else if (argc > 2)   //Expecting an option plus a number of file names
+    else if (cmdArgsCount > 2)   //Expecting either a list of file names or an option plus a number of file names
     {
-        const QString& cmdArg1 = argv[1];
+        const QString& cmdArg1 = cmdArgs[1];
 
-        if (cmdArg1 != "-E" && cmdArg1 != "-F")
+        if (cmdArg1.startsWith('-') && cmdArg1 != "-E" && cmdArg1 != "-F")
         {
             std::cerr<<"ERROR: Too many or invalid command line arguments!"<<std::endl;
             QMessageBox(QMessageBox::Critical, "Fehler", "Zu viele oder ungültige Kommandozeilenargumente!").exec();
             return EXIT_FAILURE;
         }
 
-        QStringList fileNames(argv+2, argv+argc);
+        QStringList fileNames(cmdArgs.begin()+2, cmdArgs.end());
 
         if (cmdArg1 == "-E")    //Automatically iterate file list and load and export each report to PDF (replacing extension with .pdf)
         {
+            //As following instructions may take some time but the program will exit afterwards, try to detach instance already
+            //now and stop listener thread if "master"; hence neither any "slave" requests will be processed by this instance
+            //nor this instance, if "slave", will be accidentally recognized as "master" by new other instances
+            if (singleInstance)
+            {
+                if (singleInstanceMaster)
+                {
+                    stopListenerThread.store(true);
+                    masterListenerThread.join();
+                }
+                SingleInstanceSynchronizer::detach();
+            }
+
             QMessageBox msgBox(QMessageBox::Question, "Alle exportieren?",
                                "Alle angegebenen Wachberichte (siehe Details) werden nacheinander geladen und als PDF exportiert. "
                                "Dazu wird jeweils die Dateiendung des Wachberichtes durch \".pdf\" ersetzt. Bestehende Dateien "
@@ -323,9 +492,24 @@ int main(int argc, char *argv[])
             }
 
             QMessageBox(QMessageBox::Information, "Exportieren erfolgreich", "Es wurden alle Wachberichte exportiert!").exec();
+
+            return EXIT_SUCCESS;
         }
         else if (cmdArg1 == "-F")   //Iteratively fix all carryovers by loading first report from file list, applying its carryovers to
         {                           //second report and saving second report; then applying its carryovers to third report and so forth
+
+            //As following instructions may take some time but the program will exit afterwards, try to detach instance already
+            //now and stop listener thread if "master"; hence neither any "slave" requests will be processed by this instance
+            //nor this instance, if "slave", will be accidentally recognized as "master" by new other instances
+            if (singleInstance)
+            {
+                if (singleInstanceMaster)
+                {
+                    stopListenerThread.store(true);
+                    masterListenerThread.join();
+                }
+                SingleInstanceSynchronizer::detach();
+            }
 
             if (fileNames.size() < 2)
             {
@@ -352,6 +536,8 @@ int main(int argc, char *argv[])
             if (msgBox.exec() != QMessageBox::Yes)
                 return EXIT_SUCCESS;
 
+            QStringList correctedFiles;
+
             Report firstReport, secondReport;
 
             if (!secondReport.open(fileNames[0]))
@@ -372,28 +558,88 @@ int main(int argc, char *argv[])
                     return EXIT_FAILURE;
                 }
 
-                secondReport.loadCarryovers(firstReport);
-
-                if (!secondReport.save(secondReport.getFileName()))
+                if (secondReport.loadCarryovers(firstReport))
                 {
-                    std::cerr<<"ERROR: Could not save report \""<<secondReport.getFileName().toStdString()<<"\"!"<<std::endl;
-                    QMessageBox(QMessageBox::Critical,
-                                "Fehler", "Konnte Wachbericht \"" + secondReport.getFileName() + "\" nicht speichern!").exec();
-                    return EXIT_FAILURE;
+                    correctedFiles.append(fileNames[i]);
+
+                    if (!secondReport.save(secondReport.getFileName()))
+                    {
+                        std::cerr<<"ERROR: Could not save report \""<<secondReport.getFileName().toStdString()<<"\"!"<<std::endl;
+                        QMessageBox(QMessageBox::Critical,
+                                    "Fehler", "Konnte Wachbericht \"" + secondReport.getFileName() + "\" nicht speichern!").exec();
+                        return EXIT_FAILURE;
+                    }
                 }
             }
 
-            QMessageBox(QMessageBox::Information, "Korrigieren erfolgreich",
-                                                  "Die Überträge der Wachberichte wurden korrigiert!").exec();
-        }
+            if (correctedFiles.isEmpty())
+            {
+                QMessageBox(QMessageBox::Information, "Korrektur beendet", "Es waren keine Korrekturen erforderlich!").exec();
+            }
+            else
+            {
+                QMessageBox msgBox2(QMessageBox::Information, "Korrektur beendet",
+                                   "Es wurden Überträge korrigiert! Dies betrifft alle unter Details angegebenen Wachberichte. "
+                                   "Hinweis: Für diese ist ein erneuter Export erforderlich.");
 
-        return EXIT_SUCCESS;
+                QString detailedText2  = "Bei den folgenden Wachberichten wurden Überträge korrigiert:";
+
+                for (const QString& tFileName : correctedFiles)
+                    detailedText2.append("\n- \"" + tFileName + "\"");
+
+                msgBox2.setDetailedText(detailedText2);
+
+                msgBox2.exec();
+            }
+
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            fileNames.push_front(cmdArg1);
+
+            //Assume each file exists and is saved report; open each report and show them in individual report windows
+
+            if (singleInstance && !singleInstanceMaster)
+            {
+                for (const QString& tFileName : fileNames)
+                    SingleInstanceSynchronizer::sendOpenReport(tFileName);
+            }
+            else
+            {
+                bool allFailed = true;
+
+                for (const QString& tFileName : fileNames)
+                    if (startupWindow.openReport(tFileName))
+                        allFailed = false;
+
+                if (allFailed)
+                    startupWindow.show();
+            }
+        }
     }
     else
     {
         //No special action requested, simply show startup window
-        startupWindow.show();
+
+        if (!singleInstance || singleInstanceMaster)
+            startupWindow.show();
     }
 
-    return a.exec();
+    //Wait for application being exited and return; in single instance "master" mode additionally
+    //stop the listener thread again; in single instance "slave" mode, instead, exit immediately
+
+    if (singleInstance && singleInstanceMaster)
+    {
+        int exitCode = a.exec();
+
+        stopListenerThread.store(true);
+        masterListenerThread.join();
+
+        return exitCode;
+    }
+    else if (singleInstance && !singleInstanceMaster)
+        return EXIT_SUCCESS;
+    else
+        return a.exec();
 }

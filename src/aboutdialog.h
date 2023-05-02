@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -25,10 +25,8 @@
 
 #include "auxil.h"
 
-#include <QString>
-
 #include <QDialog>
-#include <QLabel>
+#include <QWidget>
 
 namespace Ui {
 class AboutDialog;
@@ -46,11 +44,11 @@ class AboutDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit AboutDialog(QWidget *const pParent = nullptr); ///< Constructor.
-    ~AboutDialog();                                         ///< Destructor.
+    explicit AboutDialog(QWidget* pParent = nullptr);   ///< Constructor.
+    ~AboutDialog();                                     ///< Destructor.
 
 private:
-    Ui::AboutDialog *ui;    //UI
+    Ui::AboutDialog* ui;    //UI
 };
 
 #endif // ABOUTDIALOG_H

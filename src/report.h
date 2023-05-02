@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -24,29 +24,18 @@
 #define REPORT_H
 
 #include "auxil.h"
-#include "person.h"
 #include "boatlog.h"
-#include "databasecache.h"
-#include "qualificationchecker.h"
+#include "person.h"
 
-#include <iostream>
-#include <vector>
-#include <set>
-#include <map>
-#include <tuple>
-#include <stdexcept>
-#include <functional>
-
-#include <QString>
-#include <QStringList>
 #include <QDate>
+#include <QString>
 #include <QTime>
-#include <QFile>
-#include <QSaveFile>
-#include <QIODevice>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
+
+#include <map>
+#include <memory>
+#include <set>
+#include <utility>
+#include <vector>
 
 /*!
  * \brief Create, edit, open and save a watch duty report.
@@ -79,7 +68,7 @@ public:
     //
     QString getFileName() const;                                    ///< Get the file name of opened/saved report file.
     //
-    void loadCarryovers(const Report& pLastReport);                 ///< Load/calculate carryovers from the last report.
+    bool loadCarryovers(const Report& pLastReport);                 ///< Load/calculate carryovers from the last report.
     //
     int getNumber() const;                                          ///< Get the report's serial number.
     void setNumber(int pNumber);                                    ///< Set the report's serial number.
@@ -108,6 +97,8 @@ public:
     void setCloudiness(Aux::Cloudiness pCloudiness);                ///< Set the level of cloudiness.
     Aux::WindStrength getWindStrength() const;                      ///< Get the wind strength.
     void setWindStrength(Aux::WindStrength pWindStrength);          ///< Set the wind strength.
+    Aux::WindDirection getWindDirection() const;                    ///< Get the wind direction.
+    void setWindDirection(Aux::WindDirection pWindDirection);       ///< Set the wind direction.
     //
     int getAirTemperature() const;                                  ///< Get the air temperature.
     void setAirTemperature(int pTemp);                              ///< Set the air temperature.
@@ -165,6 +156,8 @@ public:
     static QString rescueOperationToLabel(RescueOperation pRescue);         ///< Get the label for a rescue operation type.
     static QString rescueOperationToDocNotice(RescueOperation pRescue); ///< Get the fill document notice for a rescue operation type.
     static RescueOperation labelToRescueOperation(const QString& pRescue);  ///< Get the rescue operation type from its label.
+    //
+    static std::set<RescueOperation> getAvailableRescueOperations();    ///< Get all available (non-deprecated) rescue operation types.
 
 private:
     bool personInPersonnel(const QString& pIdent) const;                ///< \brief Check, if person is part of the personnel,
@@ -207,15 +200,23 @@ public:
      */
     enum class RescueOperation : int8_t
     {
-        _FIRST_AID = 0,                 ///< "Erste-Hilfe".
-        _FIRST_AID_MATERIAL = 1,        ///< "Ausgabe von EH-/SAN-Material".
-        _SWIMMER_ACROSS = 2,            ///< "Unterstützung/Rettung von Querschwimmer".
-        _SWIMMER_GENERAL = 3,           ///< "Anderer Schwimmer-Notfall (z.B. im Uferbereich)".
-        _CAPSIZE = 4,                   ///< "Bootskenterung".
+        _FIRST_AID = 0,                 ///< "Erste Hilfe".
+        _FIRST_AID_MATERIAL = 1,        ///< "Einfaches Herausgeben von EH-/SAN-Material".
+        _WATER_PREVENTIVE_MEASURES = 2, ///< "Vorbeugende Unterstützung von z.B. Querschwimmern".
+        _WATER_RESCUE_GENERAL = 3,      ///< "Personenrettung aus dem Wasser".
+        _CAPSIZE [[deprecated]] = 4,    ///< \brief "Bootskenterung (veraltet)".
+                                        ///< \deprecated Use RescueOperation::_CAPSIZE_WATER_RESCUE or
+                                        ///  RescueOperation::_CAPSIZE_TECH_ASSISTANCE instead.
         _MATERIAL_RETRIEVAL = 5,        ///< "Sachgutbergung".
+        _CAPSIZE_WATER_RESCUE = 6,      ///< "Bootskenterung mit Personenrettung/-unterstützung".
+        _CAPSIZE_TECH_ASSISTANCE = 7,   ///< "Rein technische Unterstützung bei Bootskenterung".
+        _MISSING_PERSON = 8,            ///< "Personensuche".
         _OTHER_ASSISTANCE = 50,         ///< "Sonstige Hilfeleistung".
-        _MORTAL_DANGER_INVOLVED = 100   ///< "... davon unter Lebensgefahr".
+        _MORTAL_DANGER_INVOLVED = 100   ///< "... davon Rettung aus Lebensgefahr".
     };
+
+private:
+    static constexpr int8_t RescueOperation_CAPSIZE_deprecated = 4; //Replacement for deprecated RescueOperation::_CAPSIZE
 
 public:
     /*!
@@ -235,8 +236,8 @@ public:
      *                  Note: (some of) \p pArgs can be passed by reference in order to communicate the results.
      * \param pArgs Optional arguments that will be passed to \p pFunction in addition to the 'DutyPurpose's.
      */
-    template <typename FuncT, typename ... Args>
-    static void iterateDutyPurposes(FuncT pFunction, Args& ... pArgs)
+    template <typename FuncT, typename... Args>
+    static void iterateDutyPurposes(FuncT pFunction, Args&... pArgs)
     {
         for (DutyPurpose purpose : {DutyPurpose::_WATCHKEEPING,
                                     DutyPurpose::_SAILING_REGATTA,
@@ -247,13 +248,13 @@ public:
                                     DutyPurpose::_COURSE,
                                     DutyPurpose::_OTHER})
         {
-            pFunction(purpose, pArgs ...);
+            pFunction(purpose, pArgs...);
         }
     }
     /*!
      * \brief Loop over 'RescueOperation's and execute a specified function for each type.
      *
-     * For each 'RescueOperation' the \p pFunction is called with first parameter being 'RescueOperation'
+     * For each non-deprecated 'RescueOperation' the \p pFunction is called with first parameter being 'RescueOperation'
      * and perhaps further parameters \p pArgs, i.e. \p pFunction(rescue, pArgs...).
      * Non-void return values will be discarded. You may use \p pArgs
      * to communicate results of the function calls.
@@ -267,19 +268,21 @@ public:
      *                  Note: (some of) \p pArgs can be passed by reference in order to communicate the results.
      * \param pArgs Optional arguments that will be passed to \p pFunction in addition to the 'RescueOperation's.
      */
-    template <typename FuncT, typename ... Args>
-    static void iterateRescueOperations(FuncT pFunction, Args& ... pArgs)
+    template <typename FuncT, typename... Args>
+    static void iterateRescueOperations(FuncT pFunction, Args&... pArgs)
     {
         for (RescueOperation rescue : {RescueOperation::_FIRST_AID,
                                        RescueOperation::_FIRST_AID_MATERIAL,
-                                       RescueOperation::_SWIMMER_ACROSS,
-                                       RescueOperation::_SWIMMER_GENERAL,
-                                       RescueOperation::_CAPSIZE,
+                                       RescueOperation::_WATER_RESCUE_GENERAL,
+                                       RescueOperation::_WATER_PREVENTIVE_MEASURES,
+                                       RescueOperation::_CAPSIZE_WATER_RESCUE,
+                                       RescueOperation::_CAPSIZE_TECH_ASSISTANCE,
+                                       RescueOperation::_MISSING_PERSON,
                                        RescueOperation::_MATERIAL_RETRIEVAL,
                                        RescueOperation::_OTHER_ASSISTANCE,
                                        RescueOperation::_MORTAL_DANGER_INVOLVED})
         {
-            pFunction(rescue, pArgs ...);
+            pFunction(rescue, pArgs...);
         }
     }
 
@@ -302,6 +305,7 @@ private:
     Aux::Precipitation precipitation;   //Precipitation type
     Aux::Cloudiness cloudiness;         //Cloudiness level
     Aux::WindStrength windStrength;     //Wind strength
+    Aux::WindDirection windDirection;   //Wind direction
     //
     int temperatureAir;                 //Local air temperature
     int temperatureWater;               //Local water temperature

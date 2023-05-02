@@ -30,6 +30,9 @@
          <pointsize>8</pointsize>
         </font>
        </property>
+       <property name="tabKeyNavigation">
+        <bool>false</bool>
+       </property>
        <column>
         <property name="text">
          <string>ID</string>
@@ -111,8 +114,8 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </spacer>

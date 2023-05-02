@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -25,27 +25,12 @@
 
 #include "auxil.h"
 #include "report.h"
-#include "boatlog.h"
-#include "settingscache.h"
-
-#include <QString>
-#include <QDate>
-#include <QTime>
-#include <QKeySequence>
 
 #include <QDialog>
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QPushButton>
-#include <QStackedWidget>
-#include <QProgressBar>
-#include <QTimeEdit>
-#include <QCalendarWidget>
-#include <QComboBox>
-#include <QLineEdit>
-#include <QRadioButton>
-#include <QLabel>
-#include <QShortcut>
+#include <QString>
+#include <QWidget>
+
+#include <map>
 
 namespace Ui {
 class NewReportDialog;
@@ -72,20 +57,20 @@ class NewReportDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit NewReportDialog(QWidget *const pParent = nullptr);     ///< Constructor.
+    explicit NewReportDialog(QWidget* pParent = nullptr);           ///< Constructor.
     ~NewReportDialog();                                             ///< Destructor.
     //
     void getReport(Report& pReport) const;                          ///< Get the new report.
 
 private slots:
-    virtual void accept();                                          ///< Reimplementation of QDialog::accept().
+    void accept() override;                                         ///< Reimplementation of QDialog::accept().
     //
     void on_stackedWidget_currentChanged(int arg1);                 ///< Update progress bar value/label and navigation button labels.
     void on_previous_pushButton_pressed();                          ///< Go to previous page or reject the dialog, if on first page.
     void on_next_pushButton_pressed();                              ///< Go to next page or accept the dialog, if on last page.
     //
-    void on_station_comboBox_currentTextChanged(const QString &arg1);   ///< Update selectable radio call names from selected station.
-    void on_boat_comboBox_currentTextChanged(const QString &arg1);      ///< Update selectable radio call names from selected boat.
+    void on_station_comboBox_currentTextChanged(const QString& arg1);   ///< Update selectable radio call names from selected station.
+    void on_boat_comboBox_currentTextChanged(const QString& arg1);      ///< Update selectable radio call names from selected boat.
     void on_clearStation_radioButton_toggled(bool checked);             ///< Clear station selection (and reset the radio button).
     void on_clearBoat_radioButton_toggled(bool checked);                ///< Clear boat selection (and reset the radio button).
     //
@@ -94,7 +79,7 @@ private slots:
     void on_loadLastReportCarries_radioButton_pressed();                ///< See on_loadLastReportCarries_radioButton_toggled().
 
 private:
-    Ui::NewReportDialog *ui;                    //UI
+    Ui::NewReportDialog* ui;                    //UI
     //
     Report report;                              //The new report
     //

@@ -11,7 +11,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow")
 
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
 find_package(Qt6 COMPONENTS Sql REQUIRED)
@@ -48,6 +48,7 @@ set(PROJECT_SOURCES
     src/boatdrive.cpp
     src/report.cpp
     src/boatlog.cpp
+    src/singleinstancesynchronizer.cpp
 )
 
 if (WIN32)

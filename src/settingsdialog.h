@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -24,37 +24,12 @@
 #define SETTINGSDIALOG_H
 
 #include "auxil.h"
-#include "databasecache.h"
-#include "settingscache.h"
-
-#include <iostream>
-#include <map>
-#include <thread>
-#include <chrono>
-
-#include <QString>
-#include <QStringList>
-#include <QRegularExpressionValidator>
-#include <QMargins>
-#include <QRect>
-#include <QList>
 
 #include <QDialog>
-#include <QFileDialog>
-#include <QLayout>
-#include <QMessageBox>
-#include <QGroupBox>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QSpinBox>
-#include <QTimeEdit>
-#include <QTableWidget>
-#include <QTableWidgetItem>
-#include <QHeaderView>
-#include <QDialogButtonBox>
-#include <QAbstractButton>
-#include <QTabWidget>
+#include <QString>
+#include <QWidget>
+
+#include <map>
 
 namespace Ui {
 class SettingsDialog;
@@ -75,8 +50,8 @@ class SettingsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SettingsDialog(QWidget *const pParent = nullptr);  ///< Constructor.
-    ~SettingsDialog();                                          ///< Destructor.
+    explicit SettingsDialog(QWidget* pParent = nullptr);    ///< Constructor.
+    ~SettingsDialog();                                      ///< Destructor.
 
 private:
     void readDatabase();                    ///< Read the settings from database.
@@ -94,12 +69,13 @@ private:
     void disableDefaultBoatSelection();                                             ///< Prevent editing default boat.
 
 private slots:
-    virtual void accept();                                                      ///< Reimplementation of QDialog::accept().
+    void accept() override;                                                     ///< Reimplementation of QDialog::accept().
     //
     void on_settings_tabWidget_currentChanged(int index);                       ///< If documents tab selected, fit table to contents.
     //
     void on_chooseDefaultFilePath_pushButton_pressed();                         ///< Set default file path using a file dialog.
     void on_chooseXelatexPath_pushButton_pressed();                             ///< Set XeLaTeX executable using a file dialog.
+    void on_chooseLogoPath_pushButton_pressed();                                ///< Set custom association logo image file path.
     void on_password_lineEdit_textEdited(const QString&);                       ///< Remember that password field was edited.
     //
     void on_stations_comboBox_currentIndexChanged(int);                         ///< Update station inputs with newly selected station.
@@ -129,9 +105,11 @@ private slots:
     void on_chooseDocument_pushButton_pressed();                                ///< Set a document path using a file dialog.
     void on_documents_tableWidget_cellChanged(int row, int column);             ///< \brief Reset table item if it contains a character
                                                                                 ///  used to separate documents and names/paths.
+    //
+    void on_singleInstance_checkBox_stateChanged(int arg1);         ///< Show restart hint when newly activating single instance mode.
 
 private:
-    Ui::SettingsDialog *ui;                     //UI
+    Ui::SettingsDialog* ui;                     //UI
     //
     bool acceptDisabled;                        //Disable accepting the dialog and writing to the database
     //

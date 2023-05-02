@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2022 M. Frohne
+//  Copyright (C) 2021–2023 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -22,6 +22,23 @@
 
 #include "startupwindow.h"
 #include "ui_startupwindow.h"
+
+#include "aboutdialog.h"
+#include "auxil.h"
+#include "newreportdialog.h"
+#include "personneldatabasedialog.h"
+#include "settingscache.h"
+#include "settingsdialog.h"
+
+#include <QDialog>
+#include <QFileDialog>
+#include <QKeySequence>
+#include <QList>
+#include <QMessageBox>
+#include <QMimeData>
+#include <QShortcut>
+#include <QStringList>
+#include <QUrl>
 
 /*!
  * \brief Constructor.
@@ -52,25 +69,34 @@ StartupWindow::StartupWindow(QWidget *const pParent) :
     //Add button shortcuts
 
     QShortcut* newReportShortcut = new QShortcut(QKeySequence("Ctrl+N"), this);
-    connect(newReportShortcut, SIGNAL(activated()), this, SLOT(on_newReport_pushButton_pressed()));
+    connect(newReportShortcut, &QShortcut::activated, this, &StartupWindow::on_newReport_pushButton_pressed);
 
     QShortcut* loadReportShortcut = new QShortcut(QKeySequence("Ctrl+O"), this);
-    connect(loadReportShortcut, SIGNAL(activated()), this, SLOT(on_loadReport_pushButton_pressed()));
+    connect(loadReportShortcut, &QShortcut::activated, this, &StartupWindow::on_loadReport_pushButton_pressed);
 
     QShortcut* personnelShortcut = new QShortcut(QKeySequence("Ctrl+P"), this);
-    connect(personnelShortcut, SIGNAL(activated()), this, SLOT(on_personnel_pushButton_pressed()));
+    connect(personnelShortcut, &QShortcut::activated, this, &StartupWindow::on_personnel_pushButton_pressed);
 
     QShortcut* settingsShortcut = new QShortcut(QKeySequence("Ctrl+E"), this);
-    connect(settingsShortcut, SIGNAL(activated()), this, SLOT(on_settings_pushButton_pressed()));
+    connect(settingsShortcut, &QShortcut::activated, this, &StartupWindow::on_settings_pushButton_pressed);
 
     QShortcut* aboutShortcut = new QShortcut(QKeySequence("Ctrl+A"), this);
-    connect(aboutShortcut, SIGNAL(activated()), this, SLOT(on_about_pushButton_pressed()));
+    connect(aboutShortcut, &QShortcut::activated, this, &StartupWindow::on_about_pushButton_pressed);
 
     QShortcut* quitShortcut = new QShortcut(QKeySequence("Ctrl+Q"), this);
-    connect(quitShortcut, SIGNAL(activated()), this, SLOT(on_quit_pushButton_pressed()));
+    connect(quitShortcut, &QShortcut::activated, this, &StartupWindow::on_quit_pushButton_pressed);
 
     //Enable drag and drop in order to open reports being dropped on the window
     setAcceptDrops(true);
+
+    //React on "slave" application instances' requests to open existing or new reports in other report windows
+    if (SettingsCache::getBoolSetting("app_singleInstance"))
+    {
+        connect(this, &StartupWindow::openAnotherReportRequested, this,
+                [this](const QString& pFileName) -> void {              //Use lambda expression to enable use of slot's default argument
+                    this->on_openAnotherReportRequested(pFileName);
+                });
+    }
 }
 
 /*!
@@ -132,6 +158,21 @@ bool StartupWindow::openReport(const QString& pFileName)
     return true;
 }
 
+//
+
+/*!
+ * \brief Emit the openAnotherReportRequested() signal.
+ *
+ * If the single instance mode is active, this function can be used as a workaround to indirectly call
+ * newReport() or openReport() from a different thread. See also on_openAnotherReportRequested().
+ *
+ * \param pFileName File name of the report.
+ */
+void StartupWindow::emitOpenAnotherReportRequested(const QString& pFileName)
+{
+    emit openAnotherReportRequested(pFileName);
+}
+
 //Private
 
 /*!
@@ -144,7 +185,7 @@ bool StartupWindow::openReport(const QString& pFileName)
  *
  * \param pEvent The event containing information about the drag and drop action that entered the window.
  */
-void StartupWindow::dragEnterEvent(QDragEnterEvent* pEvent)
+void StartupWindow::dragEnterEvent(QDragEnterEvent *const pEvent)
 {
     if (pEvent->mimeData()->hasUrls() && pEvent->mimeData()->urls().length() == 1)
     {
@@ -167,7 +208,7 @@ void StartupWindow::dragEnterEvent(QDragEnterEvent* pEvent)
  *
  * \param pEvent The event containing information about the drag and drop action that was dropped on the window.
  */
-void StartupWindow::dropEvent(QDropEvent* pEvent)
+void StartupWindow::dropEvent(QDropEvent *const pEvent)
 {
     if (pEvent->mimeData()->hasUrls() && pEvent->mimeData()->urls().length() == 1)
     {
@@ -206,12 +247,10 @@ void StartupWindow::showReportWindow(Report&& pReport)
     reportWindowPtr->setAttribute(Qt::WA_DeleteOnClose);
 
     //React on report window's closed() signal to release pointer and to show startup window again if no report windows open anymore
-    connect(reportWindowPtr.get(), SIGNAL(closed(const ReportWindow *const)),
-            this, SLOT(on_reportWindowClosed(const ReportWindow *const)));
+    connect(reportWindowPtr.get(), &ReportWindow::closed, this, &StartupWindow::on_reportWindowClosed);
 
     //React on report window's openAnotherReportRequested() signal to open an existing or a new report in another report window
-    connect(reportWindowPtr.get(), SIGNAL(openAnotherReportRequested(const QString&, bool)),
-            this, SLOT(on_openAnotherReportRequested(const QString&, bool)));
+    connect(reportWindowPtr.get(), &ReportWindow::openAnotherReportRequested, this, &StartupWindow::on_openAnotherReportRequested);
 
     //Hide startup window before showing report window
     hide();
@@ -249,10 +288,8 @@ void StartupWindow::on_reportWindowClosed(const ReportWindow *const pWindow)
     if (windowIt == reportWindowPtrs.end())
         return;
 
-    disconnect(pWindow, SIGNAL(closed(const ReportWindow *const)),
-               this, SLOT(on_reportWindowClosed(const ReportWindow *const)));
-    disconnect(pWindow, SIGNAL(openAnotherReportRequested(const QString&, bool)),
-               this, SLOT(on_openAnotherReportRequested(const QString&, bool)));
+    disconnect(pWindow, &ReportWindow::closed, this, &StartupWindow::on_reportWindowClosed);
+    disconnect(pWindow, &ReportWindow::openAnotherReportRequested, this, &StartupWindow::on_openAnotherReportRequested);
 
     //Window is already deleted, see showReportWindow()
     reportWindowPtrs.extract(windowIt).value().release();
@@ -266,13 +303,14 @@ void StartupWindow::on_reportWindowClosed(const ReportWindow *const pWindow)
  *
  * See openReport(). If \p pFileName is empty, a new report is created and shown instead (see newReport()).
  *
- * If \p pChooseFile is true, it will be asked for a file name. Note that in this
- * case no empty report will be created and shown if the file dialog is rejected.
+ * If \p pChooseFile is true, it will be asked for a file name. Note that in this case no empty
+ * report will be created and shown if the file dialog is rejected. Multiple file names can be
+ * choosen in order to open multiple reports (see also on_loadReport_pushButton_pressed()).
  *
  * \param pFileName File name of the report.
  * \param pChooseFile Ask for a file name (ignore \p pFileName).
  */
-void StartupWindow::on_openAnotherReportRequested(const QString& pFileName, bool pChooseFile)
+void StartupWindow::on_openAnotherReportRequested(const QString& pFileName, const bool pChooseFile)
 {
     if (pChooseFile)
         on_loadReport_pushButton_pressed();
@@ -295,18 +333,17 @@ void StartupWindow::on_newReport_pushButton_pressed()
 }
 
 /*!
- * \brief Open a report from file,
+ * \brief Open a report from file.
  *
- * Ask for a file name, load a report from this file and show it in the report window.
+ * Asks for one or multiple file names, loads reports from those files and shows them in individual report windows.
  */
 void StartupWindow::on_loadReport_pushButton_pressed()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, "Wachbericht öffnen", "", "Wachberichte (*.wbr)");
+    QStringList fileNames = QFileDialog::getOpenFileNames(this, "Wachbericht öffnen", "", "Wachberichte (*.wbr)");
 
-    if (fileName == "")
-        return;
-
-    openReport(fileName);
+    for (const QString& fileName : fileNames)
+        if (fileName != "")
+            openReport(fileName);
 }
 
 /*!
