@@ -66,16 +66,20 @@ Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdie
 ## Lizenzhinweise
 
 Copyright (C) 2021–2022 M. Frohne  
-  
-Wachdienst-Manager ist Freie Software: Sie können es unter den Bedingungen
-der GNU Affero General Public License, wie von der Free Software Foundation,
-Version 3 der Lizenz oder (nach Ihrer Wahl) jeder neueren
-veröffentlichten Version, weiter verteilen und/oder modifizieren.  
-  
-Wachdienst-Manager wird in der Hoffnung, dass es nützlich sein wird, aber
-OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
+
+Wachdienst-Manager ist freie Software: Sie können ihn unter den Bedingungen der
+von der Free Software Foundation veröffentlichten GNU Affero General Public License,
+Version 3 oder (nach Ihrer Wahl) jeder neueren Version der Lizenz,
+weiter verteilen und/oder modifizieren.  
+
+Wachdienst-Manager wird in der Hoffnung, dass er nützlich sein wird,
+aber OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
 Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
-Siehe die GNU Affero General Public License für weitere Details.  
-  
+Siehe die GNU Affero General Public License für weitere Einzelheiten.  
+
 Sie sollten eine Kopie der GNU Affero General Public License zusammen mit diesem
-Programm erhalten haben. Wenn nicht, siehe https://www.gnu.org/licenses/.
+Programm erhalten haben. Falls nicht, siehe https://www.gnu.org/licenses/.
+
+## Markenhinweis
+
+Der im Programm gezeigte DLRG-Schriftzug ist eine Marke der Deutsche Lebens-Rettungs-Gesellschaft e. V.
