@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -79,6 +79,7 @@ const QRegularExpressionValidator Aux::assignmentNumbersValidator =
 const QRegularExpressionValidator Aux::programVersionsValidator =
         QRegularExpressionValidator(QRegularExpression("[\\d]+\\.[\\d]+[abc]?\\.[\\d]+"));
 //
+const QStringList Aux::reportFileNamePresets = {"", "yyyyMMdd"};
 const QStringList Aux::boatFuelTypePresets = {"Super", "Super plus", "Normalbenzin", "Diesel"};
 const QStringList Aux::boatDrivePurposePresets = {"Kontrollfahrt", "Begleitung Regatta", "Begleitung Segeltraining",
                                                   "Tonnen setzen", "Tonnen einholen", "Übung", "Einsatz", "Ausbildung"};

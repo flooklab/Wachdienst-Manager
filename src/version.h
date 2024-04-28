@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -26,10 +26,10 @@
 namespace Version
 {
 inline constexpr char const* ProgramVersionMajor = "1";
-inline constexpr char const* ProgramVersionMinor = "4";
+inline constexpr char const* ProgramVersionMinor = "5";
 inline constexpr char const* ProgramVersionPatch = "0";
 
-inline constexpr char const* FileFormatVersion = "1.4.0";
+inline constexpr char const* FileFormatVersion = "1.5.0";
 
 inline constexpr int ConfigDatabaseUserVersion = 1;
 inline constexpr int PersonnelDatabaseUserVersion = 2;

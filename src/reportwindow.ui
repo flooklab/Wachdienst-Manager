@@ -959,81 +959,21 @@
               <layout class="QVBoxLayout" name="personnelTable_verticalLayout">
                <item>
                 <layout class="QGridLayout" name="personnelTableInput_gridLayout">
-                 <item row="0" column="5">
-                  <widget class="QLabel" name="personTimeBegin_label">
+                 <item row="0" column="7">
+                  <widget class="QLabel" name="personTimeEnd_label">
                    <property name="text">
-                    <string>Von</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0">
-                  <widget class="QLineEdit" name="personLastName_lineEdit">
-                   <property name="font">
-                    <font>
-                     <family>Tahoma</family>
-                     <pointsize>8</pointsize>
-                    </font>
-                   </property>
-                   <property name="maxLength">
-                    <number>100</number>
-                   </property>
-                   <property name="placeholderText">
-                    <string>Nachname</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="5">
-                  <widget class="QTimeEdit" name="personTimeBegin_timeEdit">
-                   <property name="font">
-                    <font>
-                     <family>Tahoma</family>
-                     <pointsize>8</pointsize>
-                    </font>
-                   </property>
-                   <property name="displayFormat">
-                    <string>HH:mm</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="4">
-                  <widget class="QLabel" name="personFunction_label">
-                   <property name="text">
-                    <string>Funktion</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="2">
-                  <widget class="QLabel" name="personIdent_label">
-                   <property name="text">
-                    <string>ID</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="personLastName_label">
-                   <property name="text">
-                    <string>Nachname</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="1">
-                  <widget class="QLineEdit" name="personFirstName_lineEdit">
-                   <property name="font">
-                    <font>
-                     <family>Tahoma</family>
-                     <pointsize>8</pointsize>
-                    </font>
-                   </property>
-                   <property name="maxLength">
-                    <number>100</number>
-                   </property>
-                   <property name="placeholderText">
-                    <string>Vorname</string>
+                    <string>Bis</string>
                    </property>
                   </widget>
                  </item>
                  <item row="1" column="6">
-                  <widget class="QTimeEdit" name="personTimeEnd_timeEdit">
+                  <widget class="QTimeEdit" name="personTimeBegin_timeEdit">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>23</height>
+                    </size>
+                   </property>
                    <property name="font">
                     <font>
                      <family>Tahoma</family>
@@ -1049,16 +989,6 @@
                   <widget class="QLabel" name="personFirstName_label">
                    <property name="text">
                     <string>Vorname</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="4">
-                  <widget class="QComboBox" name="personFunction_comboBox">
-                   <property name="font">
-                    <font>
-                     <family>Tahoma</family>
-                     <pointsize>8</pointsize>
-                    </font>
                    </property>
                   </widget>
                  </item>
@@ -1085,11 +1015,171 @@
                   </widget>
                  </item>
                  <item row="0" column="6">
-                  <widget class="QLabel" name="personTimeEnd_label">
+                  <widget class="QLabel" name="personTimeBegin_label">
                    <property name="text">
-                    <string>Bis</string>
+                    <string>Von</string>
                    </property>
                   </widget>
+                 </item>
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="personFunction_label">
+                   <property name="text">
+                    <string>Funktion</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="5">
+                  <layout class="QHBoxLayout" name="setNewPersonTimesBegin_horizontalLayout">
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QPushButton" name="setNewPersonTimeBegin_pushButton">
+                     <property name="maximumSize">
+                      <size>
+                       <width>23</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="focusPolicy">
+                      <enum>Qt::NoFocus</enum>
+                     </property>
+                     <property name="text">
+                      <string>|&lt;-</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="setNewPersonTimeBeginNow_pushButton">
+                     <property name="maximumSize">
+                      <size>
+                       <width>23</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="focusPolicy">
+                      <enum>Qt::NoFocus</enum>
+                     </property>
+                     <property name="text">
+                      <string>&lt;-</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="1" column="4">
+                  <widget class="QComboBox" name="personFunction_comboBox">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="personLastName_label">
+                   <property name="text">
+                    <string>Nachname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="personIdent_label">
+                   <property name="text">
+                    <string>ID</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="7">
+                  <widget class="QTimeEdit" name="personTimeEnd_timeEdit">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>23</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="displayFormat">
+                    <string>HH:mm</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLineEdit" name="personLastName_lineEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="maxLength">
+                    <number>100</number>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Nachname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QLineEdit" name="personFirstName_lineEdit">
+                   <property name="font">
+                    <font>
+                     <family>Tahoma</family>
+                     <pointsize>8</pointsize>
+                    </font>
+                   </property>
+                   <property name="maxLength">
+                    <number>100</number>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Vorname</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="8">
+                  <layout class="QHBoxLayout" name="setNewPersonTimesEnd_horizontalLayout">
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QPushButton" name="setNewPersonTimeEndNow_pushButton">
+                     <property name="maximumSize">
+                      <size>
+                       <width>23</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="focusPolicy">
+                      <enum>Qt::NoFocus</enum>
+                     </property>
+                     <property name="text">
+                      <string>-&gt;</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="setNewPersonTimeEnd_pushButton">
+                     <property name="maximumSize">
+                      <size>
+                       <width>23</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="focusPolicy">
+                      <enum>Qt::NoFocus</enum>
+                     </property>
+                     <property name="text">
+                      <string>-&gt;|</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
                  </item>
                  <item row="0" column="3" rowspan="2">
                   <widget class="Line" name="personnelTableInput_line">
@@ -1097,6 +1187,38 @@
                     <enum>Qt::Vertical</enum>
                    </property>
                   </widget>
+                 </item>
+                 <item row="0" column="5">
+                  <spacer name="setNewPersonTimesBegin_horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Ignored</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>0</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item row="0" column="8">
+                  <spacer name="setNewPersonTimesEnd_horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Ignored</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>0</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                  </spacer>
                  </item>
                 </layout>
                </item>
@@ -1472,7 +1594,7 @@
             <property name="sizeHint" stdset="0">
              <size>
               <width>0</width>
-              <height>40</height>
+              <height>0</height>
              </size>
             </property>
            </spacer>
@@ -3002,7 +3124,7 @@
             <property name="sizeHint" stdset="0">
              <size>
               <width>0</width>
-              <height>40</height>
+              <height>0</height>
              </size>
             </property>
            </spacer>
@@ -3545,9 +3667,9 @@
         <item>
          <layout class="QVBoxLayout" name="rescueTab_verticalLayout_2">
           <item>
-           <layout class="QHBoxLayout" name="vehicles_horizontalLayout">
+           <layout class="QHBoxLayout" name="usedResources_horizontalLayout">
             <item>
-             <spacer name="vehicles_horizontalSpacer">
+             <spacer name="usedResources_horizontalSpacer">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
@@ -3563,7 +3685,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QGroupBox" name="vehicles_groupBox">
+             <widget class="QGroupBox" name="usedResources_groupBox">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                 <horstretch>0</horstretch>
@@ -3577,25 +3699,25 @@
                </size>
               </property>
               <property name="title">
-               <string>Eingesetzte Fahrzeuge</string>
+               <string>Eingesetzte Fahrzeuge / Ressourcen</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_3">
                <item row="1" column="1">
-                <widget class="QLabel" name="vehiclesName_label">
+                <widget class="QLabel" name="usedResourcesName_label">
                  <property name="text">
                   <string>Funkrufname</string>
                  </property>
                 </widget>
                </item>
                <item row="1" column="2">
-                <widget class="QLabel" name="vehiclesArrivalTime_label">
+                <widget class="QLabel" name="usedResourcesBeginTime_label">
                  <property name="text">
                   <string>Von</string>
                  </property>
                 </widget>
                </item>
                <item row="1" column="0">
-                <spacer name="vehicles_horizontalSpacer_2">
+                <spacer name="usedResources_horizontalSpacer_2">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
@@ -3611,7 +3733,7 @@
                 </spacer>
                </item>
                <item row="1" column="3">
-                <spacer name="vehicles_horizontalSpacer_3">
+                <spacer name="usedResources_horizontalSpacer_3">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
@@ -3627,7 +3749,7 @@
                 </spacer>
                </item>
                <item row="0" column="0" colspan="6">
-                <spacer name="vehiclesExpand_horizontalSpacer">
+                <spacer name="usedResourcesExpand_horizontalSpacer">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
@@ -3640,7 +3762,7 @@
                 </spacer>
                </item>
                <item row="1" column="4" colspan="2">
-                <widget class="QLabel" name="vehiclesLeavingTime_label">
+                <widget class="QLabel" name="usedResourcesEndTime_label">
                  <property name="text">
                   <string>Bis</string>
                  </property>
@@ -3793,10 +3915,78 @@
             <property name="sizeHint" stdset="0">
              <size>
               <width>0</width>
-              <height>40</height>
+              <height>0</height>
              </size>
             </property>
            </spacer>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="timestamps_groupBox">
+            <property name="title">
+             <string>Zeitstempel</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_10">
+             <item>
+              <widget class="QPushButton" name="clearTimestamps_pushButton">
+               <property name="text">
+                <string>Alle löschen</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QTableWidget" name="timestamps_tableWidget">
+               <property name="font">
+                <font>
+                 <family>Tahoma</family>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
+               <property name="horizontalScrollBarPolicy">
+                <enum>Qt::ScrollBarAlwaysOff</enum>
+               </property>
+               <property name="sizeAdjustPolicy">
+                <enum>QAbstractScrollArea::AdjustToContents</enum>
+               </property>
+               <property name="tabKeyNavigation">
+                <bool>false</bool>
+               </property>
+               <property name="showDropIndicator" stdset="0">
+                <bool>false</bool>
+               </property>
+               <property name="dragDropOverwriteMode">
+                <bool>false</bool>
+               </property>
+               <property name="wordWrap">
+                <bool>false</bool>
+               </property>
+               <property name="cornerButtonEnabled">
+                <bool>false</bool>
+               </property>
+               <attribute name="horizontalHeaderVisible">
+                <bool>false</bool>
+               </attribute>
+               <attribute name="horizontalHeaderStretchLastSection">
+                <bool>true</bool>
+               </attribute>
+               <attribute name="verticalHeaderVisible">
+                <bool>false</bool>
+               </attribute>
+               <column>
+                <property name="text">
+                 <string>Zeitstempel</string>
+                </property>
+               </column>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="addTimestamp_pushButton">
+               <property name="text">
+                <string>Zeitstempel hinzufügen</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </item>
          </layout>
         </item>
@@ -3943,7 +4133,6 @@
   </action>
  </widget>
  <tabstops>
-  <tabstop>report_tabWidget</tabstop>
   <tabstop>reportNumberIncr_radioButton</tabstop>
   <tabstop>reportNumberDecr_radioButton</tabstop>
   <tabstop>station_comboBox</tabstop>
@@ -3959,6 +4148,7 @@
   <tabstop>precipitation_comboBox</tabstop>
   <tabstop>cloudiness_comboBox</tabstop>
   <tabstop>windStrength_comboBox</tabstop>
+  <tabstop>windDirection_comboBox</tabstop>
   <tabstop>weatherComments_plainTextEdit</tabstop>
   <tabstop>operationProtocols_checkBox</tabstop>
   <tabstop>operationProtocolsCtr_spinBox</tabstop>
@@ -3992,6 +4182,7 @@
   <tabstop>personnelHoursTotalHours_spinBox</tabstop>
   <tabstop>personnelHoursTotalMinutes_spinBox</tabstop>
   <tabstop>reportTab_calendarWidget</tabstop>
+  <tabstop>report_tabWidget</tabstop>
   <tabstop>boat_comboBox</tabstop>
   <tabstop>boatRadioCallName_comboBox</tabstop>
   <tabstop>boatSlippedBeginOfDuty_checkBox</tabstop>
@@ -4038,6 +4229,9 @@
   <tabstop>boatHoursTotalMinutes_spinBox</tabstop>
   <tabstop>boatTab_calendarWidget</tabstop>
   <tabstop>assignmentNumber_lineEdit</tabstop>
+  <tabstop>addTimestamp_pushButton</tabstop>
+  <tabstop>timestamps_tableWidget</tabstop>
+  <tabstop>clearTimestamps_pushButton</tabstop>
   <tabstop>rescueTab_calendarWidget</tabstop>
  </tabstops>
  <resources>

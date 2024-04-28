@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -396,7 +396,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
 
     //Add a table row for each person
     for (const QString& tIdent : tPersonnelSorted)
-    {        
+    {
         const Person tPerson = pReport.getPerson(tIdent);
         const Person::Function tFunction = pReport.getPersonFunction(tIdent);
         const QTime tBeginTime = pReport.getPersonBeginTime(tIdent);
@@ -550,33 +550,33 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
        "\\end{minipage}\n"
        "}\n");
 
-    //Vehicles
+    //Used resources
 
-    QString texString5 = "\\newsavebox{\\vehiclesBox}\n"
-       "\\savebox{\\vehiclesBox}{\n"
+    QString texString5 = "\\newsavebox{\\resourcesBox}\n"
+       "\\savebox{\\resourcesBox}{\n"
        "\\begin{minipage}{0.45\\linewidth}\n"
-       "\\subsection*{Eingesetzte Fahrzeuge}\n"
+       "\\subsection*{Eingesetzte Fahrzeuge / Ressourcen}\n"
        "\\renewcommand{\\arraystretch}{0.6}\n"
        "\\begin{tabular}{>{\\raggedright}p{0.65\\linewidth}>{\\raggedright\\arraybackslash}p{0.10\\linewidth}\n"
        "                >{\\raggedright\\arraybackslash}p{0.10\\linewidth}}\n"
        "\\textbf{Funkrufname} & \\textbf{Von} & \\textbf{Bis} \\\\ \\toprule\n";
 
-    auto tNumVehicles = pReport.getVehicles().size();
-    decltype(tNumVehicles) tVehicleNumber = 0;
+    auto tNumResources = pReport.getResources().size();
+    decltype(tNumResources) tResourceNumber = 0;
 
-    //Add new row for each vehicle
-    for (const auto& it : pReport.getVehicles(true))
+    //Add new row for each used resource
+    for (const auto& it : pReport.getResources(true))
     {
-        QString vehicle = it.first;
-        Aux::latexUseHyphdash(vehicle);
+        QString resource = it.first;
+        Aux::latexUseHyphdash(resource);
 
-        const QTime arrivalTime = it.second.first;
-        const QTime leavingTime = it.second.second;
+        const QTime beginTime = it.second.first;
+        const QTime endTime = it.second.second;
 
-        texString5.append(QString("\\hspace{0pt}%1 & %2 & %3 \\\\").arg(vehicle, arrivalTime.toString("hh:mm"),
-                                                                                 leavingTime.toString("hh:mm")));
+        texString5.append(QString("\\hspace{0pt}%1 & %2 & %3 \\\\").arg(resource, beginTime.toString("hh:mm"),
+                                                                                  endTime.toString("hh:mm")));
 
-        if (++tVehicleNumber < tNumVehicles)
+        if (++tResourceNumber < tNumResources)
             texString5.append(" \\midrule\n");
     }
     texString5.append("\\bottomrule\n");
@@ -596,15 +596,15 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
     texString5.append(QString("}\n"
        "\\newlength{\\rescuesBoxHeight}\n"
        "\\setlength{\\rescuesBoxHeight}{\\ht\\rescuesBox+\\dp\\rescuesBox}\n"
-       "\\newlength{\\vehiclesBoxHeight}\n"
-       "\\setlength{\\vehiclesBoxHeight}{\\ht\\vehiclesBox+\\dp\\vehiclesBox}\n"
+       "\\newlength{\\resourcesBoxHeight}\n"
+       "\\setlength{\\resourcesBoxHeight}{\\ht\\resourcesBox+\\dp\\resourcesBox}\n"
        "\\newlength{\\assignmentNumberBoxHeight}\n"
        "\\setlength{\\assignmentNumberBoxHeight}{\\ht\\assignmentNumberBox+\\dp\\assignmentNumberBox}\n"
-       "\\newlength{\\vehiclesBoxSepLength}\n"
-       "\\setlength{\\vehiclesBoxSepLength}{5pt}\n"
+       "\\newlength{\\resourcesBoxSepLength}\n"
+       "\\setlength{\\resourcesBoxSepLength}{5pt}\n"
        "\\newlength{\\maxMinipageColHeight}\n"
        "\\setlength{\\maxMinipageColHeight}{%\n"
-       "\\maxof{\\rescuesBoxHeight}{\\vehiclesBoxHeight+\\assignmentNumberBoxHeight+\\vehiclesBoxSepLength}}\n"
+       "\\maxof{\\rescuesBoxHeight}{\\resourcesBoxHeight+\\assignmentNumberBoxHeight+\\resourcesBoxSepLength}}\n"
        "\\begin{minipage}[c][\\maxMinipageColHeight][t]{\\linewidth}\n"
        "\\begin{minipage}[c][\\maxMinipageColHeight][t]{0.45\\linewidth}\n"
        "\\usebox{\\rescuesBox}\n"
@@ -612,8 +612,8 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
        "\\end{minipage}\n"
        "\\hfill\n"
        "\\begin{minipage}[c][\\maxMinipageColHeight][t]{0.45\\linewidth}\\raggedleft\n"
-       "\\usebox{\\vehiclesBox}\n"
-       "\\vspace{\\vehiclesBoxSepLength}\\vfill\n"
+       "\\usebox{\\resourcesBox}\n"
+       "\\vspace{\\resourcesBoxSepLength}\\vfill\n"
        "\\usebox{\\assignmentNumberBox}\n"
        "\\end{minipage}\n"
        "\\end{minipage}\n"

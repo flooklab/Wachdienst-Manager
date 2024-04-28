@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -74,6 +74,9 @@ SettingsDialog::SettingsDialog(QWidget *const pParent) :
     passwordEdited(false)
 {
     ui->setupUi(this);
+
+    //Add example report file name presets
+    ui->fileNamePreset_comboBox->addItems(Aux::reportFileNamePresets);
 
     //Add example fuel types
     ui->boatFuelType_comboBox->addItems(Aux::boatFuelTypePresets);
@@ -147,7 +150,7 @@ SettingsDialog::SettingsDialog(QWidget *const pParent) :
     }
 
     //Check if database is writeable
-    if (DatabaseCache::isReadOnly())
+    if (DatabaseCache::isConfigReadOnly())
     {
         acceptDisabled = true;
 
@@ -194,6 +197,12 @@ void SettingsDialog::readDatabase()
     ui->defaultDutyTimesEnd_timeEdit->setTime(QTime::fromString(SettingsCache::getStrSetting("app_default_dutyTimeEnd"), "hh:mm"));
 
     ui->defaultFilePath_lineEdit->setText(SettingsCache::getStrSetting("app_default_fileDialogDir"));
+
+    QString fileNamePreset = SettingsCache::getStrSetting("app_default_reportFileNamePreset");
+    if (ui->fileNamePreset_comboBox->findText(fileNamePreset) != -1)
+        ui->fileNamePreset_comboBox->setCurrentIndex(ui->fileNamePreset_comboBox->findText(fileNamePreset));
+    else
+        ui->fileNamePreset_comboBox->setCurrentText(fileNamePreset);
 
     ui->xelatexPath_lineEdit->setText(SettingsCache::getStrSetting("app_export_xelatexPath"));
     ui->logoPath_lineEdit->setText(SettingsCache::getStrSetting("app_export_customLogoPath"));
@@ -341,7 +350,7 @@ void SettingsDialog::readDatabase()
  */
 bool SettingsDialog::writeDatabase() const
 {
-    if (DatabaseCache::isReadOnly())
+    if (DatabaseCache::isConfigReadOnly())
         return false;
 
     //General settings
@@ -381,6 +390,9 @@ bool SettingsDialog::writeDatabase() const
         return false;
 
     if (!SettingsCache::setStrSetting("app_default_fileDialogDir", ui->defaultFilePath_lineEdit->text()))
+        return false;
+
+    if (!SettingsCache::setStrSetting("app_default_reportFileNamePreset", ui->fileNamePreset_comboBox->currentText()))
         return false;
 
     if (!SettingsCache::setStrSetting("app_export_xelatexPath", ui->xelatexPath_lineEdit->text()))
@@ -737,7 +749,7 @@ void SettingsDialog::accept()
         return;
 
     //Do not write changes to settings database, if database not writeable
-    if (DatabaseCache::isReadOnly())
+    if (DatabaseCache::isConfigReadOnly())
     {
         QMessageBox(QMessageBox::Critical, "Fehler", "Schreiben nicht möglich! Datenbank ist nur lesbar, "
                     "da das Programm mehrfach geöffnet ist!", QMessageBox::Ok, this).exec();

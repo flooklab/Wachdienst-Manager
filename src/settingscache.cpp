@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -53,6 +53,7 @@ const std::map<QString, std::pair<std::function<QString(bool)>, std::function<bo
         {{"app_default_dutyTimeBegin", {SettingsCache::getDutyTimeBegin, SettingsCache::setDutyTimeBegin}},
          {"app_default_dutyTimeEnd", {SettingsCache::getDutyTimeEnd, SettingsCache::setDutyTimeEnd}},
          {"app_default_fileDialogDir", {SettingsCache::getDefaultDirectory, SettingsCache::setDefaultDirectory}},
+         {"app_default_reportFileNamePreset", {SettingsCache::getReportFileNamePreset, SettingsCache::setReportFileNamePreset}},
          {"app_export_xelatexPath", {SettingsCache::getXeLaTeXPath, SettingsCache::setXeLaTeXPath}},
          {"app_export_customLogoPath", {SettingsCache::getCustomLogoPath, SettingsCache::setCustomLogoPath}},
          {"app_export_fontFamily", {SettingsCache::getPDFFont, SettingsCache::setPDFFont}},
@@ -66,22 +67,25 @@ const std::map<QString, std::pair<std::function<QString(bool)>, std::function<bo
 /*!
  * \brief Fill settings cache with program settings from configuration database.
  *
- * If this function has not already been called or \p pForce is true, DatabaseCache::populate() will be called (forwarding
- * the \p pLockFile and \p pForce arguments) and after that any newly introduced settings will be added to the database.
+ * If this function has not already been called or \p pForce is true, DatabaseCache::populate() will
+ * be called (forwarding the \p pConfLockFile, \p pPersLockFile and \p pForce arguments (see there))
+ * and after that any newly introduced settings will be added to the database.
  *
  * Nothing else happens since the SettingsCache is basically just a wrapper for the DatabaseCache.
  *
- * \param pLockFile Pointer to a lock file for the configuration and personnel databases.
+ * \param pConfLockFile Pointer to a lock file for the configuration database.
+ * \param pPersLockFile Pointer to a lock file for the personnel database.
  * \param pForce Populate cache even if already populated.
  * \return If already populated or new populate action was successful (see also return value of DatabaseCache::populate()).
  */
-bool SettingsCache::populate(const std::shared_ptr<QLockFile> pLockFile, const bool pForce)
+bool SettingsCache::populate(const std::shared_ptr<QLockFile> pConfLockFile, const std::shared_ptr<QLockFile> pPersLockFile,
+                             const bool pForce)
 {
     if (populated && !pForce)
         return true;
 
     //Settings are cached in database cache, so make sure database cache is populated
-    populated = DatabaseCache::populate(pLockFile, pForce);
+    populated = DatabaseCache::populate(pConfLockFile, pPersLockFile, pForce);
 
     //Ensure that new settings are added to database by once calling getter for every setting
     for (const auto& it : availableIntSettings)
@@ -207,6 +211,7 @@ bool SettingsCache::setDblSetting(const QString& pSetting, const double pValue)
  * - app_default_dutyTimeBegin
  * - app_default_dutyTimeEnd
  * - app_default_fileDialogDir
+ * - app_default_reportFileNamePreset
  * - app_export_xelatexPath
  * - app_export_customLogoPath
  * - app_export_fontFamily
@@ -755,6 +760,43 @@ bool SettingsCache::setDefaultDirectory(const QString& pValue)
         QMessageBox(QMessageBox::Warning, "Warnung", "Standard-Pfad existiert nicht!", QMessageBox::Ok).exec();
     }
     return DatabaseCache::setSetting("app_default_fileDialogDir", pValue);
+}
+
+/*!
+ * \brief Read "app_default_reportFileNamePreset" setting from database cache (defines default value).
+ *
+ * Sets (and returns) default value of "", if setting is not set.
+ *
+ * Shows a warning message box, if writing not set setting to database fails.
+ *
+ * \param pNoMsgBox Suppress warning message boxes.
+ * \return Value of the setting.
+ */
+QString SettingsCache::getReportFileNamePreset(const bool pNoMsgBox)
+{
+    QString tValue;
+    if (!DatabaseCache::getSetting("app_default_reportFileNamePreset", tValue, "", true))   //Default: empty (no pre-set file name)
+    {
+        if (!pNoMsgBox)
+        {
+            QMessageBox(QMessageBox::Critical, "Fehler", "Fehler beim Schreiben der Konfigurations-Datenbank!", QMessageBox::Ok).exec();
+        }
+    }
+    return tValue;
+}
+
+/*!
+ * \brief Write "app_default_reportFileNamePreset" setting to database cache.
+ *
+ * Sets the cached value and also writes it to the configuration database.
+ * If writing to the database fails, the cached value will not be changed.
+ *
+ * \param pValue New value for the setting.
+ * \return If writing to database was successful.
+ */
+bool SettingsCache::setReportFileNamePreset(const QString& pValue)
+{
+    return DatabaseCache::setSetting("app_default_reportFileNamePreset", pValue);
 }
 
 //

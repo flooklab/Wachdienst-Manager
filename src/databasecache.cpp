@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -33,7 +33,8 @@
 
 bool DatabaseCache::populated = false;
 //
-std::shared_ptr<QLockFile> DatabaseCache::lockFilePtr = nullptr;
+std::shared_ptr<QLockFile> DatabaseCache::confLockFilePtr = nullptr;
+std::shared_ptr<QLockFile> DatabaseCache::persLockFilePtr = nullptr;
 //
 std::map<QString, int> DatabaseCache::settingsInt;
 std::map<QString, double> DatabaseCache::settingsDbl;
@@ -47,23 +48,45 @@ std::map<int, Person> DatabaseCache::personnelMap;
 //Public
 
 /*!
- * \brief Check, if database can be written.
+ * \brief Check, if configuration database can be written.
  *
- * Tries to acquire the database lock file. If this fails, i.e. a lock file is already present,
- * write operations to the database should be prevented and hence true will be returned.
+ * Tries to acquire the database lock file for the configuration database. If this fails,
+ * i.e. a lock file is already present, then write operations to the database
+ * should be prevented and hence true will be returned.
  *
  * \return If database should be considerered read-only because lock file cannot be acquired.
  */
-bool DatabaseCache::isReadOnly()
+bool DatabaseCache::isConfigReadOnly()
 {
-    if (lockFilePtr == nullptr)
+    if (confLockFilePtr == nullptr)
         return true;
 
-    //Try again to acquire lock file
-    if (!lockFilePtr->isLocked())
-        lockFilePtr->tryLock(100);
+    //Try to acquire lock file, again
+    if (!confLockFilePtr->isLocked())
+        confLockFilePtr->tryLock(100);
 
-    return !lockFilePtr->isLocked();
+    return !confLockFilePtr->isLocked();
+}
+
+/*!
+ * \brief Check, if personnel database can be written.
+ *
+ * Tries to acquire the database lock file for the personnel database. If this fails,
+ * i.e. a lock file is already present, then write operations to the database
+ * should be prevented and hence true will be returned.
+ *
+ * \return If database should be considerered read-only because lock file cannot be acquired.
+ */
+bool DatabaseCache::isPersonnelReadOnly()
+{
+    if (persLockFilePtr == nullptr)
+        return true;
+
+    //Try to acquire lock file, again
+    if (!persLockFilePtr->isLocked())
+        persLockFilePtr->tryLock(100);
+
+    return !persLockFilePtr->isLocked();
 }
 
 //
@@ -75,21 +98,26 @@ bool DatabaseCache::isReadOnly()
  * settings will be read from configuration database and loaded in cache and the
  * personnel records will be read from personnel database and also loaded in cache.
  *
- * \p pLockFile must specify a lock file that is used to limit write access to the databases to a single program instance.
+ * \p pConfLockFile and \p pPersLockFile must specify lock files that are used to limit
+ * write access to the configuration and personnel databases to a single program instance.
+ * You may choose \p pConfLockFile and \p pPersLockFile to refer to the same lock file instance.
  *
  * See also loadIntSettings(), loadDblSettings(), loadStrSettings(), loadStations(), loadBoats(), loadPersonnel().
  *
- * \param pLockFile Pointer to a lock file for the configuration and personnel databases.
+ * \param pConfLockFile Pointer to a lock file for the configuration database.
+ * \param pPersLockFile Pointer to a lock file for the personnel database.
  * \param pForce Populate cache even if already populated.
  * \return If already populated or new populate action was successful.
  */
-bool DatabaseCache::populate(const std::shared_ptr<QLockFile> pLockFile, const bool pForce)
+bool DatabaseCache::populate(const std::shared_ptr<QLockFile> pConfLockFile, const std::shared_ptr<QLockFile> pPersLockFile,
+                             const bool pForce)
 {
     if (populated && !pForce)
         return true;
 
-    //Take over lock file pointer
-    lockFilePtr = pLockFile;
+    //Take over lock file pointers
+    confLockFilePtr = pConfLockFile;
+    persLockFilePtr = pPersLockFile;
 
     //Set to false on query error, but continue and then return 'populated' at the end
     populated = true;
@@ -262,7 +290,7 @@ bool DatabaseCache::getSetting(const QString& pSetting, QString& pValue, const Q
  */
 bool DatabaseCache::setSetting(const QString& pSetting, const int pValue)
 {
-    if (isReadOnly())
+    if (isConfigReadOnly())
         return false;
 
     QSqlDatabase configDb = QSqlDatabase::database("configDb");
@@ -309,7 +337,7 @@ bool DatabaseCache::setSetting(const QString& pSetting, const int pValue)
  */
 bool DatabaseCache::setSetting(const QString& pSetting, const double pValue)
 {
-    if (isReadOnly())
+    if (isConfigReadOnly())
         return false;
 
     QSqlDatabase configDb = QSqlDatabase::database("configDb");
@@ -356,7 +384,7 @@ bool DatabaseCache::setSetting(const QString& pSetting, const double pValue)
  */
 bool DatabaseCache::setSetting(const QString& pSetting, const QString& pValue)
 {
-    if (isReadOnly())
+    if (isConfigReadOnly())
         return false;
 
     QSqlDatabase configDb = QSqlDatabase::database("configDb");
@@ -438,7 +466,7 @@ std::map<int, Aux::Boat> DatabaseCache::boats()
  */
 bool DatabaseCache::updateStations(const std::vector<Aux::Station>& pStations)
 {
-    if (isReadOnly())
+    if (isConfigReadOnly())
         return false;
 
     //Check stations' formatting first
@@ -567,7 +595,7 @@ bool DatabaseCache::updateStations(const std::vector<Aux::Station>& pStations)
  */
 bool DatabaseCache::updateBoats(const std::vector<Aux::Boat>& pBoats)
 {
-    if (isReadOnly())
+    if (isConfigReadOnly())
         return false;
 
     //Check boats' formatting first
@@ -927,7 +955,7 @@ void DatabaseCache::getPersonnel(std::vector<Person>& pPersons)
  */
 bool DatabaseCache::addPerson(const Person& pNewPerson)
 {
-    if (isReadOnly())
+    if (isPersonnelReadOnly())
         return false;
 
     //Check person's formatting first
@@ -982,7 +1010,7 @@ bool DatabaseCache::addPerson(const Person& pNewPerson)
  */
 bool DatabaseCache::updatePerson(const QString& pIdent, const Person& pNewPerson)
 {
-    if (isReadOnly())
+    if (isPersonnelReadOnly())
         return false;
 
     //Check person's formatting first
@@ -1045,7 +1073,7 @@ bool DatabaseCache::updatePerson(const QString& pIdent, const Person& pNewPerson
  */
 bool DatabaseCache::removePerson(const QString& pIdent)
 {
-    if (isReadOnly())
+    if (isPersonnelReadOnly())
         return false;
 
     //Check identifier

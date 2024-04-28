@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -392,57 +392,77 @@ bool Report::open(const QString& pFileName)
         return false;
     }
 
-    //List of present vehicles  with their arrival/leaving times
+    //List of used resources with their begin/end of use times
 
-    if (!reportObj.contains("vehicles") || !reportObj.value("vehicles").isObject())
+    if ((Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 5, 0) < 0 &&
+         (!reportObj.contains("vehicles") || !reportObj.value("vehicles").isObject())) ||
+        (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 5, 0) >= 0 &&
+         (!reportObj.contains("resources") || !reportObj.value("resources").isObject())))
     {
         if (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 1, 0) < 0)
         {
             std::cerr<<"WARNING: Report was saved with a program version before 1.1.0 "
                        "and does not contain a list of present vehicles. Ignore."<<std::endl;
         }
-        else
+        else if (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 5, 0) < 0)
         {
             std::cerr<<"ERROR: Report does not contain list of present vehicles!"<<std::endl;
+            return false;
+        }
+        else
+        {
+            std::cerr<<"ERROR: Report does not contain list of used resources!"<<std::endl;
             return false;
         }
     }
     else
     {
-        QJsonObject vehiclesObj = reportObj.value("vehicles").toObject();
+        bool useOldVehicles = (Aux::compareProgramVersions(tVerMaj, tVerMin, tVerPatch, 1, 5, 0) < 0);
 
-        if (!vehiclesObj.contains("vehiclesList") || !vehiclesObj.value("vehiclesList").isArray())
+        QJsonObject resourcesObj = reportObj.value(useOldVehicles ? "vehicles" : "resources").toObject();
+
+        if (!resourcesObj.contains(useOldVehicles ? "vehiclesList" : "resourcesList") ||
+                !resourcesObj.value(useOldVehicles ? "vehiclesList" : "resourcesList").isArray())
         {
-            std::cerr<<"ERROR: Broken vehicles list!"<<std::endl;
+            if (useOldVehicles)
+                std::cerr<<"ERROR: Broken vehicles list!"<<std::endl;
+            else
+                std::cerr<<"ERROR: Broken resources list!"<<std::endl;
             return false;
         }
 
-        QJsonArray vehiclesArray = vehiclesObj.value("vehiclesList").toArray();
+        QJsonArray resourcesArray = resourcesObj.value(useOldVehicles ? "vehiclesList" : "resourcesList").toArray();
 
-        //Fill vehicles list
-        for (QJsonArray::iterator it = vehiclesArray.begin(); it != vehiclesArray.end(); ++it)
+        //Fill resources list
+        for (QJsonArray::iterator it = resourcesArray.begin(); it != resourcesArray.end(); ++it)
         {
             if (!(*it).isObject())
             {
-                std::cerr<<"ERROR: Broken vehicle entry!"<<std::endl;
+                if (useOldVehicles)
+                    std::cerr<<"ERROR: Broken vehicle entry!"<<std::endl;
+                else
+                    std::cerr<<"ERROR: Broken resource entry!"<<std::endl;
                 return false;
             }
 
-            QJsonObject vehicleObj = (*it).toObject();
+            QJsonObject resourceObj = (*it).toObject();
 
-            QString tName = vehicleObj.value("radioCallName").toString("");
-            QTime tArrive = QTime::fromString(vehicleObj.value("arrive").toString(), "hh:mm");
-            QTime tLeave = QTime::fromString(vehicleObj.value("leave").toString(), "hh:mm");
+            QString tName = resourceObj.value("radioCallName").toString("");
+            QTime tBegin = QTime::fromString(resourceObj.value(useOldVehicles ? "arrive" : "begin").toString(), "hh:mm");
+            QTime tEnd = QTime::fromString(resourceObj.value(useOldVehicles ? "leave" : "end").toString(), "hh:mm");
 
             //Check formatting
             if (Aux::radioCallNamesValidator.validate(tName, tmpInt) != QValidator::State::Acceptable || tName.trimmed() != tName ||
-                !tArrive.isValid() || !tLeave.isValid())
+                !tBegin.isValid() || !tEnd.isValid())
             {
-                std::cerr<<"ERROR: Wrong vehicle data formatting!"<<std::endl;
+                if (useOldVehicles)
+                    std::cerr<<"ERROR: Wrong vehicle data formatting!"<<std::endl;
+                else
+                    std::cerr<<"ERROR: Wrong resource data formatting!"<<std::endl;
                 return false;
             }
 
-            vehicles.push_back({tName, {tArrive, tLeave}});
+            resources.push_back({tName, {tBegin, tEnd}});
         }
     }
 
@@ -706,7 +726,7 @@ bool Report::open(const QString& pFileName)
     {
         std::cerr<<"ERROR: Report does not contain a boat drives list!"<<std::endl;
         return false;
-    }    
+    }
     QJsonObject drivesObj = boatObj.value("boatDrives").toObject();
 
     if (!drivesObj.contains("drives") || !drivesObj.value("drives").isArray())
@@ -947,20 +967,20 @@ bool Report::save(const QString& pFileName, const bool pTempFile)
 
     reportObj.insert("assignmentNumber", assignmentNumber);
 
-    QJsonArray vehiclesArray;
-    for (const auto& it : vehicles)
+    QJsonArray resourcesArray;
+    for (const auto& it : resources)
     {
-        QJsonObject vehicleObj;
+        QJsonObject resourceObj;
 
-        vehicleObj.insert("radioCallName", it.first);
-        vehicleObj.insert("arrive", it.second.first.toString("hh:mm"));
-        vehicleObj.insert("leave", it.second.second.toString("hh:mm"));
+        resourceObj.insert("radioCallName", it.first);
+        resourceObj.insert("begin", it.second.first.toString("hh:mm"));
+        resourceObj.insert("end", it.second.second.toString("hh:mm"));
 
-        vehiclesArray.append(vehicleObj);
+        resourcesArray.append(resourceObj);
     }
-    QJsonObject vehiclesObj;
-    vehiclesObj.insert("vehiclesList", vehiclesArray);
-    reportObj.insert("vehicles", vehiclesObj);
+    QJsonObject resourcesObj;
+    resourcesObj.insert("resourcesList", resourcesArray);
+    reportObj.insert("resources", resourcesObj);
 
     reportObj.insert("personnelMinutesCarry", personnelMinutesCarry);
 
@@ -2045,21 +2065,21 @@ void Report::setAssignmentNumber(QString pNumber)
 //
 
 /*!
- * \brief Get the list of vehicles used for the duty.
+ * \brief Get the list of resources used for the duty.
  *
- * Returns a list of vehicles (their (radio call) names) used in the course of the duty
- * or otherwise present at the station together with their arrival and leaving times.
- * If \p pSorted is true, the returned vector is sorted by arrival time (before (radio call) name, before leaving time).
+ * Returns a list of resources (their (radio call) names) used in the
+ * course of the duty together with their begin of use and end of use times.
+ * If \p pSorted is true, the returned vector is sorted by begin time (before (radio call) name, before end time).
  *
  * \param pSorted Get a sorted vector.
- * \return Vector of vehicles as {{NAME, {T_ARRIVE, T_LEAVE}}, ...}.
+ * \return Vector of resources as {{NAME, {T_BEGIN, T_END}}, ...}.
  */
-std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getVehicles(const bool pSorted) const
+std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getResources(const bool pSorted) const
 {
     if (!pSorted)
-        return vehicles;
+        return resources;
 
-    //Define lambda to compare/sort vehicles by arrival time, then name, then leaving time
+    //Define lambda to compare/sort resources by begin time, then name, then end time
     auto cmp = [](const std::pair<QString, std::pair<QTime, QTime>>& pA,
                   const std::pair<QString, std::pair<QTime, QTime>>& pB) -> bool
     {
@@ -2083,32 +2103,32 @@ std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getVehicles(con
         }
     };
 
-    //Use temporary set to sort vehicles using above custom sort lambda
+    //Use temporary set to sort resources using above custom sort lambda
 
     std::set<std::pair<QString, std::pair<QTime, QTime>>, decltype(cmp)> tSet(cmp);
 
-    for (const auto& it : vehicles)
+    for (const auto& it : resources)
         tSet.insert(it);
 
-    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehiclesSorted;
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> resourcesSorted;
 
     for (const auto& it : tSet)
-        vehiclesSorted.push_back(it);
+        resourcesSorted.push_back(it);
 
-    return vehiclesSorted;
+    return resourcesSorted;
 }
 
 /*!
- * \brief Set the list of vehicles used for the duty.
+ * \brief Set the list of resources used for the duty.
  *
- * Sets a list of vehicles (their (radio call) names) used in the course of the duty
- * or otherwise present at the station together with their arrival and leaving times.
+ * Sets a list of resources (their (radio call) names) used in the
+ * course of the duty together with their arrival and leaving times.
  *
- * \param pVehicles New vehicles list as vector {{NAME, {T_ARRIVE, T_LEAVE}}, ...}.
+ * \param pResources New resources list as vector {{NAME, {T_BEGIN, T_END}}, ...}.
  */
-void Report::setVehicles(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pVehicles)
+void Report::setResources(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pResources)
 {
-    vehicles.swap(pVehicles);
+    resources.swap(pResources);
 }
 
 //

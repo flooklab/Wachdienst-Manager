@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -126,12 +126,12 @@ private:
     void updateBoatDrivesHours();                           ///< Update the accumulated boat drive hours display.
     void updateBoatDrivesTable();                           ///< Update the boat drives table widget (and fuel and boat drive hours).
     void updateBoatDriveAvailablePersons();                 ///< Update the list of persons selectable as boatman or crew member.
-    void updateReportVehiclesList();                        ///< Set report vehicles list according to vehicles entered in UI table.
+    void updateReportResourcesList();                       ///< Set report resources list according to resources entered in UI table.
     void applyBoatDriveChanges(int pRow);                   ///< Apply changed boat drive data to specified boat drive in report.
     //
     void insertBoatCrewTableRow(const Person& pPerson, Person::BoatFunction pFunction); ///< Add a person to the crew member table.
-    void addVehiclesTableRow(QString pName = "", QTime pArrivalTime = QTime(0, 0),
-                                                 QTime pLeavingTime = QTime(0, 0));     ///< Add a vehicles table row for a new vehicle.
+    void addResourcesTableRow(QString pName = "", QTime pBeginTime = QTime(0, 0),
+                                                  QTime pEndTime = QTime(0, 0));    ///< Add a resources table row for a new resource.
     //
     void checkPersonInputs();                       ///< Check entered person name and update selectable identifiers list accordingly.
     //
@@ -155,14 +155,13 @@ private slots:
     void on_rescueOperationSpinBoxValueChanged(int pValue,
                                                Report::RescueOperation pRescue);    ///< Set report rescue operation counter.
     void on_openDocumentPushButtonPressed(const QString& pDocFile);                 ///< Open one of the important documents.
-    void on_vehicleRemovePushButtonPressed(const QPushButton* pRemoveRowButton);    ///< Remove a rescue vehicle from the list.
-    void on_vehicleLineEditTextEdited(const QPushButton* pRemoveRowButton);         ///< Change the radio call name of a rescue vehicle.
-    void on_vehicleLineEditReturnPressed(const QPushButton* pRemoveRowButton);      ///< Add an empty row for another rescue vehicle.
-    void on_vehicleTimeEditTimeChanged(const QPushButton* pRemoveRowButton);        ///< Change a vehicle's arrival/leaving times.
+    void on_resourceRemovePushButtonPressed(const QPushButton* pRemoveRowButton);   ///< Remove a used resource from the list.
+    void on_resourceLineEditTextEdited(const QPushButton* pRemoveRowButton);        ///< Change the radio call name of a used resource.
+    void on_resourceLineEditReturnPressed(const QPushButton* pRemoveRowButton);     ///< Add an empty row for another used resource.
+    void on_resourceTimeEditTimeChanged(const QPushButton* pRemoveRowButton);       ///< Change a used resource's begin/end times.
     //
     void on_updateClocksTimerTimeout();                                             ///< Update the time displayed in every tab.
     void on_autoSaveTimerTimeout();                                                 ///< Auto-save the report.
-    void on_timestampShortcutActivated();                                           ///< Show (non-modal) message box with current time.
     void on_findPersonShortcutActivated();                                          ///< Select all personnel matching the entered name.
     void on_exportFailed();                                                         ///< Show message box explaining that export failed.
     //
@@ -215,6 +214,10 @@ private slots:
     void on_personFirstName_lineEdit_textChanged(const QString&);           ///< Check entered person name and update dependent widgets.
     void on_personFirstName_lineEdit_returnPressed();                       ///< Add the selected person to the report personnel list.
     void on_personIdent_comboBox_currentTextChanged(const QString& arg1);   ///< Update selectable personnel functions.
+    void on_setNewPersonTimeBegin_pushButton_pressed();                     ///< Set new person begin time edit to duty begin time.
+    void on_setNewPersonTimeBeginNow_pushButton_pressed();                  ///< Set new person begin time edit to now (nearest quarter).
+    void on_setNewPersonTimeEndNow_pushButton_pressed();                    ///< Set new person end time edit to now (nearest quarter).
+    void on_setNewPersonTimeEnd_pushButton_pressed();                       ///< Set new person end time edit to duty end time.
     void on_addPerson_pushButton_pressed();                                 ///< Add the selected person to the report personnel list.
     void on_addExtPerson_pushButton_pressed();                              ///< Add an external person to the report personnel list.
     void on_updatePerson_pushButton_pressed();                              ///< Change selected persons' functions and times.
@@ -279,6 +282,9 @@ private slots:
     void on_boatHoursCarryMinutes_spinBox_valueChanged(int arg1);   ///< Set report boat hours carry and update total boat hours display.
     //
     void on_assignmentNumber_lineEdit_textEdited(const QString& arg1);  ///< Set report assignment number.
+    //
+    void on_clearTimestamps_pushButton_pressed();                       ///< Clear the list of timestamps.
+    void on_addTimestamp_pushButton_pressed();                          ///< Add a new timestamp to the list of timestamps.
 
 signals:
     void closed(const ReportWindow* pWindow);       ///< Signal emitted when window closes (for re-showing startup window).
@@ -303,22 +309,22 @@ private:
     std::map<Report::RescueOperation, const RescueOperationsRow> rescuesTableRows;  //Pointers to dyn. added widgets for each rescue type
     //
     /*!
-     * \brief A row of the vehicles table.
+     * \brief A row of the used resources table.
      *
-     * Groups pointers to widgets of the same row of a vehicles table for later access.
+     * Groups pointers to widgets of the same row of a used resources table for later access.
      * Also contains a list of the widget's signal-slot connections (for later disconnection before possible widget removal).
      */
-    struct VehiclesRow
+    struct ResourcesRow
     {
         QPushButton *const removeRowPushButton; ///< Pointer to a push button for removing the row.
-        QLineEdit *const vehicleNameLineEdit;   ///< Pointer to a line edit for entering the vehicle's (radio call) name.
-        QTimeEdit *const arriveTimeEdit;        ///< Pointer to a time edit for entering the vehicle's arrival time.
-        QTimeEdit *const leaveTimeEdit;         ///< Pointer to a time edit for entering the vehicle's leaving time.
+        QLineEdit *const resourceNameLineEdit;  ///< Pointer to a line edit for entering the resource's (radio call) name.
+        QTimeEdit *const beginTimeEdit;         ///< Pointer to a time edit for entering the resource's begin of use time.
+        QTimeEdit *const endTimeEdit;           ///< Pointer to a time edit for entering the resource's end of use time.
         QLabel *const timesSepLabel;            ///< Pointer to a label separating the time edits.
         const std::vector<QMetaObject::Connection> connections; ///< Signal-slot connections for this struct's widgets.
     };
-    std::list<VehiclesRow> vehiclesTableRows;   //Pointers to dyn. added widgets for each vehicle
-    QGridLayout* vehiclesGroupBoxLayout;        //Layout of group box containing vehicles table
+    std::list<ResourcesRow> usedResourcesTableRows; //Pointers to dyn. added widgets for each used resource
+    QGridLayout* usedResourcesGroupBoxLayout;       //Layout of group box containing used resources table
     //
     QLabel* statusBarLabel;                     //Permanent label in the status bar
     //

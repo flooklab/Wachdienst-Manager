@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -126,6 +126,7 @@ public:
     static const QRegularExpressionValidator assignmentNumbersValidator;    ///< Validator for directing center assignment numbers.
     static const QRegularExpressionValidator programVersionsValidator;      ///< Validator for program version strings.
     //
+    static const QStringList reportFileNamePresets;                         ///< Example file name presets to use as combo box presets.
     static const QStringList boatFuelTypePresets;                           ///< Example fuel types to use as combo box presets.
     static const QStringList boatDrivePurposePresets;                       ///< Example boat drive purposes to use as combo box presets.
 

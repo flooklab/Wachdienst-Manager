@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -50,7 +50,8 @@ class SettingsCache
 public:
     SettingsCache() = delete;   ///< Deleted constructor.
     //
-    static bool populate(std::shared_ptr<QLockFile> pLockFile, bool pForce = false);    ///< \brief Fill settings cache with program
+    static bool populate(std::shared_ptr<QLockFile> pConfLockFile, std::shared_ptr<QLockFile> pPersLockFile,
+                         bool pForce = false);                                          ///< \brief Fill settings cache with program
                                                                                         ///  settings from configuration database.
     //
     static int getIntSetting(const QString& pSetting, bool pNoMsgBox = false);      ///< Get an integer type setting.
@@ -103,6 +104,10 @@ private:
     static QString getDefaultDirectory(bool pNoMsgBox = false); ///< \brief Read "app_default_fileDialogDir" setting
                                                                 ///  from database cache (defines default value).
     static bool setDefaultDirectory(const QString& pValue);     ///< Write "app_default_fileDialogDir" setting to database cache.
+    static QString getReportFileNamePreset(bool pNoMsgBox = false); ///< \brief Read "app_default_reportFileNamePreset" setting
+                                                                    ///  from database cache (defines default value).
+    static bool setReportFileNamePreset(const QString& pValue);     ///< \brief Write "app_default_reportFileNamePreset" setting
+                                                                    ///  to database cache.
     //
     static QString getXeLaTeXPath(bool pNoMsgBox = false);      ///< \brief Read "app_export_xelatexPath" setting
                                                                 ///  from database cache (defines default value).

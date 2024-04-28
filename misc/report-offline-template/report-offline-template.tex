@@ -1,0 +1,348 @@
+% This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
+% Copyright (C) 2021–2024 M. Frohne
+%
+% Wachdienst-Manager is free software: you can redistribute it and/or modify
+% it under the terms of the GNU Affero General Public License as published
+% by the Free Software Foundation, either version 3 of the License,
+% or (at your option) any later version.
+%
+% Wachdienst-Manager is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+% See the GNU Affero General Public License for more details.
+%
+% You should have received a copy of the GNU Affero General Public License
+% along with Wachdienst-Manager. If not, see <https://www.gnu.org/licenses/>.
+
+\documentclass[a4paper, notitlepage, 10pt]{scrreprt}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage[babelshorthands=true]{german}
+
+\usepackage{hyperref}
+\hypersetup{
+    pdfpagemode=,
+    pdfstartview=,
+    pdftitle={Wachbericht-Offline-Vorlage},
+    pdfkeywords={wdmgr-version:1.5.0}
+}
+
+\usepackage[nodocdata=false,noeditdata=false,noproducerdata=true,noptexdata=false,nopdftrailerid=false]{pdfprivacy}
+
+\usepackage[top=0.4in, left=0.5in, bottom=0.4in, right=0.4in]{geometry}
+\usepackage{calc}
+
+\usepackage{amssymb}
+
+\usepackage{ulem}
+
+\usepackage{array}
+\usepackage{extdash}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+\usepackage{graphicx}
+
+\setmainfont{DLRG Univers 55 Roman}
+\setsansfont{DLRG Univers 55 Roman}
+\setmonofont{DLRG Univers 55 Roman}
+
+\newcommand{\rotatedWindArrow}[1]{\raisebox{1.0pt}{\makebox[9pt][c]{\rotatebox[origin=c]{#1}{$\uparrow$}}}}
+\newcommand{\windChanging}{\raisebox{1.0pt}{\makebox[9pt][c]{$\circlearrowleft$}}}
+
+\newcommand{\recurse}[3][0]{#3 \ifnum#2>1 \recurse{\inteval{#2-1}}{#3} \fi}
+
+%\newcounter{myRecurseOrigNum}
+%\newcommand{\recurseNum}[3][0]{%
+%\ifnum#1=0 \setcounter{myRecurseOrigNum}{#2} \else \setcounter{myRecurseOrigNum}{#1} \fi%
+%#3{\inteval{\value{myRecurseOrigNum}-#2}}%
+%\ifnum#2>1 \recurseNum[\value{myRecurseOrigNum}]{\inteval{#2-1}}{#3} \fi%
+%}
+
+\newcommand{\phantomspace}{\vphantom{A}}
+
+\newcommand{\personnelrow}{\phantomspace & & & & & & \\ \midrule}
+\newcommand{\continuedpersonnelrow}{\personnelrow}
+\newcommand{\resourcesrow}{\phantomspace & & \\ \midrule}
+\newcommand{\drivesrow}{%
+\phantomspace\uline{\hfill} & \makecell[rt]{\phantomspace\uline{\hphantom{00:00}}\\--\phantomspace\uline{\hphantom{00:00}}} & & &
+\phantomspace\uline{\hfill}\newline{}\phantomspace\uline{\hfill}\newline{}\phantomspace\uline{\hfill}%
+\newline{}\phantomspace\uline{\hfill} & & \uline{\hphantom{00:00}} \\ \midrule%
+}
+\newcommand{\continueddrivesrow}{\drivesrow}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+{\LARGE\textbf{Wachbericht}}
+
+\vspace{-2pt}\hspace{-0.5in}
+\begin{minipage}[b][0pt][t]{\linewidth+0.5in+0.4in-2pt-8pt}\vspace{-51pt+8pt}\hfill\includegraphics[width=105pt]{logo}%
+\end{minipage}
+
+\begin{minipage}{\linewidth}
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{>{}p{0.095\linewidth}>{}p{0.28\linewidth}>{}p{0.10\linewidth}>{}p{0.09\linewidth}
+                 >{}p{0.09\linewidth}>{}p{0.09\linewidth}}
+\textbf{Bezirk/OG:} & \phantomspace\uline{\hfill} & \textbf{Lfd. Nr.:} & \phantomspace\uline{\hfill} && \\
+\textbf{Station:} & \phantomspace\uline{\hfill} & \textbf{Dienstzweck:} & \multicolumn{3}{p{0.27\linewidth}}{%
+\parbox[t]{\linewidth}{\phantomspace\uline{\hfill}\newline{}\phantomspace\uline{\hfill}}} \\
+\textbf{Ort:} & \phantomspace\uline{\hfill} & \textbf{Funkruf:} & \multicolumn{3}{p{0.27\linewidth}}{%
+\parbox{\linewidth}{\phantomspace\uline{\hfill}}} \\
+\textbf{Datum:} & \phantomspace\uline{\hfill} & \textbf{Beginn:} & \phantomspace\uline{\hfill} & \textbf{Ende:} &
+\phantomspace\uline{\hfill} \\
+\end{tabular}
+\end{minipage}
+\vfill
+
+\vspace{-7pt}\subsection*{Wachmannschaft}
+\vspace{3pt}
+\renewcommand{\arraystretch}{0.6}
+\begin{tabular}{>{\raggedleft}p{0.02\linewidth}>{\raggedright}p{0.26\linewidth}>{\raggedright}p{0.26\linewidth}
+                 >{\raggedright}p{0.09\linewidth}>{\raggedleft}p{0.07\linewidth}>{\raggedleft}p{0.07\linewidth}
+                 >{\raggedleft\arraybackslash}p{0.07\linewidth}}
+\textbf{Nr.} & \textbf{Name} & \textbf{Vorname} & \textbf{Funktion} & \textbf{Beginn} & \textbf{Ende} &
+\textbf{Gesamt}\\
+\toprule
+\recurse{14}{\personnelrow}
+\phantomspace & & & & & & \\ \bottomrule\addlinespace[\belowrulesep]
+\multicolumn{6}{r}{Einsatzstunden} & \phantomspace\uline{\hphantom{00:00}}\vspace{1pt} \\
+\multicolumn{6}{r}{+ Übertrag} & \phantomspace\uline{\hphantom{0000:00}}\vspace{3pt} \\
+\multicolumn{6}{r}{= Gesamt} & \phantomspace\uline{\hphantom{0000:00}} \\
+\end{tabular}
+\vspace{-12pt}
+\vfill
+
+\begin{minipage}{\linewidth}
+\subsection*{Wetter}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{>{\raggedright}p{0.155\linewidth}>{\raggedright}p{0.06\linewidth}>{\raggedright}p{0.11\linewidth}
+                 >{\raggedright}p{0.175\linewidth}>{\raggedright}p{0.115\linewidth}
+                 >{\raggedright\arraybackslash}p{0.265\linewidth}}
+Lufttemperatur: & \phantomspace\uline{\hfill}\,\textdegree{}C & Bewölkung: & \phantomspace\uline{\hfill} & Wind: &
+\phantomspace\uline{\hfill} \\
+Wassertemperatur: & \phantomspace\uline{\hfill}\,\textdegree{}C & Niederschlag: & \phantomspace\uline{\hfill} &
+Bemerkungen: & \parbox[t]{\linewidth}{\phantomspace\uline{\hfill}\newline{}\phantomspace\uline{\hfill}}
+\end{tabular}
+\end{minipage}
+\vspace{7pt}
+\vfill
+
+\newsavebox{\rescuesBox}
+\savebox{\rescuesBox}{
+\begin{minipage}{0.45\linewidth}
+\subsection*{Hilfeleistungen}
+\renewcommand{\arraystretch}{0.6}
+\begin{tabular}{>{\raggedright}p{0.86\linewidth}>{\raggedleft\arraybackslash}p{0.12\linewidth}}
+\textbf{Art der Hilfeleistung} & \textbf{Anzahl} \\ \toprule
+Erste-Hilfe-Einsatz & \\ \midrule
+Ausgabe von EH-/SAN-Material & \\ \midrule
+Rettung von Personen vor Ertrinken & \\ \midrule
+Vorbeugende Maßnahmen Wassersportler & \\ \midrule
+Bootskenterung (mit Hilfe Personen) & \\ \midrule
+Bootskenterung (technische Hilfe) & \\ \midrule
+Personensuche & \\ \midrule
+Bergung von Sachgut & \\ \midrule
+Sonstige Hilfeleistungen & \\ \bottomrule\addlinespace[\belowrulesep]
+Rettungen aus Lebensgefahr & \\ \bottomrule
+\end{tabular}
+\end{minipage}
+}
+\newsavebox{\resourcesBox}
+\savebox{\resourcesBox}{
+\begin{minipage}{0.45\linewidth}
+\subsection*{Eingesetzte Fahrzeuge / Ressourcen}
+\renewcommand{\arraystretch}{0.6}
+\begin{tabular}{>{\raggedright}p{0.65\linewidth}>{\raggedright\arraybackslash}p{0.10\linewidth}
+                >{\raggedright\arraybackslash}p{0.10\linewidth}}
+\textbf{Funkrufname} & \textbf{Von} & \textbf{Bis} \\ \toprule
+\recurse{6}{\resourcesrow}
+\phantomspace & & \\ \bottomrule
+\end{tabular}
+\end{minipage}
+}
+\newsavebox{\assignmentNumberBox}
+\savebox{\assignmentNumberBox}{
+\begin{minipage}{0.45\linewidth}\hfill
+\begin{tabular}{>{\raggedleft\arraybackslash}p{0.45\linewidth}}
+\multicolumn{1}{c}{\textbf{Einsatznummer LSt}} \\ \toprule\vspace{-3pt}
+\phantomspace\uline{\hfill}
+\end{tabular}
+\end{minipage}
+}
+\newlength{\rescuesBoxHeight}
+\setlength{\rescuesBoxHeight}{\ht\rescuesBox+\dp\rescuesBox}
+\newlength{\resourcesBoxHeight}
+\setlength{\resourcesBoxHeight}{\ht\resourcesBox+\dp\resourcesBox}
+\newlength{\assignmentNumberBoxHeight}
+\setlength{\assignmentNumberBoxHeight}{\ht\assignmentNumberBox+\dp\assignmentNumberBox}
+\newlength{\resourcesBoxSepLength}
+\setlength{\resourcesBoxSepLength}{5pt}
+\newlength{\maxMinipageColHeight}
+\setlength{\maxMinipageColHeight}{%
+\maxof{\rescuesBoxHeight}{\resourcesBoxHeight+\assignmentNumberBoxHeight+\resourcesBoxSepLength}}
+\begin{minipage}[c][\maxMinipageColHeight][t]{\linewidth}
+\begin{minipage}[c][\maxMinipageColHeight][t]{0.45\linewidth}
+\usebox{\rescuesBox}
+\vfill
+\end{minipage}
+\hfill
+\begin{minipage}[c][\maxMinipageColHeight][t]{0.45\linewidth}\raggedleft
+\usebox{\resourcesBox}
+\vspace{\resourcesBoxSepLength}\vfill
+\usebox{\assignmentNumberBox}
+\end{minipage}
+\end{minipage}
+\vspace{9pt}
+\vfill
+
+\begin{minipage}{\linewidth}
+\subsection*{Bemerkungen}\vspace{-6pt}
+\uline{\phantomspace\hfill\mbox{}\newline\phantomspace\hfill\mbox{}\newline\phantomspace\hfill%
+\mbox{}\newline\phantomspace\hfill}
+\end{minipage}
+\\\\\vspace{-3pt}
+\vfill
+
+\begin{minipage}{\linewidth}
+Anlagen zum Wachbericht:\vspace*{4pt}\\
+\mbox{$\boxtimes$ Bootstagebuch \qquad\qquad $\Box$ Einsatzprotokoll \hphantom{(\texttimes\,0)}\qquad\qquad $\Box$
+Patientenprotokoll \hphantom{(\texttimes\,0)}\qquad\qquad $\Box$ Funktagebuch \hphantom{(\texttimes\,0)}}
+\vspace*{-5pt}\\
+Weitere Anlagen:\\\\[-11pt]
+\hphantom{X}\uline{\mbox{}\,\mbox{\hspace{200pt}}\ \ \mbox{}}
+\end{minipage}
+\vspace{-13pt}
+
+\hfill\vfill\hfill\parbox[c][0pt][r]{150pt}{\hrule \vspace{3pt} Unterschrift Stationsleiter \vspace{-2pt}}
+
+\clearpage
+
+\subsection*{Fortsetzung: Wachmannschaft}
+\vspace{3pt}
+\renewcommand{\arraystretch}{0.6}
+\begin{longtable}{>{\raggedleft}p{0.02\linewidth}>{\raggedright}p{0.26\linewidth}>{\raggedright}p{0.26\linewidth}
+                   >{\raggedright}p{0.11\linewidth}>{\raggedleft}p{0.06\linewidth}>{\raggedleft}p{0.06\linewidth}
+                   >{\raggedleft\arraybackslash}p{0.07\linewidth}}
+\textbf{Nr.} & \textbf{Name} & \textbf{Vorname} & \textbf{Funktion} & \textbf{Beginn} & \textbf{Ende} &
+\textbf{Gesamt}\\
+\toprule
+\dots & \multicolumn{5}{c}{\textit{Fortsetzung von letzter Seite}} & \dots\vspace{0pt} \\
+\midrule
+\endhead
+\dots & \multicolumn{5}{c}{\textit{Fortsetzung auf nächster Seite}}\strut &
+\dots\vspace{0pt} \\
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\recurse{48}{\continuedpersonnelrow}
+\phantomspace & & & & & & \\
+\end{longtable}
+\vspace{0pt}
+\vfill
+
+\clearpage
+{\LARGE\textbf{Bootstagebuch}}
+
+\vspace{-2pt}\hspace{-0.5in}
+\begin{minipage}[b][0pt][t]{\linewidth+0.5in+0.4in-2pt-8pt}%
+\vspace{-51pt+8pt}\hfill\includegraphics[width=105pt]{logo}\end{minipage}
+
+\begin{minipage}{\linewidth}
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{>{}p{0.095\linewidth}>{}p{0.28\linewidth}>{}p{0.11\linewidth}>{}p{0.075\linewidth}
+                >{}p{0.11\linewidth}>{}p{0.075\linewidth}}
+\textbf{Bezirk/OG:} & \phantomspace\uline{\hfill} & \textbf{Lfd. Nr.:} & \phantomspace\uline{\hfill} && \\
+\textbf{Boot:} & \phantomspace\uline{\hfill} & \textbf{Typ:} & \multicolumn{3}{p{0.26\linewidth}}{%
+\parbox{\linewidth}{\phantomspace\uline{\hfill}}} \\
+\textbf{Ort:} & \phantomspace\uline{\hfill} & \textbf{Funkruf:} & \multicolumn{3}{p{0.26\linewidth}}{%
+\parbox{\linewidth}{\phantomspace\uline{\hfill}}} \\
+\textbf{Datum:} & \phantomspace\uline{\hfill} & \textbf{BSZ-Start:} & \phantomspace\uline{\hfill} &
+\textbf{BSZ-Ende:} & \phantomspace\uline{\hfill} \\
+\end{tabular}
+\end{minipage}
+\vfill
+
+\subsection*{Bootsfahrten}
+\vspace{3pt}
+\renewcommand{\arraystretch}{0.6}
+\begin{tabular}{>{\raggedleft}p{0.02\linewidth}>{\raggedright}p{0.08\linewidth}>{\raggedright}p{0.14\linewidth}
+                >{\raggedright}p{0.13\linewidth}>{\raggedright}p{0.21\linewidth}>{\raggedright}p{0.19\linewidth}
+                >{\raggedleft\arraybackslash}p{0.07\linewidth}}
+\textbf{Nr.} & \textbf{Zeitraum} & \textbf{Fahrtzweck} & \textbf{Bootsführer} & \textbf{Besatzung} &
+\textbf{Bemerkungen} & \textbf{Dauer}\\
+\toprule
+\recurse{8}{\drivesrow}
+\phantomspace & \multicolumn{5}{c}{\phantomspace} & \phantomspace\vspace{0pt} \\
+\bottomrule\addlinespace[\belowrulesep]
+\multicolumn{6}{r}{Einsatzstunden} & \phantomspace\uline{\hphantom{00:00}}\vspace{1pt} \\
+\multicolumn{6}{r}{+ Übertrag} & \phantomspace\uline{\hphantom{000:00}}\vspace{3pt} \\
+\multicolumn{6}{r}{= Gesamt} & \phantomspace\uline{\hphantom{000:00}} \\
+\end{tabular}
+\vspace{-13pt}
+\vfill
+
+\begin{minipage}{\linewidth}
+\vspace{4pt}\subsection*{Sonstiges}\vspace{-3pt}%\vspace{-4pt}%5 BGs
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{\textbf{Boot einsatzbereit im Wasser:}} \\
+Von & \phantomspace\uline{\hphantom{00:00}} \\
+Bis & \phantomspace\uline{\hphantom{00:00}}
+\end{tabular}
+\hfill
+\begin{tabular}{l}
+\textbf{Boot geslippt:}\\
+$\Box$ Zu Dienstanfang\\
+$\Box$ Zu Dienstende
+\end{tabular}
+\hfill
+\begin{tabular}{>{\raggedright}p{0.10\linewidth}>{\raggedleft\arraybackslash}p{0.075\linewidth}}
+\multicolumn{2}{l}{\textbf{Getankt:}} \\
+\phantomspace\uline{\hfill}: & \phantomspace\uline{\hfill} \\ & 
+\end{tabular}
+\end{minipage}
+\vspace{7pt}%\vspace{5pt}%5 BGs
+\vfill
+
+\begin{minipage}{\linewidth}
+\subsection*{Bemerkungen}\vspace{-6pt}
+\uline{\phantomspace\hfill\mbox{}\newline\phantomspace\hfill\mbox{}\newline\phantomspace\hfill%
+\mbox{}\newline\phantomspace\hfill%
+}
+\end{minipage}
+\\\\\vspace{3pt}\vfill
+
+\hfill\vfill\parbox[c][0pt][r]{150pt}{\hrule \vspace{3pt} Unterschrift Bootsführer \vspace{-2pt}}\hfill
+ \parbox[c][0pt][r]{150pt}{\hrule \vspace{3pt} Unterschrift Stationsleiter \vspace{-2pt}}
+
+\clearpage
+
+\subsection*{Fortsetzung: Bootsfahrten}
+\vspace{3pt}
+\renewcommand{\arraystretch}{0.6}
+\begin{longtable}{>{\raggedleft}p{0.02\linewidth}>{\raggedright}p{0.08\linewidth}>{\raggedright}p{0.14\linewidth}
+                   >{\raggedright}p{0.13\linewidth}>{\raggedright}p{0.21\linewidth}>{\raggedright}p{0.19\linewidth}
+                   >{\raggedleft\arraybackslash}p{0.07\linewidth}}
+\textbf{Nr.} & \textbf{Zeitraum} & \textbf{Fahrtzweck} & \textbf{Bootsführer} & \textbf{Besatzung} &
+\textbf{Bemerkungen} & \textbf{Dauer}\\
+\toprule
+\dots & \multicolumn{5}{c}{\textit{Fortsetzung von letzter Seite}} & \dots\vspace{0pt} \\
+\midrule
+\endhead
+\dots & \multicolumn{5}{c}{\textit{Fortsetzung auf nächster Seite}}\strut &
+\dots\vspace{0pt} \\
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\recurse{13}{\continueddrivesrow}
+\phantomspace & & & & & & \\
+\end{longtable}
+\vspace{0pt}
+\vfill
+\end{document}

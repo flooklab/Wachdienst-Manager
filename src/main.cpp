@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -96,7 +96,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    //If config directory contains a file 'dbPath.conf', read alternative config directory from the file and use that in the following
+    QDir personnelDir = configDir;
+
+    //If config directory contains a file 'dbPath.conf', read alternative config directory from the file and use that in the following;
+    //if the file contains two paths, use the second path as distinct directory for the personnel database
 
     QString dbPathConfFileName = configDir.filePath("dbPath.conf");
     const bool dbPathConfFileExists = QFileInfo::exists(dbPathConfFileName);
@@ -114,6 +117,7 @@ int main(int argc, char *argv[])
         }
 
         QString alternativeDbPath = dbPathConfFile.readLine().trimmed();
+        QString alternativeDbPath2 = dbPathConfFile.readLine().trimmed();
 
         dbPathConfFile.close();
 
@@ -145,6 +149,39 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
             }
         }
+
+        if (alternativeDbPath2 != "")
+        {
+            QDir alternativeDbDir2(alternativeDbPath2);
+
+            if (!alternativeDbDir2.exists())
+            {
+                if (!QDir().mkpath(alternativeDbDir2.absolutePath()))
+                {
+                    std::cerr<<"ERROR: Could not create alternative personnel directory!"<<std::endl;
+                    QMessageBox(QMessageBox::Critical, "Fehler",
+                                "Fehler beim Erstellen des alternativen Personal-Datenbank-Verzeichnisses!").exec();
+                    return EXIT_FAILURE;
+                }
+                else
+                {
+                    QMessageBox(QMessageBox::Information, "Verzeichnis angelegt",
+                                                          "Ein alternatives Personal-Datenbank-Verzeichnis wurde angelegt!").exec();
+                }
+            }
+
+            if (!personnelDir.cd(alternativeDbDir2.absolutePath()))
+            {
+                std::cerr<<"ERROR: Could not change into the alternative personnel directory!"<<std::endl;
+                QMessageBox(QMessageBox::Critical, "Fehler",
+                                                   "Fehler beim Wechseln in das alternative Personal-Datenbank-Verzeichnis!").exec();
+                return EXIT_FAILURE;
+            }
+        }
+        else
+        {
+            personnelDir = configDir;
+        }
     }
 
     //Check if database files exist
@@ -152,7 +189,7 @@ int main(int argc, char *argv[])
     QString confDbFileName = configDir.filePath("configuration.sqlite3");
     const bool confDbExists = QFileInfo::exists(confDbFileName);
 
-    QString personnelDbFileName = configDir.filePath("personnel.sqlite3");
+    QString personnelDbFileName = personnelDir.filePath("personnel.sqlite3");
     const bool persDbExists = QFileInfo::exists(personnelDbFileName);
 
     //If neither of 'dbPath.conf' or database files exist assume first startup and ask for alternative config directory (for dbPath.conf)
@@ -232,6 +269,18 @@ int main(int argc, char *argv[])
     std::shared_ptr<QLockFile> lockFilePtr = std::make_shared<QLockFile>(lockFileName);
     lockFilePtr->setStaleLockTime(0);
     lockFilePtr->tryLock(1000);
+
+    //Use additional lock file for personnel database in case of different database directories; use the same lock file otherwise
+
+    std::shared_ptr<QLockFile> lockFilePtr2 = lockFilePtr;
+
+    if (personnelDir.absolutePath() != configDir.absolutePath())
+    {
+        QString lockFileName2 = personnelDir.filePath("db.lock");
+        lockFilePtr2 = std::make_shared<QLockFile>(lockFileName2);
+        lockFilePtr2->setStaleLockTime(0);
+        lockFilePtr2->tryLock(1000);
+    }
 
     //Set up fresh databases if they do not exist
 
@@ -335,7 +384,7 @@ int main(int argc, char *argv[])
     }
 
     //Cache database entries
-    if (!DatabaseCache::populate(lockFilePtr) || !SettingsCache::populate(lockFilePtr))
+    if (!DatabaseCache::populate(lockFilePtr, lockFilePtr2) || !SettingsCache::populate(lockFilePtr, lockFilePtr2))
     {
         std::cerr<<"ERROR: Could not cache database entries!"<<std::endl;
         QMessageBox(QMessageBox::Critical, "Fehler", "Fehler beim Füllen des Datenbank-Caches!").exec();

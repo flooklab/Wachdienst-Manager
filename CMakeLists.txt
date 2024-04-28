@@ -22,33 +22,53 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x060001)
 set(PROJECT_SOURCES
     resources.qrc
     src/main.cpp
+    src/startupwindow.h
     src/startupwindow.cpp
     src/startupwindow.ui
+    src/aboutdialog.h
     src/aboutdialog.cpp
     src/aboutdialog.ui
+    src/settingsdialog.h
     src/settingsdialog.cpp
     src/settingsdialog.ui
+    src/personneldatabasedialog.h
     src/personneldatabasedialog.cpp
     src/personneldatabasedialog.ui
+    src/personneleditordialog.h
     src/personneleditordialog.cpp
     src/personneleditordialog.ui
+    src/newreportdialog.h
     src/newreportdialog.cpp
     src/newreportdialog.ui
+    src/reportwindow.h
     src/reportwindow.cpp
     src/reportwindow.ui
+    src/updatereportpersonentrydialog.h
     src/updatereportpersonentrydialog.cpp
     src/updatereportpersonentrydialog.ui
+    src/auxil.h
     src/auxil.cpp
+    src/databasecreator.h
     src/databasecreator.cpp
+    src/databasecache.h
     src/databasecache.cpp
+    src/settingscache.h
     src/settingscache.cpp
+    src/qualificationchecker.h
     src/qualificationchecker.cpp
+    src/pdfexporter.h
     src/pdfexporter.cpp
+    src/person.h
     src/person.cpp
+    src/boatdrive.h
     src/boatdrive.cpp
+    src/report.h
     src/report.cpp
+    src/boatlog.h
     src/boatlog.cpp
+    src/singleinstancesynchronizer.h
     src/singleinstancesynchronizer.cpp
+    src/version.h
 )
 
 if (WIN32)

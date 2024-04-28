@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -103,7 +103,7 @@ PersonnelDatabaseDialog::PersonnelDatabaseDialog(QWidget *const pParent) :
     }
 
     //Check if database is writeable
-    if (DatabaseCache::isReadOnly())
+    if (DatabaseCache::isPersonnelReadOnly())
     {
         editDisabled = true;
 
@@ -210,7 +210,7 @@ void PersonnelDatabaseDialog::updatePersonnelTable()
  */
 void PersonnelDatabaseDialog::on_add_pushButton_pressed()
 {
-    if (editDisabled || DatabaseCache::isReadOnly())
+    if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
 
     PersonnelEditorDialog dialog(Person::dummyPerson(), PersonnelEditorDialog::PersonType::_INTERNAL, false, this);
@@ -253,7 +253,7 @@ void PersonnelDatabaseDialog::on_add_pushButton_pressed()
  */
 void PersonnelDatabaseDialog::on_edit_pushButton_pressed()
 {
-    if (editDisabled || DatabaseCache::isReadOnly())
+    if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
 
     //Get selected persons' identifiers
@@ -311,7 +311,7 @@ void PersonnelDatabaseDialog::on_edit_pushButton_pressed()
  */
 void PersonnelDatabaseDialog::on_remove_pushButton_pressed()
 {
-    if (editDisabled || DatabaseCache::isReadOnly())
+    if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
 
     //Get selected persons' identifiers and names
@@ -368,7 +368,7 @@ void PersonnelDatabaseDialog::on_remove_pushButton_pressed()
  */
 void PersonnelDatabaseDialog::on_personnel_tableWidget_cellDoubleClicked(int, int)
 {
-    if (editDisabled || DatabaseCache::isReadOnly())
+    if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
 
     on_edit_pushButton_pressed();

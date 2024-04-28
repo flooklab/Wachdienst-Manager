@@ -1,0 +1,11 @@
+#Documentation
+doc/doc
+
+#Build directory
+build
+
+#Deploy directory
+deploy
+
+#Installer data directory
+installer/installer/packages/org.dlrg.wachdienstmanager/data

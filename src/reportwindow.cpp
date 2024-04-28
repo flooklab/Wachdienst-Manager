@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -106,7 +106,7 @@
 ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     QMainWindow(pParent),
     ui(new Ui::ReportWindow),
-    vehiclesGroupBoxLayout(nullptr),
+    usedResourcesGroupBoxLayout(nullptr),
     statusBarLabel(new QLabel(this)),
     report(),
     boatLogPtr(report.boatLog()),
@@ -227,8 +227,8 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     //Set the layout
     ui->documents_groupBox->setLayout(tDocsGroupBoxLayout);
 
-    //Get layout of vehicles table group box
-    vehiclesGroupBoxLayout = dynamic_cast<QGridLayout*>(ui->vehicles_groupBox->layout());
+    //Get layout of used resources table group box
+    usedResourcesGroupBoxLayout = dynamic_cast<QGridLayout*>(ui->usedResources_groupBox->layout());
 
     //Add combo box items from available enum class values of 'DutyPurpose'/'Precipitation'/'Cloudiness'/'WindStrength'
 
@@ -318,6 +318,12 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     ui->boatCrew_tableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     ui->boatCrew_tableWidget->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
 
+    ui->timestamps_tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->timestamps_tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->timestamps_tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->timestamps_tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->timestamps_tableWidget->setStyleSheet("QTableWidget::item { padding: 8px 3px 8px 3px; }");
+
     //Add status bar label to status bar
     ui->statusbar->addPermanentWidget(statusBarLabel);
 
@@ -335,9 +341,9 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     connect(autoSaveTimer, &QTimer::timeout, this, &ReportWindow::on_autoSaveTimerTimeout);
     autoSaveTimer->start(10 * 60 * 1000);
 
-    //Add shortcut to record the current time and display it in a non-modal message box
+    //Add shortcut to record the current time as a new timestamp in the timestamps table
     QShortcut* timestampShortcut = new QShortcut(QKeySequence("Ctrl+T"), this);
-    connect(timestampShortcut, &QShortcut::activated, this, &ReportWindow::on_timestampShortcutActivated);
+    connect(timestampShortcut, &QShortcut::activated, this, &ReportWindow::on_addTimestamp_pushButton_pressed);
 
     //Add shortcut to select persons in the personnel table that match the currently entered person name
     QShortcut* findPersonShortcut = new QShortcut(QKeySequence("Ctrl+F"), this);
@@ -407,9 +413,9 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     //Fill the widgets with report's data
     loadReportData();
 
-    //If no vehicle added from loaded report, add one empty row to vehicles table so that user can start filling the table
-    if (vehiclesTableRows.empty())
-        addVehiclesTableRow("", report.getBeginTime(), report.getEndTime());
+    //If no resource added from loaded report, add one empty row to used resources table so that user can start filling the table
+    if (usedResourcesTableRows.empty())
+        addResourcesTableRow("", report.getBeginTime(), report.getEndTime());
 
     //Disable and hide whole boat tab if boat log keeping is disabled as it is not needed in that case
     if (SettingsCache::getBoolSetting("app_boatLog_disabled"))
@@ -695,8 +701,8 @@ void ReportWindow::loadReportData()
         tSpinBox->setValue(report.getRescueOperationCtr(tRescue));
     }
 
-    for (const auto& it : report.getVehicles())
-        addVehiclesTableRow(it.first, it.second.first, it.second.second);
+    for (const auto& it : report.getResources())
+        addResourcesTableRow(it.first, it.second.first, it.second.second);
 
     ui->assignmentNumber_lineEdit->setText(report.getAssignmentNumber());
 
@@ -756,6 +762,10 @@ void ReportWindow::loadReportData()
  *
  * Similarly the user is also warned about and asked how to handle (ignore or abort) possible invalid values (see checkInvalidValues()).
  *
+ * If \p pFileName already exists, a temporary report is tried to be loaded from this file in order
+ * to check its report date and thus to prevent accidentally overwriting it if the report dates differ.
+ * A warning message will be displayed if they differ or if loading the existing file fails for some reason.
+ *
  * If writing the file was successful, the displayed file name is updated and the 'unsaved changes' switch is reset.
  * Also, if an automatic export on save is configured in the settings, autoExport() will be called at the end of the function.
  *
@@ -777,6 +787,34 @@ void ReportWindow::saveReport(const QString& pFileName)
 
             if (msgBox.exec() != QMessageBox::Yes)
                 return;
+        }
+    }
+
+    if (QFileInfo::exists(pFileName))
+    {
+        Report tmpReport;
+
+        if (!tmpReport.open(pFileName))
+        {
+            QMessageBox msgBox(QMessageBox::Warning, "Falsche Datei?", "Zu überschreibende Datei konnte nicht als Wachbericht "
+                                                     "geöffnet werden \n(ggf. beschädigt, inkompatibel oder kein Wachbericht).\n"
+                                                     "Trotzdem fortfahren?", QMessageBox::Abort | QMessageBox::Yes, this);
+            msgBox.setDefaultButton(QMessageBox::Abort);
+
+            if (msgBox.exec() != QMessageBox::Yes)
+                return;
+        }
+        else
+        {
+            if (tmpReport.getDate() != report.getDate())
+            {
+                QMessageBox msgBox(QMessageBox::Warning, "Falsche Datei?", "Zu überschreibender Wachbericht hat abweichendes Datum.\n"
+                                                         "Trotzdem fortfahren?", QMessageBox::Abort | QMessageBox::Yes, this);
+                msgBox.setDefaultButton(QMessageBox::Abort);
+
+                if (msgBox.exec() != QMessageBox::Yes)
+                    return;
+            }
         }
     }
 
@@ -1088,7 +1126,7 @@ bool ReportWindow::checkInvalidValues()
     if (report.getStation() == "")
     {
         QMessageBox msgBox(QMessageBox::Warning, "Keine Wachstation", "Wachstation nicht gesetzt.\nTrotzdem fortfahren?",
-                           QMessageBox::Abort | QMessageBox::Yes, this);        
+                           QMessageBox::Abort | QMessageBox::Yes, this);
         msgBox.setDefaultButton(QMessageBox::Abort);
 
         if (msgBox.exec() != QMessageBox::Yes)
@@ -1235,7 +1273,7 @@ bool ReportWindow::checkInvalidValues()
         }
     }
 
-    for (const auto& it : report.getVehicles())
+    for (const auto& it : report.getResources())
     {
         if (it.second.first.secsTo(it.second.second) < 0)
         {
@@ -1507,7 +1545,7 @@ bool ReportWindow::checkImplausibleValues()
             return false;
     }
 
-    for (const auto& it : report.getVehicles())
+    for (const auto& it : report.getResources())
     {
         if (it.second.second == it.second.first)
         {
@@ -1920,36 +1958,36 @@ void ReportWindow::updateBoatDriveAvailablePersons()
 }
 
 /*!
- * \brief Set report vehicles list according to vehicles entered in UI table.
+ * \brief Set report resources list according to resources entered in UI table.
  *
- * The list of all vehicles (with non-empty name field) currently
+ * The list of all resources (with non-empty name field) currently
  * entered in the dynamic UI table is written to the report.
  *
  * Sets the 'unsaved changes' switch, if new list differs from old list.
  */
-void ReportWindow::updateReportVehiclesList()
+void ReportWindow::updateReportResourcesList()
 {
-    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehicles;
-    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehiclesOld = report.getVehicles();
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> resources;
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> resourcesOld = report.getResources();
 
     //Use set to avoid duplicates in the vector
-    std::set<std::pair<QString, std::pair<QTime, QTime>>> vehiclesSet;
+    std::set<std::pair<QString, std::pair<QTime, QTime>>> resourcesSet;
 
-    for (const auto& row : vehiclesTableRows)
+    for (const auto& row : usedResourcesTableRows)
     {
-        if (row.vehicleNameLineEdit->text().trimmed() == "")    //Skip rows without vehicle name
+        if (row.resourceNameLineEdit->text().trimmed() == "")   //Skip rows without resource name
             continue;
 
-        if (vehiclesSet.insert({row.vehicleNameLineEdit->text().trimmed(), {row.arriveTimeEdit->time(), row.leaveTimeEdit->time()}
-                                }).second)
+        if (resourcesSet.insert({row.resourceNameLineEdit->text().trimmed(), {row.beginTimeEdit->time(), row.endTimeEdit->time()}
+                                 }).second)
         {
-            vehicles.push_back({row.vehicleNameLineEdit->text().trimmed(), {row.arriveTimeEdit->time(), row.leaveTimeEdit->time()}});
+            resources.push_back({row.resourceNameLineEdit->text().trimmed(), {row.beginTimeEdit->time(), row.endTimeEdit->time()}});
         }
     }
 
-    if (vehicles != vehiclesOld)
+    if (resources != resourcesOld)
     {
-        report.setVehicles(vehicles);
+        report.setResources(resources);
         setUnsavedChanges();
     }
 }
@@ -2043,77 +2081,77 @@ void ReportWindow::insertBoatCrewTableRow(const Person& pPerson, const Person::B
 }
 
 /*!
- * \brief Add a vehicles table row for a new vehicle.
+ * \brief Add a resources table row for a new resource.
  *
- * Adds a new row to the dynamic vehicles UI table (adds push button, line edit, label, two time edits)
- * with pre-filled vehicle (radio call) name \p pName, arrival time \p pArrivalTime and leaving time \p pLeavingTime.
+ * Adds a new row to the dynamic used resources UI table (adds push button, line edit, label, two time edits)
+ * with pre-filled resource (radio call) name \p pName, begin of use time \p pBeginTime and end of use time \p pEndTime.
  * The time edits are disabled, if (trimmed) \p pName is empty.
  *
  * Note: Connects a number of slots to widgets' signals, which can/will be
- * disconnected again by one of those slots, on_vehicleRemovePushButtonPressed().
+ * disconnected again by one of those slots, on_resourceRemovePushButtonPressed().
  *
- * \param pName Radio call name of the vehicle.
- * \param pArrivalTime Arrival time.
- * \param pLeavingTime Leaving time.
+ * \param pName Radio call name of the resource.
+ * \param pBeginTime Begin of use time.
+ * \param pEndTime End of use time.
  */
-void ReportWindow::addVehiclesTableRow(const QString pName, const QTime pArrivalTime, const QTime pLeavingTime)
+void ReportWindow::addResourcesTableRow(const QString pName, const QTime pBeginTime, const QTime pEndTime)
 {
     //Create widgets
-    QPushButton *const tPushButton = new QPushButton("x", ui->vehicles_groupBox);
-    QLineEdit *const tLineEdit = new QLineEdit(pName.trimmed(), ui->vehicles_groupBox);
-    QTimeEdit *const tArrivalTimeEdit = new QTimeEdit(pArrivalTime, ui->vehicles_groupBox);
-    QTimeEdit *const tLeavingTimeEdit = new QTimeEdit(pLeavingTime, ui->vehicles_groupBox);
-    QLabel *const tLabel = new QLabel("-", ui->vehicles_groupBox);
+    QPushButton *const tPushButton = new QPushButton("\u2A09", ui->usedResources_groupBox);
+    QLineEdit *const tLineEdit = new QLineEdit(pName.trimmed(), ui->usedResources_groupBox);
+    QTimeEdit *const tBeginTimeEdit = new QTimeEdit(pBeginTime, ui->usedResources_groupBox);
+    QTimeEdit *const tEndTimeEdit = new QTimeEdit(pEndTime, ui->usedResources_groupBox);
+    QLabel *const tLabel = new QLabel("-", ui->usedResources_groupBox);
 
     tPushButton->setMaximumWidth(30);
     tLineEdit->setValidator(new QRegularExpressionValidator(Aux::radioCallNamesValidator.regularExpression(), tLineEdit));
-    tArrivalTimeEdit->setEnabled(pName.trimmed() != "");
-    tLeavingTimeEdit->setEnabled(pName.trimmed() != "");
-    tArrivalTimeEdit->setDisplayFormat("hh:mm");
-    tLeavingTimeEdit->setDisplayFormat("hh:mm");
+    tBeginTimeEdit->setEnabled(pName.trimmed() != "");
+    tEndTimeEdit->setEnabled(pName.trimmed() != "");
+    tBeginTimeEdit->setDisplayFormat("hh:mm");
+    tEndTimeEdit->setDisplayFormat("hh:mm");
 
     //Explicitly set font so that time edit height does not change when style sheet is changed (for red background color)
-    tArrivalTimeEdit->setFont(QFont("Tahoma", 8));
-    tLeavingTimeEdit->setFont(QFont("Tahoma", 8));
+    tBeginTimeEdit->setFont(QFont("Tahoma", 8));
+    tEndTimeEdit->setFont(QFont("Tahoma", 8));
 
     //Add widgets to new layout row
-    int row = vehiclesGroupBoxLayout->rowCount();
-    vehiclesGroupBoxLayout->addWidget(tPushButton, row, 0);
-    vehiclesGroupBoxLayout->addWidget(tLineEdit, row, 1);
-    vehiclesGroupBoxLayout->addWidget(tArrivalTimeEdit, row, 2);
-    vehiclesGroupBoxLayout->addWidget(tLabel, row, 3);
-    vehiclesGroupBoxLayout->addWidget(tLeavingTimeEdit, row, 4);
+    int row = usedResourcesGroupBoxLayout->rowCount();
+    usedResourcesGroupBoxLayout->addWidget(tPushButton, row, 0);
+    usedResourcesGroupBoxLayout->addWidget(tLineEdit, row, 1);
+    usedResourcesGroupBoxLayout->addWidget(tBeginTimeEdit, row, 2);
+    usedResourcesGroupBoxLayout->addWidget(tLabel, row, 3);
+    usedResourcesGroupBoxLayout->addWidget(tEndTimeEdit, row, 4);
 
     //Connect signals to slots
 
     std::vector<QMetaObject::Connection> connections {
         connect(tPushButton, &QPushButton::pressed, this,
                 [this, tPushButton]() -> void {
-                    this->on_vehicleRemovePushButtonPressed(tPushButton);
+                    this->on_resourceRemovePushButtonPressed(tPushButton);
                 }),
         connect(tLineEdit, &QLineEdit::textEdited, this,
                 [this, tPushButton](const QString&) -> void {
-                    this->on_vehicleLineEditTextEdited(tPushButton);
+                    this->on_resourceLineEditTextEdited(tPushButton);
                 }),
         connect(tLineEdit, &QLineEdit::returnPressed, this,
                 [this, tPushButton]() -> void {
-                    this->on_vehicleLineEditReturnPressed(tPushButton);
+                    this->on_resourceLineEditReturnPressed(tPushButton);
                 }),
-        connect(tArrivalTimeEdit, &QTimeEdit::timeChanged, this,
+        connect(tBeginTimeEdit, &QTimeEdit::timeChanged, this,
                 [this, tPushButton]() -> void {
-                    this->on_vehicleTimeEditTimeChanged(tPushButton);
+                    this->on_resourceTimeEditTimeChanged(tPushButton);
                 }),
-        connect(tLeavingTimeEdit, &QTimeEdit::timeChanged, this,
+        connect(tEndTimeEdit, &QTimeEdit::timeChanged, this,
                 [this, tPushButton]() -> void {
-                    this->on_vehicleTimeEditTimeChanged(tPushButton);
+                    this->on_resourceTimeEditTimeChanged(tPushButton);
                 })
     };
 
     //Add pointers to list
-    vehiclesTableRows.push_back({tPushButton, tLineEdit, tArrivalTimeEdit, tLeavingTimeEdit, tLabel, std::move(connections)});
+    usedResourcesTableRows.push_back({tPushButton, tLineEdit, tBeginTimeEdit, tEndTimeEdit, tLabel, std::move(connections)});
 
     //Update leaving time edit color
-    on_vehicleTimeEditTimeChanged(tPushButton);
+    on_resourceTimeEditTimeChanged(tPushButton);
 }
 
 //
@@ -2474,28 +2512,28 @@ void ReportWindow::on_openDocumentPushButtonPressed(const QString& pDocFile)
 }
 
 /*!
- * \brief Remove a rescue vehicle from the list.
+ * \brief Remove a used resource from the list.
  *
  * Removes the UI table row (widgets and corresponding signal-slot connections),
- * whose remove button is \p pRemoveButton. Calls updateReportVehiclesList(),
- * which then removes the corresponding vehicle from the report vehicles list.
+ * whose remove button is \p pRemoveButton. Calls updateReportResourcesList(),
+ * which then removes the corresponding resource from the report resources list.
  *
- * If the row is the last remaining row, the row will not be removed but instead the vehicle's
- * name field will be reset (such that new vehicles can still be added). The effect on the
- * report vehicles list stays the same (see also on_vehicleLineEditTextEdited()).
+ * If the row is the last remaining row, the row will not be removed but instead the resource's
+ * name field will be reset (such that new resources can still be added). The effect on the
+ * report resources list stays the same (see also on_resourceLineEditTextEdited()).
  *
  * \param pRemoveRowButton "Remove row" button of the row that is to be removed (no index available).
  */
-void ReportWindow::on_vehicleRemovePushButtonPressed(const QPushButton *const pRemoveRowButton)
+void ReportWindow::on_resourceRemovePushButtonPressed(const QPushButton *const pRemoveRowButton)
 {
-    for (auto it = vehiclesTableRows.begin(); it != vehiclesTableRows.end(); ++it)
+    for (auto it = usedResourcesTableRows.begin(); it != usedResourcesTableRows.end(); ++it)
     {
         if ((*it).removeRowPushButton == pRemoveRowButton)
         {
-            if (vehiclesTableRows.size() < 2)   //Keep one empty row, just remove name (vehicle list then updated below)
+            if (usedResourcesTableRows.size() < 2)  //Keep one empty row, just remove name (resource list then updated below)
             {
-                (*it).vehicleNameLineEdit->setText("");
-                on_vehicleLineEditTextEdited(pRemoveRowButton);
+                (*it).resourceNameLineEdit->setText("");
+                on_resourceLineEditTextEdited(pRemoveRowButton);
 
                 //Can skip update step below (called by slot already)
                 return;
@@ -2507,24 +2545,24 @@ void ReportWindow::on_vehicleRemovePushButtonPressed(const QPushButton *const pR
                     disconnect(conn);
 
                 //Remove widgets from layout
-                vehiclesGroupBoxLayout->removeWidget((*it).removeRowPushButton);
-                vehiclesGroupBoxLayout->removeWidget((*it).vehicleNameLineEdit);
-                vehiclesGroupBoxLayout->removeWidget((*it).arriveTimeEdit);
-                vehiclesGroupBoxLayout->removeWidget((*it).leaveTimeEdit);
-                vehiclesGroupBoxLayout->removeWidget((*it).timesSepLabel);
+                usedResourcesGroupBoxLayout->removeWidget((*it).removeRowPushButton);
+                usedResourcesGroupBoxLayout->removeWidget((*it).resourceNameLineEdit);
+                usedResourcesGroupBoxLayout->removeWidget((*it).beginTimeEdit);
+                usedResourcesGroupBoxLayout->removeWidget((*it).endTimeEdit);
+                usedResourcesGroupBoxLayout->removeWidget((*it).timesSepLabel);
 
                 //Delete widgets
                 delete (*it).removeRowPushButton;
-                delete (*it).vehicleNameLineEdit;
-                delete (*it).arriveTimeEdit;
-                delete (*it).leaveTimeEdit;
+                delete (*it).resourceNameLineEdit;
+                delete (*it).beginTimeEdit;
+                delete (*it).endTimeEdit;
                 delete (*it).timesSepLabel;
 
                 //Erase pointers
-                vehiclesTableRows.erase(it);
+                usedResourcesTableRows.erase(it);
             }
 
-            updateReportVehiclesList();
+            updateReportResourcesList();
 
             return;
         }
@@ -2532,46 +2570,46 @@ void ReportWindow::on_vehicleRemovePushButtonPressed(const QPushButton *const pR
 }
 
 /*!
- * \brief Change the radio call name of a rescue vehicle.
+ * \brief Change the radio call name of a used resource.
  *
- * Updates the report vehicles list (see updateReportVehiclesList()).
+ * Updates the report resources list (see updateReportResourcesList()).
  * The time edits in the row whose remove button is \p pRemoveButton (should refer to the edited row)
- * are reset and disabled, if the row's (trimmed) radio call name is empty (no vehicle), and enabled otherwise.
+ * are reset and disabled, if the row's (trimmed) radio call name is empty (no resource), and enabled otherwise.
  *
  * Note: The row's radio call name (the line edit text) will be reset, if it contains only whitespaces.
  *
  * \param pRemoveRowButton "Remove row" button of the edited row (no index available).
  */
-void ReportWindow::on_vehicleLineEditTextEdited(const QPushButton *const pRemoveRowButton)
+void ReportWindow::on_resourceLineEditTextEdited(const QPushButton *const pRemoveRowButton)
 {
-    for (const auto& row : vehiclesTableRows)
+    for (const auto& row : usedResourcesTableRows)
     {
         if (row.removeRowPushButton == pRemoveRowButton)
         {
-            //Disable/reset time edits, if vehicle name removed
-            if (row.vehicleNameLineEdit->text().trimmed() == "")
+            //Disable/reset time edits, if resource name removed
+            if (row.resourceNameLineEdit->text().trimmed() == "")
             {
                 //Trim text
-                if (row.vehicleNameLineEdit->text() != "")
-                    row.vehicleNameLineEdit->setText("");
+                if (row.resourceNameLineEdit->text() != "")
+                    row.resourceNameLineEdit->setText("");
 
-                row.arriveTimeEdit->setEnabled(false);
-                row.leaveTimeEdit->setEnabled(false);
+                row.beginTimeEdit->setEnabled(false);
+                row.endTimeEdit->setEnabled(false);
 
-                row.arriveTimeEdit->setTime(report.getBeginTime());
-                row.leaveTimeEdit->setTime(report.getEndTime());
+                row.beginTimeEdit->setTime(report.getBeginTime());
+                row.endTimeEdit->setTime(report.getEndTime());
 
-                row.leaveTimeEdit->setStyleSheet("");
+                row.endTimeEdit->setStyleSheet("");
             }
             else
             {
-                row.arriveTimeEdit->setEnabled(true);
-                row.leaveTimeEdit->setEnabled(true);
+                row.beginTimeEdit->setEnabled(true);
+                row.endTimeEdit->setEnabled(true);
             }
 
-            updateReportVehiclesList();
+            updateReportResourcesList();
 
-            on_vehicleTimeEditTimeChanged(pRemoveRowButton);
+            on_resourceTimeEditTimeChanged(pRemoveRowButton);
 
             return;
         }
@@ -2579,28 +2617,28 @@ void ReportWindow::on_vehicleLineEditTextEdited(const QPushButton *const pRemove
 }
 
 /*!
- * \brief Add an empty row for another rescue vehicle.
+ * \brief Add an empty row for another used resource.
  *
  * Adds an empty UI table row (widgets and corresponding signal-slot connections) for entering
- * another vehicle, if 'return' was pressed in the \e last \e row's line edit (determined by
- * row of \p pRemoveRowButton), and if last row's line edit already represents
- * a vehicle (i.e. is not empty). See also addVehiclesTableRow().
+ * another used resource, if 'return' was pressed in the \e last \e row's line edit (determined
+ * by row of \p pRemoveRowButton), and if last row's line edit already represents
+ * a resource (i.e. is not empty). See also addResourcesTableRow().
  *
  * \param pRemoveRowButton "Remove row" button of the row in which 'return' was pressed (no index available).
  */
-void ReportWindow::on_vehicleLineEditReturnPressed(const QPushButton *const pRemoveRowButton)
+void ReportWindow::on_resourceLineEditReturnPressed(const QPushButton *const pRemoveRowButton)
 {
-    for (auto it = vehiclesTableRows.begin(); it != vehiclesTableRows.end(); ++it)
+    for (auto it = usedResourcesTableRows.begin(); it != usedResourcesTableRows.end(); ++it)
     {
         if ((*it).removeRowPushButton == pRemoveRowButton)
         {
             //Only add row, if return pressed in last row's line edit and if this row's name is not empty
-            if (it != --(vehiclesTableRows.end()) || (*it).vehicleNameLineEdit->text().trimmed() == "")
+            if (it != --(usedResourcesTableRows.end()) || (*it).resourceNameLineEdit->text().trimmed() == "")
                 return;
 
-            addVehiclesTableRow("", report.getBeginTime(), report.getEndTime());
+            addResourcesTableRow("", report.getBeginTime(), report.getEndTime());
 
-            (--vehiclesTableRows.end())->vehicleNameLineEdit->setFocus();
+            (--usedResourcesTableRows.end())->resourceNameLineEdit->setFocus();
 
             return;
         }
@@ -2608,27 +2646,27 @@ void ReportWindow::on_vehicleLineEditReturnPressed(const QPushButton *const pRem
 }
 
 /*!
- * \brief Change a vehicle's arrival/leaving times.
+ * \brief Change a used resource's begin/end times.
  *
- * Updates the report vehicles list (see updateReportVehiclesList()), if the (trimmed)
- * radio call name in the row of \p pRemoveRowButton is not empty (an actual vehicle entry).
+ * Updates the report resources list (see updateReportResourcesList()), if the (trimmed)
+ * radio call name in the row of \p pRemoveRowButton is not empty (an actual resource entry).
  *
  * \param pRemoveRowButton "Remove row" button of the edited row (no index available).
  */
-void ReportWindow::on_vehicleTimeEditTimeChanged(const QPushButton *const pRemoveRowButton)
+void ReportWindow::on_resourceTimeEditTimeChanged(const QPushButton *const pRemoveRowButton)
 {
-    for (const auto& row : vehiclesTableRows)
+    for (const auto& row : usedResourcesTableRows)
     {
         if (row.removeRowPushButton == pRemoveRowButton)
         {
-            if (row.vehicleNameLineEdit->text().trimmed() != "")
+            if (row.resourceNameLineEdit->text().trimmed() != "")
             {
-                updateReportVehiclesList();
+                updateReportResourcesList();
 
-                if (row.leaveTimeEdit->isEnabled() && row.arriveTimeEdit->time().secsTo(row.leaveTimeEdit->time()) <= 0)
-                    row.leaveTimeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+                if (row.endTimeEdit->isEnabled() && row.beginTimeEdit->time().secsTo(row.endTimeEdit->time()) <= 0)
+                    row.endTimeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
                 else
-                    row.leaveTimeEdit->setStyleSheet("");
+                    row.endTimeEdit->setStyleSheet("");
             }
 
             return;
@@ -2661,20 +2699,6 @@ void ReportWindow::on_autoSaveTimerTimeout()
 {
     if (unsavedChanges)
         autoSave();
-}
-
-/*!
- * \brief Show (non-modal) message box with current time.
- */
-void ReportWindow::on_timestampShortcutActivated()
-{
-    QMessageBox* msgBox = new QMessageBox(QMessageBox::Information, "Zeitstempel", "Zeit: " + QTime::currentTime().toString("hh:mm:ss"),
-                                          QMessageBox::Ok, this);
-
-    //Non-modal message box
-    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-    msgBox->setWindowModality(Qt::NonModal);
-    msgBox->show();
 }
 
 /*!
@@ -2732,19 +2756,7 @@ void ReportWindow::on_saveFile_action_triggered()
     if (report.getFileName() == "")
         on_saveFileAs_action_triggered();
     else
-    {
-        if (QFileInfo::exists(report.getFileName()))
-        {
-            QMessageBox msgBox(QMessageBox::Question, "Speichern", "Datei überschreiben?",
-                               QMessageBox::Abort | QMessageBox::Yes, this);
-            msgBox.setDefaultButton(QMessageBox::Yes);
-
-            if (msgBox.exec() != QMessageBox::Yes)
-                return;
-        }
-
         saveReport(report.getFileName());
-    }
 }
 
 /*!
@@ -2759,6 +2771,14 @@ void ReportWindow::on_saveFileAs_action_triggered()
     fileDialog.setDefaultSuffix("wbr");
     fileDialog.setFileMode(QFileDialog::FileMode::AnyFile);
     fileDialog.setAcceptMode(QFileDialog::AcceptMode::AcceptSave);
+
+    //If saving for the first time, pre-fill file name with formatted report date according to configured preset
+    if (report.getFileName() == "")
+    {
+        QString fileNamePreset = SettingsCache::getStrSetting("app_default_reportFileNamePreset");
+        if (fileNamePreset != "")
+            fileDialog.selectFile(report.getDate().toString(fileNamePreset).append(".wbr"));
+    }
 
     if (fileDialog.exec() != QDialog::DialogCode::Accepted)
         return;
@@ -3115,8 +3135,8 @@ void ReportWindow::on_reportDate_dateEdit_dateChanged(const QDate& date)
  *
  * Sets the time edit defining a new person's begin time to the same time.
  *
- * Also changes the default vehicle arrival time of the last row of
- * the vehicles table to this time if that row is currently empty.
+ * Also changes the default resource begin of use time of the last row
+ * of the resources table to this time if that row is currently empty.
  *
  * Sets setUnsavedChanges().
  *
@@ -3141,10 +3161,10 @@ void ReportWindow::on_dutyTimesBegin_timeEdit_timeChanged(const QTime& time)
     //Use the new time as new default personnel arrival time
     ui->personTimeBegin_timeEdit->setTime(time);
 
-    //Update the last vehicles table row, if empty, to use the new time as default arrival time
-    if (!vehiclesTableRows.empty())
-        if (vehiclesTableRows.back().vehicleNameLineEdit->text().trimmed() == "")
-            vehiclesTableRows.back().arriveTimeEdit->setTime(time);
+    //Update the last resources table row, if empty, to use the new time as default begin time
+    if (!usedResourcesTableRows.empty())
+        if (usedResourcesTableRows.back().resourceNameLineEdit->text().trimmed() == "")
+            usedResourcesTableRows.back().beginTimeEdit->setTime(time);
 }
 
 /*!
@@ -3152,8 +3172,8 @@ void ReportWindow::on_dutyTimesBegin_timeEdit_timeChanged(const QTime& time)
  *
  * Sets the time edit defining a new person's end time to the same time.
  *
- * Also changes the default vehicle leaving time of the last row of
- * the vehicles table to this time if that row is currently empty.
+ * Also changes the default resource end of use time of the last row
+ * of the resources table to this time if that row is currently empty.
  *
  * Sets setUnsavedChanges().
  *
@@ -3178,10 +3198,10 @@ void ReportWindow::on_dutyTimesEnd_timeEdit_timeChanged(const QTime& time)
     //Use the new time as new default personnel leaving time
     ui->personTimeEnd_timeEdit->setTime(time);
 
-    //Update the last vehicles table row, if empty, to use the new time as default leaving time
-    if (!vehiclesTableRows.empty())
-        if (vehiclesTableRows.back().vehicleNameLineEdit->text().trimmed() == "")
-            vehiclesTableRows.back().leaveTimeEdit->setTime(time);
+    //Update the last resources table row, if empty, to use the new time as default end time
+    if (!usedResourcesTableRows.empty())
+        if (usedResourcesTableRows.back().resourceNameLineEdit->text().trimmed() == "")
+            usedResourcesTableRows.back().endTimeEdit->setTime(time);
 }
 
 /*!
@@ -3568,6 +3588,46 @@ void ReportWindow::on_personIdent_comboBox_currentTextChanged(const QString& arg
     }
 
     ui->personFunction_comboBox->setCurrentIndex(ui->personFunction_comboBox->findText(Person::functionToLabel(tDefaultFunction)));
+}
+
+/*!
+ * \brief Set new person begin time edit to duty begin time.
+ *
+ * Sets the current duty begin time as begin time for to be added personnel.
+ */
+void ReportWindow::on_setNewPersonTimeBegin_pushButton_pressed()
+{
+    ui->personTimeBegin_timeEdit->setTime(report.getBeginTime());
+}
+
+/*!
+ * \brief Set new person begin time edit to now (nearest quarter).
+ *
+ * Rounds current time to next quarter and sets this time as begin time for to be added personnel.
+ */
+void ReportWindow::on_setNewPersonTimeBeginNow_pushButton_pressed()
+{
+    ui->personTimeBegin_timeEdit->setTime(Aux::roundQuarterHour(QTime::currentTime()));
+}
+
+/*!
+ * \brief Set new person end time edit to now (nearest quarter).
+ *
+ * Rounds current time to next quarter and sets this time as end time for to be added personnel.
+ */
+void ReportWindow::on_setNewPersonTimeEndNow_pushButton_pressed()
+{
+    ui->personTimeEnd_timeEdit->setTime(Aux::roundQuarterHour(QTime::currentTime()));
+}
+
+/*!
+ * \brief Set new person end time edit to duty end time.
+ *
+ * Sets the current duty end time as end time for to be added personnel.
+ */
+void ReportWindow::on_setNewPersonTimeEnd_pushButton_pressed()
+{
+    ui->personTimeEnd_timeEdit->setTime(report.getEndTime());
 }
 
 /*!
@@ -5460,4 +5520,40 @@ void ReportWindow::on_assignmentNumber_lineEdit_textEdited(const QString& arg1)
 {
     report.setAssignmentNumber(arg1);
     setUnsavedChanges();
+}
+
+//
+
+/*!
+ * \brief Clear the list of timestamps.
+ *
+ * Removes all rows of the timestamps table.
+ */
+void ReportWindow::on_clearTimestamps_pushButton_pressed()
+{
+    ui->timestamps_tableWidget->setRowCount(0);
+}
+
+/*!
+ * \brief Add a new timestamp to the list of timestamps.
+ *
+ * Adds a new row containing the current time to the end of the timestamps table.
+ *
+ * If the rescue tab (which contains the table) is not selected already (i.e. slot was
+ * triggered by the shortcut), the rescue tab is selected and focus moved to the table widget.
+ */
+void ReportWindow::on_addTimestamp_pushButton_pressed()
+{
+    int tNewRowNumber = ui->timestamps_tableWidget->rowCount();
+
+    ui->timestamps_tableWidget->insertRow(tNewRowNumber);
+    ui->timestamps_tableWidget->setItem(tNewRowNumber, 0, new QTableWidgetItem(QTime::currentTime().toString("hh:mm:ss")));
+    ui->timestamps_tableWidget->item(tNewRowNumber, 0)->setTextAlignment(Qt::AlignCenter);
+    ui->timestamps_tableWidget->selectRow(tNewRowNumber);
+
+    if (ui->report_tabWidget->currentIndex() != 2)
+    {
+        ui->report_tabWidget->setCurrentIndex(2);
+        ui->timestamps_tableWidget->setFocus();
+    }
 }

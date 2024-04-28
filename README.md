@@ -30,6 +30,13 @@ des Betriebsstundenzählers, mit der zuvor genannten Übertragsfunktionalität g
 
 Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdienst-Managers wird jedem neuen Release angehängt.
 
+## Wachbericht-Offline-Vorlage
+
+Zur Sicherheit existiert eine "Offline-Vorlage" eines leeren Wachberichts, welche vorsorglich ausgedruckt und dann notfalls
+manuell ausgefüllt werden kann. Das Format entspricht den aus dem Programm exportierten PDF-Dateien. Die Vorlage wird jedem
+neuen Release als PDF-Datei angehängt. Sie kann aber mittels LaTeX auch selbst erstellt werden (siehe das Verzeichnis
+".\misc\report-offline-template"), um analog zum Programm auch hier ein eigenes Logo verwenden zu können.
+
 ## Erstellen des Wachdienst-Managers (Windows)
 
 - Voraussetzungen:
@@ -55,7 +62,7 @@ Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdie
   - Inhalt von ".\deploy" nach ".\installer\installer\packages\org.dlrg.wachdienstmanager\data\Wachdienst-Manager" kopieren
   - ".\resources\icons\application-icon.ico" nach ".\installer\installer\packages\org.dlrg.wachdienstmanager\data\Wachdienst-Manager" kopieren
   - In Verzeichnis ".\installer" wechseln
-  - `...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\binarycreator.exe --offline-only -t ...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\installerbase.exe -p installer\packages -c installer\config\config.xml Wachdienst-Manager-1.4.0_Setup.exe` ausführen (ggf. Version anpassen)
+  - `...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\binarycreator.exe --offline-only -t ...\Path\To\...\Qt\Tools\QtInstallerFramework\...\bin\installerbase.exe -p installer\packages -c installer\config\config.xml Wachdienst-Manager-1.5.0_Setup.exe` ausführen (ggf. Version anpassen)
 
 - *Optionale* Quellcode-Dokumentation (benötigt [Doxygen](https://github.com/doxygen/doxygen)):
   - In Verzeichnis ".\doc" wechseln
@@ -63,7 +70,7 @@ Ein aktuelles Handbuch zur Installation, Konfiguration und Bedienung des Wachdie
 
 ## Lizenzhinweise
 
-Copyright (C) 2021–2023 M. Frohne  
+Copyright (C) 2021–2024 M. Frohne  
 
 Wachdienst-Manager ist freie Software: Sie können ihn unter den Bedingungen der
 von der Free Software Foundation veröffentlichten GNU Affero General Public License,

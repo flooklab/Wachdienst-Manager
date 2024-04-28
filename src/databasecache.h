@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -44,18 +44,20 @@
  * All write functions (set.../update.../etc.) will update the cached values and will
  * also immediately write the new values to the corresponding database.
  *
- * The write functions always check for the database lock file via isReadOnly().
- * If this returns true, the write operation is skipped and the cached value left as is.
+ * The write functions always check for the respective database lock files via isConfigReadOnly() and isPersonnelReadOnly().
+ * If those return true, the corresponding write operation is skipped and the cached value left as is.
  */
 class DatabaseCache
 {
 public:
     DatabaseCache() = delete;   ///< Deleted constructor.
     //
-    static bool isReadOnly();   ///< Check, if database can be written.
+    static bool isConfigReadOnly();     ///< Check, if configuration database can be written.
+    static bool isPersonnelReadOnly();  ///< Check, if personnel database can be written.
     //
-    static bool populate(std::shared_ptr<QLockFile> pLockFile, bool pForce = false);    ///< \brief Fill database cache with fields
-                                                                                        ///  from settings and personnel databases.
+    static bool populate(std::shared_ptr<QLockFile> pConfLockFile, std::shared_ptr<QLockFile> pPersLockFile,
+                         bool pForce = false);                                              ///< \brief Fill database cache with fields
+                                                                                            ///  from settings and personnel databases.
     //
     static bool getSetting(const QString& pSetting, int& pValue,
                            int pDefault = 0, bool pCreate = false);         ///< Get a cached, integer type setting.
@@ -120,7 +122,8 @@ private:
 private:
     static bool populated;                              //Database fields loaded into cache from databases by populate()?
     //
-    static std::shared_ptr<QLockFile> lockFilePtr;      //Lock file to limit database writing to single application instance
+    static std::shared_ptr<QLockFile> confLockFilePtr;  //Lock file to limit config database writing to single application instance
+    static std::shared_ptr<QLockFile> persLockFilePtr;  //Lock file to limit personnel database writing to single application instance
     //
     static std::map<QString, int> settingsInt;          //Cache for integer type settings
     static std::map<QString, double> settingsDbl;       //Cache for floating-point type settings

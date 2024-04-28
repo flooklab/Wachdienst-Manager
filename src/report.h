@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2023 M. Frohne
+//  Copyright (C) 2021–2024 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -145,10 +145,10 @@ public:
     QString getAssignmentNumber() const;                                ///< Get the assignment number of the rescue directing center.
     void setAssignmentNumber(QString pNumber);                          ///< Set the assignment number of the rescue directing center.
     //
-    std::vector<std::pair<QString, std::pair<QTime, QTime>>> getVehicles(bool pSorted = false) const;
-                                                                                        ///< Get the list of vehicles used for the duty.
-    void setVehicles(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pVehicles);
-                                                                                        ///< Set the list of vehicles used for the duty.
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> getResources(bool pSorted = false) const;
+                                                                                        ///< Get the list of resources used for the duty.
+    void setResources(std::vector<std::pair<QString, std::pair<QTime, QTime>>> pResources);
+                                                                                        ///< Set the list of resources used for the duty.
     //
     static QString dutyPurposeToLabel(DutyPurpose pPurpose);                ///< Get the label for a duty purpose.
     static DutyPurpose labelToDutyPurpose(const QString& pPurpose);         ///< Get the duty purpose from its label.
@@ -330,7 +330,7 @@ private:
     //
     QString assignmentNumber;                               //Assignment number from rescue directing center
     //
-    std::vector<std::pair<QString, std::pair<QTime, QTime>>> vehicles;  //List of used vehicles with their arrival/leaving times
+    std::vector<std::pair<QString, std::pair<QTime, QTime>>> resources; //List of used resources with their begin/end of use times
 };
 
 #endif // REPORT_H
