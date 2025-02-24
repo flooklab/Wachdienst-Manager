@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -78,7 +78,7 @@ bool SingleInstanceSynchronizer::init()
         if (!shmCtrl.lock())
             return false;
 
-        *(static_cast<int8_t*>(shmCtrl.data())) = static_cast<int8_t>(BusCtrlSymbol::_IDLE);
+        *(static_cast<int8_t*>(shmCtrl.data())) = static_cast<int8_t>(BusCtrlSymbol::Idle);
 
         if (!shmCtrl.unlock())
             return false;
@@ -178,9 +178,9 @@ void SingleInstanceSynchronizer::sendNewReport()
 
         int8_t& ctrlVal = *(static_cast<int8_t*>(shmCtrl.data()));
 
-        if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::_IDLE))
+        if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::Idle))
         {
-            ctrlVal = static_cast<int8_t>(BusCtrlSymbol::_NEW_REPORT);
+            ctrlVal = static_cast<int8_t>(BusCtrlSymbol::NewReport);
             break;
         }
 
@@ -225,9 +225,9 @@ void SingleInstanceSynchronizer::sendOpenReport(const QString& pFileName)
 
         int8_t& ctrlVal = *(static_cast<int8_t*>(shmCtrl.data()));
 
-        if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::_IDLE))
+        if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::Idle))
         {
-            ctrlVal = static_cast<int8_t>(BusCtrlSymbol::_OPEN_REPORT);
+            ctrlVal = static_cast<int8_t>(BusCtrlSymbol::OpenReport);
             break;
         }
 
@@ -296,7 +296,7 @@ void SingleInstanceSynchronizer::listen(StartupWindow& pStartupWindow, const std
 
             int8_t ctrlVal = *(static_cast<const int8_t*>(shmCtrl.constData()));
 
-            if (ctrlVal != static_cast<int8_t>(BusCtrlSymbol::_IDLE))
+            if (ctrlVal != static_cast<int8_t>(BusCtrlSymbol::Idle))
                 break;
 
             if (!shmCtrl.unlock())
@@ -320,13 +320,13 @@ void SingleInstanceSynchronizer::listen(StartupWindow& pStartupWindow, const std
         int8_t ctrlVal = *(static_cast<const int8_t*>(shmCtrl.constData()));
 
         //Reset control signal to idle state (i.e. no current request)
-        *(static_cast<int8_t*>(shmCtrl.data())) = static_cast<int8_t>(BusCtrlSymbol::_IDLE);
+        *(static_cast<int8_t*>(shmCtrl.data())) = static_cast<int8_t>(BusCtrlSymbol::Idle);
 
         //Forward processed request to 'pStartupWindow'
 
-        if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::_NEW_REPORT))
+        if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::NewReport))
             pStartupWindow.emitOpenAnotherReportRequested("");
-        else if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::_OPEN_REPORT))
+        else if (ctrlVal == static_cast<int8_t>(BusCtrlSymbol::OpenReport))
             pStartupWindow.emitOpenAnotherReportRequested(QString::fromStdWString(wStr));
 
         if (!shmData.unlock())

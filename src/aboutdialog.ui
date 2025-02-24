@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>466</width>
-    <height>504</height>
+    <height>480</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,13 +19,13 @@
   <property name="minimumSize">
    <size>
     <width>466</width>
-    <height>504</height>
+    <height>480</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>466</width>
-    <height>504</height>
+    <height>480</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -116,7 +116,7 @@ Beratung: Mitglieder der DLRG Ortsgruppe Attendorn</string>
         </property>
         <property name="text">
          <string>Wachdienst-Manager, ein Verwaltungsprogramm für DLRG-Wachdienstberichte.
-Copyright (C) 2021–2024 M. Frohne
+Copyright (C) 2021–2025 M. Frohne
 
 Wachdienst-Manager ist freie Software: Sie können ihn unter den Bedingungen der
 von der Free Software Foundation veröffentlichten GNU Affero General Public License,

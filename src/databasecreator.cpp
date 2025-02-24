@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -128,7 +128,7 @@ bool DatabaseCreator::upgradePersonnelDatabase()
     if (!checkPersonnelVersionOlder())
         return false;
 
-    if (getPersonnelVersion() == 1 && Version::PersonnelDatabaseUserVersion == 2)
+    if (getPersonnelVersion() == 1 && Version::PersonnelDatabaseUserVersion == 2)   // cppcheck-suppress knownConditionTrueFalse
     {
         QSqlDatabase personnelDb = QSqlDatabase::database("personnelDb");
 

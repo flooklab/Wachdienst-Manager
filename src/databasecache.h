@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef DATABASECACHE_H
-#define DATABASECACHE_H
+#ifndef WDMGR_DATABASECACHE_H
+#define WDMGR_DATABASECACHE_H
 
 #include "auxil.h"
 #include "person.h"
@@ -69,8 +69,8 @@ public:
     static bool setSetting(const QString& pSetting, double pValue);     ///< Write a floating-point type setting to cache and database.
     static bool setSetting(const QString& pSetting, const QString& pValue); ///< Write a string type setting to cache and database.
     //
-    static std::map<int, Aux::Station> stations();                                  ///< Get the cached available stations.
-    static std::map<int, Aux::Boat> boats();                                        ///< Get the cached available boats.
+    static const std::map<int, Aux::Station>& stations();                           ///< Get the cached available stations.
+    static const std::map<int, Aux::Boat>& boats();                                 ///< Get the cached available boats.
     //
     static bool updateStations(const std::vector<Aux::Station>& pStations);         ///< Replace the stations in cache and database.
     static bool updateBoats(const std::vector<Aux::Boat>& pBoats);                  ///< Replace the boats in cache and database.
@@ -135,4 +135,4 @@ private:
     static std::map<int, Person> personnelMap;          //Cache for personnel (database 'rowid' as key)
 };
 
-#endif // DATABASECACHE_H
+#endif // WDMGR_DATABASECACHE_H

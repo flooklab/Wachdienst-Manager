@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef SETTINGSDIALOG_H
-#define SETTINGSDIALOG_H
+#ifndef WDMGR_SETTINGSDIALOG_H
+#define WDMGR_SETTINGSDIALOG_H
 
 #include "auxil.h"
 
@@ -31,9 +31,7 @@
 
 #include <map>
 
-namespace Ui {
-class SettingsDialog;
-}
+namespace Ui { class SettingsDialog; }
 
 /*!
  * \brief Change program settings.
@@ -54,6 +52,8 @@ public:
     ~SettingsDialog();                                      ///< Destructor.
 
 private:
+    void connectSlots() const;              ///< Connect UI signals to their slots.
+    //
     void readDatabase();                    ///< Read the settings from database.
     bool writeDatabase() const;             ///< Write the settings to database.
     //
@@ -71,42 +71,42 @@ private:
 private slots:
     void accept() override;                                                     ///< Reimplementation of QDialog::accept().
     //
-    void on_settings_tabWidget_currentChanged(int index);                       ///< If documents tab selected, fit table to contents.
+    void at_settings_tabWidget_currentChanged(int index);                       ///< If documents tab selected, fit table to contents.
     //
-    void on_chooseDefaultFilePath_pushButton_pressed();                         ///< Set default file path using a file dialog.
-    void on_chooseXelatexPath_pushButton_pressed();                             ///< Set XeLaTeX executable using a file dialog.
-    void on_chooseLogoPath_pushButton_pressed();                                ///< Set custom association logo image file path.
-    void on_password_lineEdit_textEdited(const QString&);                       ///< Remember that password field was edited.
+    void at_chooseDefaultFilePath_pushButton_pressed();                         ///< Set default file path using a file dialog.
+    void at_chooseXelatexPath_pushButton_pressed();                             ///< Set XeLaTeX executable using a file dialog.
+    void at_chooseLogoPath_pushButton_pressed();                                ///< Set custom association logo image file path.
+    void at_password_lineEdit_textEdited(const QString&);                       ///< Remember that password field was edited.
     //
-    void on_stations_comboBox_currentIndexChanged(int);                         ///< Update station inputs with newly selected station.
-    void on_addStation_pushButton_pressed();                                    ///< Add a new station.
-    void on_removeStation_pushButton_pressed();                                 ///< Remove the selected station.
-    void on_stationLocation_lineEdit_textEdited(const QString& arg1);           ///< Change the selected station's location.
-    void on_stationName_lineEdit_textEdited(const QString& arg1);               ///< Change the selected station's name.
-    void on_localGroup_lineEdit_textEdited(const QString& arg1);                ///< Change the selected station's local group.
-    void on_districtAssociation_lineEdit_textEdited(const QString& arg1);       ///< Change the selected station's district association.
-    void on_stationRadioCallName_lineEdit_textEdited(const QString& arg1);      ///< Change the selected station's radio call name.
-    void on_stationRadioCallNameAlt_lineEdit_textEdited(const QString& arg1);   ///< Change the selected station's alt. radio call name.
-    void on_copyStationRadioCallNameAlt_radioButton_toggled(bool checked);      ///< Copy the radio call name to the alternative one.
+    void at_stations_comboBox_currentIndexChanged(int);                         ///< Update station inputs with newly selected station.
+    void at_addStation_pushButton_pressed();                                    ///< Add a new station.
+    void at_removeStation_pushButton_pressed();                                 ///< Remove the selected station.
+    void at_stationLocation_lineEdit_textEdited(const QString& arg1);           ///< Change the selected station's location.
+    void at_stationName_lineEdit_textEdited(const QString& arg1);               ///< Change the selected station's name.
+    void at_localGroup_lineEdit_textEdited(const QString& arg1);                ///< Change the selected station's local group.
+    void at_districtAssociation_lineEdit_textEdited(const QString& arg1);       ///< Change the selected station's district association.
+    void at_stationRadioCallName_lineEdit_textEdited(const QString& arg1);      ///< Change the selected station's radio call name.
+    void at_stationRadioCallNameAlt_lineEdit_textEdited(const QString& arg1);   ///< Change the selected station's alt. radio call name.
+    void at_copyStationRadioCallNameAlt_radioButton_toggled(bool checked);      ///< Copy the radio call name to the alternative one.
     //
-    void on_boats_comboBox_currentIndexChanged(int);                            ///< Update boat inputs with newly selected boat.
-    void on_addBoat_pushButton_pressed();                                       ///< Add a new boat.
-    void on_removeBoat_pushButton_pressed();                                    ///< Remove the selected boat.
-    void on_boatName_lineEdit_textEdited(const QString& arg1);                  ///< Change the selected boat's name.
-    void on_boatAcronym_lineEdit_textEdited(const QString& arg1);               ///< Change the selected boat's acronym.
-    void on_boatType_lineEdit_textEdited(const QString& arg1);                  ///< Change the selected boat's type.
-    void on_boatFuelType_comboBox_currentTextChanged(const QString& arg1);      ///< Change the selected boat's fuel type.
-    void on_boatRadioCallName_lineEdit_textEdited(const QString& arg1);         ///< Change the selected boat's radio call name.
-    void on_boatRadioCallNameAlt_lineEdit_textEdited(const QString& arg1);      ///< Change the selected boat's alt. radio call name.
-    void on_copyBoatRadioCallNameAlt_radioButton_toggled(bool checked);         ///< Copy the radio call name to the alternative one.
-    void on_boatHomeStation_comboBox_currentIndexChanged(int index);            ///< Change the selected boat's home station.
+    void at_boats_comboBox_currentIndexChanged(int);                            ///< Update boat inputs with newly selected boat.
+    void at_addBoat_pushButton_pressed();                                       ///< Add a new boat.
+    void at_removeBoat_pushButton_pressed();                                    ///< Remove the selected boat.
+    void at_boatName_lineEdit_textEdited(const QString& arg1);                  ///< Change the selected boat's name.
+    void at_boatAcronym_lineEdit_textEdited(const QString& arg1);               ///< Change the selected boat's acronym.
+    void at_boatType_lineEdit_textEdited(const QString& arg1);                  ///< Change the selected boat's type.
+    void at_boatFuelType_comboBox_currentTextChanged(const QString& arg1);      ///< Change the selected boat's fuel type.
+    void at_boatRadioCallName_lineEdit_textEdited(const QString& arg1);         ///< Change the selected boat's radio call name.
+    void at_boatRadioCallNameAlt_lineEdit_textEdited(const QString& arg1);      ///< Change the selected boat's alt. radio call name.
+    void at_copyBoatRadioCallNameAlt_radioButton_toggled(bool checked);         ///< Copy the radio call name to the alternative one.
+    void at_boatHomeStation_comboBox_currentIndexChanged(int index);            ///< Change the selected boat's home station.
     //
-    void on_numDocuments_spinBox_valueChanged(int arg1);                        ///< Adjust the number rows of the documents table.
-    void on_chooseDocument_pushButton_pressed();                                ///< Set a document path using a file dialog.
-    void on_documents_tableWidget_cellChanged(int row, int column);             ///< \brief Reset table item if it contains a character
+    void at_numDocuments_spinBox_valueChanged(int arg1);                        ///< Adjust the number rows of the documents table.
+    void at_chooseDocument_pushButton_pressed();                                ///< Set a document path using a file dialog.
+    void at_documents_tableWidget_cellChanged(int row, int column);             ///< \brief Reset table item if it contains a character
                                                                                 ///  used to separate documents and names/paths.
     //
-    void on_singleInstance_checkBox_stateChanged(int arg1);         ///< Show restart hint when newly activating single instance mode.
+    void at_singleInstance_checkBox_stateChanged(int arg1);         ///< Show restart hint when newly activating single instance mode.
 
 private:
     Ui::SettingsDialog* ui;                     //UI
@@ -119,4 +119,4 @@ private:
     std::map<QString, Aux::Boat> boats;         //Map of loaded/added/edited boats with boat name as key
 };
 
-#endif // SETTINGSDIALOG_H
+#endif // WDMGR_SETTINGSDIALOG_H

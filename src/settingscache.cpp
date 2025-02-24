@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -45,7 +45,9 @@ const std::map<QString, std::pair<std::function<int(bool)>, std::function<bool(i
                                                          SettingsCache::setAutoApplyBoatDriveChanges}},
          {"app_singleInstance", {SettingsCache::getSingleApplicationInstance, SettingsCache::setSingleApplicationInstance}},
          {"app_default_station", {SettingsCache::getDefaultStation, SettingsCache::setDefaultStation}},
-         {"app_default_boat", {SettingsCache::getDefaultBoat, SettingsCache::setDefaultBoat}}};
+         {"app_default_boat", {SettingsCache::getDefaultBoat, SettingsCache::setDefaultBoat}},
+         {"app_newReport_forceSelectDutyPurpose", {SettingsCache::getForceSelectDutyPurpose,
+                                                   SettingsCache::setForceSelectDutyPurpose}}};
 const std::map<QString, std::pair<std::function<double(bool)>, std::function<bool(double)>>> SettingsCache::availableDblSettings =
         {};
 const std::map<QString, std::pair<std::function<QString(bool)>, std::function<bool(const QString&)>>>
@@ -604,6 +606,43 @@ int SettingsCache::getDefaultBoat(const bool pNoMsgBox)
 bool SettingsCache::setDefaultBoat(const int pValue)
 {
     return DatabaseCache::setSetting("app_default_boat", pValue);
+}
+
+/*!
+ * \brief Read "app_newReport_forceSelectDutyPurpose" setting from database cache (defines default value).
+ *
+ * Sets (and returns) default value of 0, if setting is not set.
+ *
+ * Shows a warning message box, if writing not set setting to database fails.
+ *
+ * \param pNoMsgBox Suppress warning message boxes.
+ * \return Value of the setting.
+ */
+int SettingsCache::getForceSelectDutyPurpose(const bool pNoMsgBox)
+{
+    int tValue = 0;
+    if (!DatabaseCache::getSetting("app_newReport_forceSelectDutyPurpose", tValue, 0, true))    //Default: do not force selection
+    {
+        if (!pNoMsgBox)
+        {
+            QMessageBox(QMessageBox::Critical, "Fehler", "Fehler beim Schreiben der Konfigurations-Datenbank!", QMessageBox::Ok).exec();
+        }
+    }
+    return tValue;
+}
+
+/*!
+ * \brief Write "app_newReport_forceSelectDutyPurpose" setting to database cache.
+ *
+ * Sets the cached value and also writes it to the configuration database.
+ * If writing to the database fails, the cached value will not be changed.
+ *
+ * \param pValue New value for the setting.
+ * \return If writing to database was successful.
+ */
+bool SettingsCache::setForceSelectDutyPurpose(const int pValue)
+{
+    return DatabaseCache::setSetting("app_newReport_forceSelectDutyPurpose", pValue);
 }
 
 //

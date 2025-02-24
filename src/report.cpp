@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -33,6 +33,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QStringList>
+#include <Qt>
 
 #include <functional>
 #include <iostream>
@@ -48,12 +49,12 @@
  * Possibly interesting non-trivial default values:
  * - Serial number set to 1.
  * - All times set to 00:00 and report date set to 01.01.2000.
- * - Duty purpose set to DutyPurpose::_WATCHKEEPING.
+ * - Duty purpose set to DutyPurpose::Watchkeeping.
  * - Weather conditions set to:
- *  - Aux::Precipitation::_NONE
- *  - Aux::Cloudiness::_CLOUDLESS
- *  - Aux::WindStrength::_CALM
- *  - Aux::WindDirection::_UNKNOWN
+ *  - Aux::Precipitation::None
+ *  - Aux::Cloudiness::Cloudless
+ *  - Aux::WindStrength::Calm
+ *  - Aux::WindDirection::Unknown
  */
 Report::Report() :
     fileName(""),
@@ -61,15 +62,16 @@ Report::Report() :
     station(""),
     radioCallName(""),
     comments(""),
-    dutyPurpose(DutyPurpose::_WATCHKEEPING),
+    dutyPurpose(DutyPurpose::Watchkeeping),
     dutyPurposeComment(""),
     date(QDate(2000, 1, 1)),
     begin(QTime(0, 0)),
     end(QTime(0, 0)),
-    precipitation(Aux::Precipitation::_NONE),
-    cloudiness(Aux::Cloudiness::_CLOUDLESS),
-    windStrength(Aux::WindStrength::_CALM),
-    windDirection(Aux::WindDirection::_UNKNOWN),
+    endsOnNextDayConfirmed(false),
+    precipitation(Aux::Precipitation::None),
+    cloudiness(Aux::Cloudiness::Cloudless),
+    windStrength(Aux::WindStrength::Calm),
+    windDirection(Aux::WindDirection::Unknown),
     temperatureAir(0),
     temperatureWater(0),
     weatherComments(""),
@@ -285,7 +287,7 @@ bool Report::open(const QString& pFileName)
     comments = reportObj.value("generalComments").toString("");
 
     dutyPurpose = static_cast<DutyPurpose>(static_cast<int8_t>(reportObj.value("dutyPurpose").toInt(
-                                                                   static_cast<int8_t>(DutyPurpose::_WATCHKEEPING)
+                                                                   static_cast<int8_t>(DutyPurpose::Watchkeeping)
                                                                    )));
     dutyPurposeComment = reportObj.value("dutyPurposeComment").toString("");
 
@@ -316,19 +318,21 @@ bool Report::open(const QString& pFileName)
     }
     end = QTime::fromString(reportObj.value("endTime").toString(), "hh:mm");
 
+    setEndsOnNextDayConfirmed(reportObj.value("endsOnNextDayConfirmed").toBool(false));
+
     //Weather
 
     precipitation = static_cast<Aux::Precipitation>(static_cast<int8_t>(reportObj.value("precipitation").toInt(
-                                                                            static_cast<int8_t>(Aux::Precipitation::_NONE)
+                                                                            static_cast<int8_t>(Aux::Precipitation::None)
                                                                             )));
     cloudiness = static_cast<Aux::Cloudiness>(static_cast<int8_t>(reportObj.value("cloudiness").toInt(
-                                                                      static_cast<int8_t>(Aux::Cloudiness::_CLOUDLESS)
+                                                                      static_cast<int8_t>(Aux::Cloudiness::Cloudless)
                                                                       )));
     windStrength = static_cast<Aux::WindStrength>(static_cast<int8_t>(reportObj.value("windStrength").toInt(
-                                                                          static_cast<int8_t>(Aux::WindStrength::_CALM)
+                                                                          static_cast<int8_t>(Aux::WindStrength::Calm)
                                                                           )));
     windDirection = static_cast<Aux::WindDirection>(static_cast<int8_t>(reportObj.value("windDirection").toInt(
-                                                                          static_cast<int8_t>(Aux::WindDirection::_UNKNOWN)
+                                                                          static_cast<int8_t>(Aux::WindDirection::Unknown)
                                                                           )));
 
     temperatureAir = reportObj.value("airTemp").toInt(0);
@@ -372,13 +376,13 @@ bool Report::open(const QString& pFileName)
 
     for (auto it : rescueOperationsCounts)
     {
-        if (it.first == RescueOperation::_MORTAL_DANGER_INVOLVED)
+        if (it.first == RescueOperation::MortalDangerInvolved)
             continue;
 
         tTotNumRescues += it.second;
     }
 
-    if (rescueOperationsCounts[RescueOperation::_MORTAL_DANGER_INVOLVED] > tTotNumRescues)
+    if (rescueOperationsCounts[RescueOperation::MortalDangerInvolved] > tTotNumRescues)
         std::cerr<<"WARNING: Number of rescue operations involving mortal danger exceeds total number of rescue operations!"<<std::endl;
 
     //Assignment number from rescue directing center
@@ -626,7 +630,7 @@ bool Report::open(const QString& pFileName)
 
         Person::Function tFunction = static_cast<Person::Function>(static_cast<int8_t>(
                                                                        personObj.value("function").toInt(
-                                                                           static_cast<int8_t>(Person::Function::_OTHER))));
+                                                                           static_cast<int8_t>(Person::Function::Other))));
 
         if (!personObj.contains("arrive") || !personObj.value("arrive").isString() ||
             !QTime::fromString(personObj.value("arrive").toString(), "hh:mm").isValid())
@@ -819,7 +823,7 @@ bool Report::open(const QString& pFileName)
 
             Person::BoatFunction tBoatFunction = static_cast<Person::BoatFunction>(
                                                      static_cast<int8_t>(crewMemberObj.value("crewMemberFunction").toInt(
-                                                                             static_cast<int8_t>(Person::BoatFunction::_OTHER)
+                                                                             static_cast<int8_t>(Person::BoatFunction::Other)
                                                                              )));
 
             //When loading file format < 1.4.0, use previously mapped external identifier instead of legacy external identifier
@@ -837,11 +841,11 @@ bool Report::open(const QString& pFileName)
                 if (!QualificationChecker::checkBoatFunction(tBoatFunction, getIntOrExtPersonnel(tIdent).getQualifications()))
                 {
                     //Automatically fix boat function if failing check is due to too lax qualification requirement in versions < 1.4.0
-                    if (adaptLegacyBoatFunctions && tBoatFunction == Person::BoatFunction::_BG &&
-                        QualificationChecker::checkBoatFunction(Person::BoatFunction::_RS,
+                    if (adaptLegacyBoatFunctions && tBoatFunction == Person::BoatFunction::Bg &&
+                        QualificationChecker::checkBoatFunction(Person::BoatFunction::Rs,
                                                                 getIntOrExtPersonnel(tIdent).getQualifications()))
                     {
-                        tBoatFunction = Person::BoatFunction::_RS;
+                        tBoatFunction = Person::BoatFunction::Rs;
                         std::cerr<<"WARNING: Changed boat function from \"BG\" to \"RS\" due to insufficient qualification!"<<std::endl;
                     }
                     else
@@ -876,7 +880,7 @@ bool Report::open(const QString& pFileName)
                     return false;
                 }
 
-                tDrive.addExtCrewMember(tIdent, Person::BoatFunction::_EXT, tLastName, tFirstName);
+                tDrive.addExtCrewMember(tIdent, Person::BoatFunction::Ext, tLastName, tFirstName);
             }
         }
 
@@ -944,6 +948,7 @@ bool Report::save(const QString& pFileName, const bool pTempFile)
     reportObj.insert("date", date.toString(Qt::DateFormat::ISODate));
     reportObj.insert("beginTime", begin.toString("hh:mm"));
     reportObj.insert("endTime", end.toString("hh:mm"));
+    reportObj.insert("endsOnNextDayConfirmed", getEndsOnNextDayConfirmed());
 
     reportObj.insert("precipitation", static_cast<int8_t>(precipitation));
     reportObj.insert("cloudiness", static_cast<int8_t>(cloudiness));
@@ -1416,11 +1421,19 @@ QTime Report::getBeginTime() const
 /*!
  * \brief Set the time when the duty begins.
  *
+ * Note: Also resets "duty ends on next day confirmed state" (see setEndsOnNextDayConfirmed())
+ * if the new begin time is smaller than or equal to the end time.
+ *
+ * Note: The time frame spanned between begin time and end time is assumed to always be smaller than 24 hours
+ * (even if the end time is set to be on the next day, see setEndsOnNextDayConfirmed())!
+ *
  * \param pTime New duty begin time.
  */
 void Report::setBeginTime(const QTime pTime)
 {
     begin = pTime;
+    if (end >= begin)
+        endsOnNextDayConfirmed = false;
 }
 
 /*!
@@ -1436,11 +1449,49 @@ QTime Report::getEndTime() const
 /*!
  * \brief Set the time when the duty ends.
  *
+ * Note: Also resets "duty ends on next day confirmed state" (see setEndsOnNextDayConfirmed())
+ * if the new end time is larger than or equal to the begin time.
+ *
+ * Note: The time frame spanned between begin time and end time is assumed to always be smaller than 24 hours
+ * (even if the end time is set to be on the next day, see setEndsOnNextDayConfirmed())!
+ *
  * \param pTime New duty end time.
  */
 void Report::setEndTime(const QTime pTime)
 {
     end = pTime;
+    if (end >= begin)
+        endsOnNextDayConfirmed = false;
+}
+
+/*!
+ * \brief Check if duty end time smaller than begin time was confirmed.
+ *
+ * See setEndsOnNextDayConfirmed() for further explanation.
+ *
+ * \return If duty end time value is smaller than duty begin time value and this was
+ *         explicitly confirmed as being correct by setEndsOnNextDayConfirmed().
+ */
+bool Report::getEndsOnNextDayConfirmed() const
+{
+    return ((end < begin) && endsOnNextDayConfirmed);
+}
+
+/*!
+ * \brief Confirm that duty end time smaller than begin time is correct.
+ *
+ * If duty ends on the next day, the end time value "overflows" and is thus smaller than the begin time value.
+ * This needs to be confirmed in order to then correctly interpret those values (at least to suppress warnings etcetera).
+ * This only works if the end time is actually smaller than the begin time. The confirmation state will be set to false otherwise.
+ *
+ * Note: The confirmation state will also be automatically set to false whenever setting begin/end times
+ * via setBeginTime()/setEndTime() results in end time not being smaller than begin time anymore.
+ *
+ * \param pEndsOnNextDay True if an end time smaller than begin time (due to end on next day) shall be considered intentional.
+ */
+void Report::setEndsOnNextDayConfirmed(const bool pEndsOnNextDay)
+{
+    endsOnNextDayConfirmed = ((end < begin) && pEndsOnNextDay);
 }
 
 //
@@ -1893,7 +1944,7 @@ void Report::removePerson(const QString& pIdent)
 /*!
  * \brief Get the personnel function of a person.
  *
- * Returns Person::Function::_OTHER, if \p pIdent not found.
+ * Returns Person::Function::Other, if \p pIdent not found.
  *
  * \param pIdent Person's identifier.
  * \return Person's personnel function.
@@ -1905,7 +1956,7 @@ Person::Function Report::getPersonFunction(const QString& pIdent) const
 
     std::cerr<<"ERROR: Could not find person in personnel list! Returning dummy function."<<std::endl;
 
-    return Person::Function::_OTHER;
+    return Person::Function::Other;
 }
 
 /*!
@@ -2005,7 +2056,7 @@ std::shared_ptr<BoatLog> Report::boatLog() const
  *
  * \return Map of numbers of rescue operations with available rescue operation types as keys.
  */
-std::map<Report::RescueOperation, int> Report::getRescueOperationCtrs() const
+const std::map<Report::RescueOperation, int>& Report::getRescueOperationCtrs() const
 {
     return rescueOperationsCounts;
 }
@@ -2111,6 +2162,7 @@ std::vector<std::pair<QString, std::pair<QTime, QTime>>> Report::getResources(co
         tSet.insert(it);
 
     std::vector<std::pair<QString, std::pair<QTime, QTime>>> resourcesSorted;
+    resourcesSorted.reserve(tSet.size());
 
     for (const auto& it : tSet)
         resourcesSorted.push_back(it);
@@ -2146,21 +2198,21 @@ QString Report::dutyPurposeToLabel(const DutyPurpose pPurpose)
 {
     switch (pPurpose)
     {
-        case DutyPurpose::_WATCHKEEPING:
+        case DutyPurpose::Watchkeeping:
             return "Wachdienst";
-        case DutyPurpose::_SAILING_REGATTA:
+        case DutyPurpose::SailingRegatta:
             return "Begleitung Regatta";
-        case DutyPurpose::_SAILING_PRACTICE:
+        case DutyPurpose::SailingPractice:
             return "Begleitung Segeltraining";
-        case DutyPurpose::_SWIMMING_PRACTICE:
+        case DutyPurpose::SwimmingPractice:
             return "Training";
-        case DutyPurpose::_RESCUE_EXERCISE:
+        case DutyPurpose::RescueExercise:
             return "Übung";
-        case DutyPurpose::_RESCUE_OPERATION:
+        case DutyPurpose::RescueOperation:
             return "Einsatz";
-        case DutyPurpose::_COURSE:
+        case DutyPurpose::Course:
             return "Lehrgang";
-        case DutyPurpose::_OTHER:
+        case DutyPurpose::Other:
             return "Sonstiges";
         default:
             return "Sonstiges";
@@ -2179,23 +2231,23 @@ QString Report::dutyPurposeToLabel(const DutyPurpose pPurpose)
 Report::DutyPurpose Report::labelToDutyPurpose(const QString& pPurpose)
 {
     if (pPurpose == "Wachdienst")
-        return DutyPurpose::_WATCHKEEPING;
+        return DutyPurpose::Watchkeeping;
     else if (pPurpose == "Begleitung Regatta")
-        return DutyPurpose::_SAILING_REGATTA;
+        return DutyPurpose::SailingRegatta;
     else if (pPurpose == "Begleitung Segeltraining")
-        return DutyPurpose::_SAILING_PRACTICE;
+        return DutyPurpose::SailingPractice;
     else if (pPurpose == "Training")
-        return DutyPurpose::_SWIMMING_PRACTICE;
+        return DutyPurpose::SwimmingPractice;
     else if (pPurpose == "Übung")
-        return DutyPurpose::_RESCUE_EXERCISE;
+        return DutyPurpose::RescueExercise;
     else if (pPurpose == "Einsatz")
-        return DutyPurpose::_RESCUE_OPERATION;
+        return DutyPurpose::RescueOperation;
     else if (pPurpose == "Lehrgang")
-        return DutyPurpose::_COURSE;
+        return DutyPurpose::Course;
     else if (pPurpose == "Sonstiges")
-        return DutyPurpose::_OTHER;
+        return DutyPurpose::Other;
     else
-        return DutyPurpose::_OTHER;
+        return DutyPurpose::Other;
 }
 
 //
@@ -2213,27 +2265,27 @@ QString Report::rescueOperationToLabel(const RescueOperation pRescue)
 {
     switch (pRescue)
     {
-        case RescueOperation::_FIRST_AID:
+        case RescueOperation::FirstAid:
             return "Erste-Hilfe-Einsatz";
-        case RescueOperation::_FIRST_AID_MATERIAL:
+        case RescueOperation::FirstAidMaterial:
             return "Ausgabe von EH-/SAN-Material";
-        case RescueOperation::_WATER_PREVENTIVE_MEASURES:
+        case RescueOperation::WaterPreventiveMeasures:
             return "Vorbeugende Maßnahmen Wassersportler";
-        case RescueOperation::_WATER_RESCUE_GENERAL:
+        case RescueOperation::WaterRescueGeneral:
             return "Rettung von Personen vor Ertrinken";
-        case static_cast<RescueOperation>(RescueOperation_CAPSIZE_deprecated):  //Note: deprecated option; keep this here
+        case static_cast<RescueOperation>(RescueOperation_Capsize_deprecated):  //Note: deprecated option; keep this here
             return "Bootskenterung";                                            //for compatibility with old saved reports
-        case RescueOperation::_MATERIAL_RETRIEVAL:
+        case RescueOperation::MaterialRetrieval:
             return "Bergung von Sachgut";
-        case RescueOperation::_CAPSIZE_WATER_RESCUE:
+        case RescueOperation::CapsizeWaterRescue:
             return "Bootskenterung (mit Hilfe Personen)";
-        case RescueOperation::_CAPSIZE_TECH_ASSISTANCE:
+        case RescueOperation::CapsizeTechAssistance:
             return "Bootskenterung (technische Hilfe)";
-        case RescueOperation::_MISSING_PERSON:
+        case RescueOperation::MissingPerson:
             return "Personensuche";
-        case RescueOperation::_OTHER_ASSISTANCE:
+        case RescueOperation::OtherAssistance:
             return "Sonstige Hilfeleistungen";
-        case RescueOperation::_MORTAL_DANGER_INVOLVED:
+        case RescueOperation::MortalDangerInvolved:
             return "Rettungen aus Lebensgefahr";
         default:
             return "Sonstige Hilfeleistungen";
@@ -2253,55 +2305,55 @@ QString Report::rescueOperationToDocNotice(const RescueOperation pRescue)
 {
     switch (pRescue)
     {
-        case RescueOperation::_FIRST_AID:
+        case RescueOperation::FirstAid:
         {
             return "Patientenprotokoll vollständig und angehängt?\n"
                    "Verbrauchtes Material in Verbrauchsliste eingetragen?";
         }
-        case RescueOperation::_FIRST_AID_MATERIAL:
+        case RescueOperation::FirstAidMaterial:
         {
             return "Verbrauchtes Material in Verbrauchsliste eingetragen?";
         }
-        case RescueOperation::_WATER_PREVENTIVE_MEASURES:
+        case RescueOperation::WaterPreventiveMeasures:
         {
             return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
                    "Einsatzprotokoll ausgefüllt und angehängt?";
         }
-        case RescueOperation::_WATER_RESCUE_GENERAL:
+        case RescueOperation::WaterRescueGeneral:
         {
             return "Einsatz- und Patientenprotokoll ausgefüllt und angehängt?\n"
                    "Leiter Einsatz informiert?";
         }
-        case static_cast<RescueOperation>(RescueOperation_CAPSIZE_deprecated):  //Note: deprecated option; keep this here
+        case static_cast<RescueOperation>(RescueOperation_Capsize_deprecated):  //Note: deprecated option; keep this here
         {                                                                       //for compatibility with old saved reports
             return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
                    "Einsatz-/Patientenprotokoll ausgefüllt und angehängt?";
         }
-        case RescueOperation::_MATERIAL_RETRIEVAL:
+        case RescueOperation::MaterialRetrieval:
         {
             return "Details unter Bemerkungen vermerkt?";
         }
-        case RescueOperation::_CAPSIZE_WATER_RESCUE:
+        case RescueOperation::CapsizeWaterRescue:
         {
             return "Einsatz-/Patientenprotokoll ausgefüllt und angehängt?\n"
                    "Leiter Einsatz informiert?";
         }
-        case RescueOperation::_CAPSIZE_TECH_ASSISTANCE:
+        case RescueOperation::CapsizeTechAssistance:
         {
             return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
                    "Einsatzprotokoll ausgefüllt und angehängt?";
         }
-        case RescueOperation::_MISSING_PERSON:
+        case RescueOperation::MissingPerson:
         {
             return "Einsatzprotokoll und Suchmeldung ausgefüllt und angehängt?\n"
                    "Leiter Einsatz informiert?";
         }
-        case RescueOperation::_OTHER_ASSISTANCE:
+        case RescueOperation::OtherAssistance:
         {
             return "Details unter Bemerkungen vermerkt oder, falls nötig,\n"
                    "Einsatzprotokoll ausgefüllt und angehängt?";
         }
-        case RescueOperation::_MORTAL_DANGER_INVOLVED:
+        case RescueOperation::MortalDangerInvolved:
         {
             return "Einsatz- und Patientenprotokoll ausgefüllt und angehängt?\n"
                    "Leiter Einsatz informiert?";
@@ -2323,29 +2375,29 @@ QString Report::rescueOperationToDocNotice(const RescueOperation pRescue)
 Report::RescueOperation Report::labelToRescueOperation(const QString& pRescue)
 {
     if (pRescue == "Erste-Hilfe-Einsatz")
-        return RescueOperation::_FIRST_AID;
+        return RescueOperation::FirstAid;
     else if (pRescue == "Ausgabe von EH-/SAN-Material")
-        return RescueOperation::_FIRST_AID_MATERIAL;
+        return RescueOperation::FirstAidMaterial;
     else if (pRescue == "Vorbeugende Maßnahmen Wassersportler")
-        return RescueOperation::_WATER_PREVENTIVE_MEASURES;
+        return RescueOperation::WaterPreventiveMeasures;
     else if (pRescue == "Rettung von Personen vor Ertrinken")
-        return RescueOperation::_WATER_RESCUE_GENERAL;
+        return RescueOperation::WaterRescueGeneral;
     else if (pRescue == "Bootskenterung")                                           //Note: deprecated option; keep this here
-        return static_cast<RescueOperation>(RescueOperation_CAPSIZE_deprecated);    //for compatibility with old saved reports
+        return static_cast<RescueOperation>(RescueOperation_Capsize_deprecated);    //for compatibility with old saved reports
     else if (pRescue == "Bergung von Sachgut")
-        return RescueOperation::_MATERIAL_RETRIEVAL;
+        return RescueOperation::MaterialRetrieval;
     else if (pRescue == "Bootskenterung (mit Hilfe Personen)")
-        return RescueOperation::_CAPSIZE_WATER_RESCUE;
+        return RescueOperation::CapsizeWaterRescue;
     else if (pRescue == "Bootskenterung (technische Hilfe)")
-        return RescueOperation::_CAPSIZE_TECH_ASSISTANCE;
+        return RescueOperation::CapsizeTechAssistance;
     else if (pRescue == "Personensuche")
-        return RescueOperation::_MISSING_PERSON;
+        return RescueOperation::MissingPerson;
     else if (pRescue == "Sonstige Hilfeleistungen")
-        return RescueOperation::_OTHER_ASSISTANCE;
+        return RescueOperation::OtherAssistance;
     else if (pRescue == "Rettungen aus Lebensgefahr")
-        return RescueOperation::_MORTAL_DANGER_INVOLVED;
+        return RescueOperation::MortalDangerInvolved;
     else
-        return RescueOperation::_OTHER_ASSISTANCE;
+        return RescueOperation::OtherAssistance;
 }
 
 //
@@ -2455,9 +2507,9 @@ void Report::addPersonnel(Person&& pPerson)
  */
 void Report::removePersonnel(const QString& pIdent)
 {
-    if (internalPersonnelMap.find(pIdent) != internalPersonnelMap.end())
+    if (internalPersonnelMap.find(pIdent) != internalPersonnelMap.end())        // cppcheck-suppress redundantIfRemove
         internalPersonnelMap.erase(pIdent);
-    else if (externalPersonnelMap.find(pIdent) != externalPersonnelMap.end())
+    else if (externalPersonnelMap.find(pIdent) != externalPersonnelMap.end())   // cppcheck-suppress redundantIfRemove
         externalPersonnelMap.erase(pIdent);
 }
 
@@ -2486,6 +2538,5 @@ void Report::addPersonFunctionTimes(const QString& pIdent, const Person::Functio
  */
 void Report::removePersonFunctionTimes(const QString& pIdent)
 {
-    if (personnelFunctionTimesMap.find(pIdent) != personnelFunctionTimesMap.end())
-        personnelFunctionTimesMap.erase(pIdent);
+    personnelFunctionTimesMap.erase(pIdent);
 }

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,17 +20,15 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef ABOUTDIALOG_H
-#define ABOUTDIALOG_H
+#ifndef WDMGR_ABOUTDIALOG_H
+#define WDMGR_ABOUTDIALOG_H
 
 #include "auxil.h"
 
 #include <QDialog>
 #include <QWidget>
 
-namespace Ui {
-class AboutDialog;
-}
+namespace Ui { class AboutDialog; }
 
 /*!
  * \brief Show version, contributors and license information.
@@ -51,4 +49,4 @@ private:
     Ui::AboutDialog* ui;    //UI
 };
 
-#endif // ABOUTDIALOG_H
+#endif // WDMGR_ABOUTDIALOG_H

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -43,6 +43,7 @@
 #include <QRegularExpressionValidator>
 #include <QSpinBox>
 #include <QStringList>
+#include <Qt>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTabWidget>
@@ -51,6 +52,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <utility>
 
 /*!
  * \brief Constructor.
@@ -74,6 +76,8 @@ SettingsDialog::SettingsDialog(QWidget *const pParent) :
     passwordEdited(false)
 {
     ui->setupUi(this);
+
+    connectSlots();
 
     //Add example report file name presets
     ui->fileNamePreset_comboBox->addItems(Aux::reportFileNamePresets);
@@ -182,6 +186,56 @@ SettingsDialog::~SettingsDialog()
 //Private
 
 /*!
+ * \brief Connect UI signals to their slots.
+ *
+ * Connects required signals from the ".ui" file widgets to their corresponding slots.
+ */
+void SettingsDialog::connectSlots() const
+{
+    connect(ui->settings_tabWidget, &QTabWidget::currentChanged, this, &SettingsDialog::at_settings_tabWidget_currentChanged);
+    connect(ui->chooseDefaultFilePath_pushButton, &QPushButton::pressed,
+            this, &SettingsDialog::at_chooseDefaultFilePath_pushButton_pressed);
+    connect(ui->chooseXelatexPath_pushButton, &QPushButton::pressed, this, &SettingsDialog::at_chooseXelatexPath_pushButton_pressed);
+    connect(ui->chooseLogoPath_pushButton, &QPushButton::pressed, this, &SettingsDialog::at_chooseLogoPath_pushButton_pressed);
+    connect(ui->password_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_password_lineEdit_textEdited);
+    connect(ui->stations_comboBox, &QComboBox::currentIndexChanged, this, &SettingsDialog::at_stations_comboBox_currentIndexChanged);
+    connect(ui->addStation_pushButton, &QPushButton::pressed, this, &SettingsDialog::at_addStation_pushButton_pressed);
+    connect(ui->removeStation_pushButton, &QPushButton::pressed, this, &SettingsDialog::at_removeStation_pushButton_pressed);
+    connect(ui->stationLocation_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_stationLocation_lineEdit_textEdited);
+    connect(ui->stationName_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_stationName_lineEdit_textEdited);
+    connect(ui->localGroup_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_localGroup_lineEdit_textEdited);
+    connect(ui->districtAssociation_lineEdit, &QLineEdit::textEdited,
+            this, &SettingsDialog::at_districtAssociation_lineEdit_textEdited);
+    connect(ui->stationRadioCallName_lineEdit, &QLineEdit::textEdited,
+            this, &SettingsDialog::at_stationRadioCallName_lineEdit_textEdited);
+    connect(ui->stationRadioCallNameAlt_lineEdit, &QLineEdit::textEdited,
+            this, &SettingsDialog::at_stationRadioCallNameAlt_lineEdit_textEdited);
+    connect(ui->copyStationRadioCallNameAlt_radioButton, &QRadioButton::toggled,
+            this, &SettingsDialog::at_copyStationRadioCallNameAlt_radioButton_toggled);
+    connect(ui->boats_comboBox, &QComboBox::currentIndexChanged, this, &SettingsDialog::at_boats_comboBox_currentIndexChanged);
+    connect(ui->addBoat_pushButton, &QPushButton::pressed, this, &SettingsDialog::at_addBoat_pushButton_pressed);
+    connect(ui->removeBoat_pushButton, &QPushButton::pressed, this, &SettingsDialog::at_removeBoat_pushButton_pressed);
+    connect(ui->boatName_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_boatName_lineEdit_textEdited);
+    connect(ui->boatAcronym_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_boatAcronym_lineEdit_textEdited);
+    connect(ui->boatType_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_boatType_lineEdit_textEdited);
+    connect(ui->boatFuelType_comboBox, &QComboBox::currentTextChanged,
+            this, &SettingsDialog::at_boatFuelType_comboBox_currentTextChanged);
+    connect(ui->boatRadioCallName_lineEdit, &QLineEdit::textEdited, this, &SettingsDialog::at_boatRadioCallName_lineEdit_textEdited);
+    connect(ui->boatRadioCallNameAlt_lineEdit, &QLineEdit::textEdited,
+            this, &SettingsDialog::at_boatRadioCallNameAlt_lineEdit_textEdited);
+    connect(ui->copyBoatRadioCallNameAlt_radioButton, &QRadioButton::toggled,
+            this, &SettingsDialog::at_copyBoatRadioCallNameAlt_radioButton_toggled);
+    connect(ui->boatHomeStation_comboBox, &QComboBox::currentIndexChanged,
+            this, &SettingsDialog::at_boatHomeStation_comboBox_currentIndexChanged);
+    connect(ui->numDocuments_spinBox, &QSpinBox::valueChanged, this, &SettingsDialog::at_numDocuments_spinBox_valueChanged);
+    connect(ui->chooseDocument_pushButton, &QPushButton::pressed, this, &SettingsDialog::at_chooseDocument_pushButton_pressed);
+    connect(ui->documents_tableWidget, &QTableWidget::cellChanged, this, &SettingsDialog::at_documents_tableWidget_cellChanged);
+    connect(ui->singleInstance_checkBox, &QCheckBox::stateChanged, this, &SettingsDialog::at_singleInstance_checkBox_stateChanged);
+}
+
+//
+
+/*!
  * \brief Read the settings from database.
  *
  * Reads all settings from the database cache and fills the dialog widgets.
@@ -208,14 +262,20 @@ void SettingsDialog::readDatabase()
     ui->logoPath_lineEdit->setText(SettingsCache::getStrSetting("app_export_customLogoPath"));
     ui->font_lineEdit->setText(SettingsCache::getStrSetting("app_export_fontFamily"));
 
-    ui->autoExport_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_autoOnSave"));
-    ui->autoExportAskFilename_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_autoOnSave_askForFileName"));
-    ui->twoSidedPrint_checkBox->setChecked(SettingsCache::getBoolSetting("app_export_twoSidedPrint"));
+    ui->autoExport_checkBox->setCheckState(Aux::checkStateFromChecked(SettingsCache::getBoolSetting("app_export_autoOnSave")));
+    ui->autoExportAskFilename_checkBox->setCheckState(Aux::checkStateFromChecked(
+                                                          SettingsCache::getBoolSetting("app_export_autoOnSave_askForFileName")));
+    ui->twoSidedPrint_checkBox->setCheckState(Aux::checkStateFromChecked(
+                                                  SettingsCache::getBoolSetting("app_export_twoSidedPrint")));
 
     //Extended settings
 
-    ui->disableBoatLog_checkBox->setChecked(SettingsCache::getBoolSetting("app_boatLog_disabled"));
-    ui->boatDriveAutoApplyChanges_checkBox->setChecked(SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"));
+    ui->forceSelectDutyPurpose_checkBox->setCheckState(
+                Aux::checkStateFromChecked(SettingsCache::getBoolSetting("app_newReport_forceSelectDutyPurpose")));
+
+    ui->disableBoatLog_checkBox->setCheckState(Aux::checkStateFromChecked(SettingsCache::getBoolSetting("app_boatLog_disabled")));
+    ui->boatDriveAutoApplyChanges_checkBox->setCheckState(
+                Aux::checkStateFromChecked(SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges")));
 
     QString boatmanRequiredLicense = SettingsCache::getStrSetting("app_personnel_minQualis_boatman");
 
@@ -227,7 +287,7 @@ void SettingsDialog::readDatabase()
     else if (boatmanRequiredLicense == "A|B")
         ui->boatingLicenseAny_radioButton->setChecked(true);
 
-    ui->singleInstance_checkBox->setChecked(SettingsCache::getBoolSetting("app_singleInstance"));
+    ui->singleInstance_checkBox->setCheckState(Aux::checkStateFromChecked(SettingsCache::getBoolSetting("app_singleInstance")));
 
     //Password
 
@@ -261,7 +321,7 @@ void SettingsDialog::readDatabase()
     bool tDefaultBoatOk = false;
     for (const auto& it : DatabaseCache::boats())
     {
-        boats.insert({it.second.name, std::move(it.second)});
+        boats.insert({it.second.name, it.second});
 
         //Default boat exists?
         if (it.first == defaultBoatRowId)
@@ -404,22 +464,34 @@ bool SettingsDialog::writeDatabase() const
     if (!SettingsCache::setStrSetting("app_export_fontFamily", ui->font_lineEdit->text()))
         return false;
 
-    if (!SettingsCache::setBoolSetting("app_export_autoOnSave", ui->autoExport_checkBox->isChecked()))
+    if (!SettingsCache::setBoolSetting("app_export_autoOnSave", Aux::checkedFromCheckState(ui->autoExport_checkBox->checkState())))
         return false;
 
-    if (!SettingsCache::setBoolSetting("app_export_autoOnSave_askForFileName", ui->autoExportAskFilename_checkBox->isChecked()))
+    if (!SettingsCache::setBoolSetting("app_export_autoOnSave_askForFileName",
+                                       Aux::checkedFromCheckState(ui->autoExportAskFilename_checkBox->checkState())))
+    {
         return false;
+    }
 
-    if (!SettingsCache::setBoolSetting("app_export_twoSidedPrint", ui->twoSidedPrint_checkBox->isChecked()))
+    if (!SettingsCache::setBoolSetting("app_export_twoSidedPrint",
+                                       Aux::checkedFromCheckState(ui->twoSidedPrint_checkBox->checkState())))
+    {
         return false;
+    }
 
     //Extended settings
 
-    if (!SettingsCache::setBoolSetting("app_boatLog_disabled", ui->disableBoatLog_checkBox->isChecked()))
+    if (!SettingsCache::setBoolSetting("app_newReport_forceSelectDutyPurpose",
+                                       Aux::checkedFromCheckState(ui->forceSelectDutyPurpose_checkBox->checkState())))
+    {
+        return false;
+    }
+
+    if (!SettingsCache::setBoolSetting("app_boatLog_disabled", Aux::checkedFromCheckState(ui->disableBoatLog_checkBox->checkState())))
         return false;
 
     if (!SettingsCache::setBoolSetting("app_reportWindow_autoApplyBoatDriveChanges",
-                                       ui->boatDriveAutoApplyChanges_checkBox->isChecked()))
+                                       Aux::checkedFromCheckState(ui->boatDriveAutoApplyChanges_checkBox->checkState())))
     {
         return false;
     }
@@ -433,7 +505,7 @@ bool SettingsDialog::writeDatabase() const
     else if (ui->boatingLicenseAny_radioButton->isChecked())
         SettingsCache::setStrSetting("app_personnel_minQualis_boatman", "A|B");
 
-    if (!SettingsCache::setBoolSetting("app_singleInstance", ui->singleInstance_checkBox->isChecked()))
+    if (!SettingsCache::setBoolSetting("app_singleInstance", Aux::checkedFromCheckState(ui->singleInstance_checkBox->checkState())))
         return false;
 
     //Password
@@ -773,7 +845,7 @@ void SettingsDialog::accept()
  *
  * \param index New selected tab index.
  */
-void SettingsDialog::on_settings_tabWidget_currentChanged(const int index)
+void SettingsDialog::at_settings_tabWidget_currentChanged(const int index)
 {
     //Need to initially resize documents table once after dialog fully constructed; do this when documents tab selected
     if (index == ui->settings_tabWidget->indexOf(ui->documents_tab))
@@ -787,7 +859,7 @@ void SettingsDialog::on_settings_tabWidget_currentChanged(const int index)
  *
  * Sets the default file path line edit text to a directory selected by a file chooser dialog.
  */
-void SettingsDialog::on_chooseDefaultFilePath_pushButton_pressed()
+void SettingsDialog::at_chooseDefaultFilePath_pushButton_pressed()
 {
     QFileDialog fileDialog(this, "Standard-Dateipfad", "", "Ordner");
     fileDialog.setFileMode(QFileDialog::FileMode::Directory);
@@ -823,7 +895,7 @@ void SettingsDialog::on_chooseDefaultFilePath_pushButton_pressed()
  * On windows the dialog filter is set to "*.exe" files.
  * On linux the dialog filter is set to "*".
  */
-void SettingsDialog::on_chooseXelatexPath_pushButton_pressed()
+void SettingsDialog::at_chooseXelatexPath_pushButton_pressed()
 {
 #if defined(Q_OS_LINUX)
     QString filter = "Ausführbare Dateien (*)";
@@ -846,7 +918,7 @@ void SettingsDialog::on_chooseXelatexPath_pushButton_pressed()
  *
  * Sets the logo image file path line edit text to a file name selected by a file chooser dialog.
  */
-void SettingsDialog::on_chooseLogoPath_pushButton_pressed()
+void SettingsDialog::at_chooseLogoPath_pushButton_pressed()
 {
     QString fileName = QFileDialog::getOpenFileName(this, "Logo-Datei", "", "Bilddateien (*.png *.jpg *.jpeg *.bmp *.gif)");
 
@@ -861,7 +933,7 @@ void SettingsDialog::on_chooseLogoPath_pushButton_pressed()
  *
  * Set/change the password only if the password field was edited by the user.
  */
-void SettingsDialog::on_password_lineEdit_textEdited(const QString&)
+void SettingsDialog::at_password_lineEdit_textEdited(const QString&)
 {
     passwordEdited = true;
 }
@@ -873,7 +945,7 @@ void SettingsDialog::on_password_lineEdit_textEdited(const QString&)
  *
  * Insert the properties of the newly selected station into the corresponding input widgets.
  */
-void SettingsDialog::on_stations_comboBox_currentIndexChanged(int)
+void SettingsDialog::at_stations_comboBox_currentIndexChanged(int)
 {
     updateStationsInputs();
 }
@@ -886,7 +958,7 @@ void SettingsDialog::on_stations_comboBox_currentIndexChanged(int)
  * The station name and location are set to automatically generated placeholder values.
  * All other properties are set to pre-defined placeholder values.
  */
-void SettingsDialog::on_addStation_pushButton_pressed()
+void SettingsDialog::at_addStation_pushButton_pressed()
 {
     QString newIdent;
 
@@ -932,7 +1004,7 @@ void SettingsDialog::on_addStation_pushButton_pressed()
 /*!
  * \brief Remove the selected station.
  */
-void SettingsDialog::on_removeStation_pushButton_pressed()
+void SettingsDialog::at_removeStation_pushButton_pressed()
 {
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
@@ -973,7 +1045,7 @@ void SettingsDialog::on_removeStation_pushButton_pressed()
  *
  * \param arg1 The new location.
  */
-void SettingsDialog::on_stationLocation_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_stationLocation_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
@@ -1014,7 +1086,7 @@ void SettingsDialog::on_stationLocation_lineEdit_textEdited(const QString& arg1)
  *
  * \param arg1 The new name.
  */
-void SettingsDialog::on_stationName_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_stationName_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
@@ -1051,7 +1123,7 @@ void SettingsDialog::on_stationName_lineEdit_textEdited(const QString& arg1)
  *
  * \param arg1 The new local group.
  */
-void SettingsDialog::on_localGroup_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_localGroup_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
@@ -1066,7 +1138,7 @@ void SettingsDialog::on_localGroup_lineEdit_textEdited(const QString& arg1)
  *
  * \param arg1 The new district association.
  */
-void SettingsDialog::on_districtAssociation_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_districtAssociation_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
@@ -1081,7 +1153,7 @@ void SettingsDialog::on_districtAssociation_lineEdit_textEdited(const QString& a
  *
  * \param arg1 The new radio call name.
  */
-void SettingsDialog::on_stationRadioCallName_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_stationRadioCallName_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
@@ -1096,7 +1168,7 @@ void SettingsDialog::on_stationRadioCallName_lineEdit_textEdited(const QString& 
  *
  * \param arg1 The new alternative radio call name.
  */
-void SettingsDialog::on_stationRadioCallNameAlt_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_stationRadioCallNameAlt_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->stations_comboBox->currentIndex() == -1)
         return;
@@ -1115,7 +1187,7 @@ void SettingsDialog::on_stationRadioCallNameAlt_lineEdit_textEdited(const QStrin
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void SettingsDialog::on_copyStationRadioCallNameAlt_radioButton_toggled(const bool checked)
+void SettingsDialog::at_copyStationRadioCallNameAlt_radioButton_toggled(const bool checked)
 {
     if (checked)
     {
@@ -1123,7 +1195,7 @@ void SettingsDialog::on_copyStationRadioCallNameAlt_radioButton_toggled(const bo
         ui->stationRadioCallNameAlt_lineEdit->setText(ui->stationRadioCallName_lineEdit->text());
 
         //QLineEdit::setText() does not trigger textEdited() signal; call slot directly
-        on_stationRadioCallNameAlt_lineEdit_textEdited(ui->stationRadioCallNameAlt_lineEdit->text());
+        at_stationRadioCallNameAlt_lineEdit_textEdited(ui->stationRadioCallNameAlt_lineEdit->text());
     }
 }
 
@@ -1134,7 +1206,7 @@ void SettingsDialog::on_copyStationRadioCallNameAlt_radioButton_toggled(const bo
  *
  * Insert the properties of the newly selected boat into the corresponding input widgets.
  */
-void SettingsDialog::on_boats_comboBox_currentIndexChanged(int)
+void SettingsDialog::at_boats_comboBox_currentIndexChanged(int)
 {
     updateBoatsInputs();
 }
@@ -1147,7 +1219,7 @@ void SettingsDialog::on_boats_comboBox_currentIndexChanged(int)
  * The boat name is set to an automatically generated placeholder value.
  * All other properties are set to pre-defined placeholder values.
  */
-void SettingsDialog::on_addBoat_pushButton_pressed()
+void SettingsDialog::at_addBoat_pushButton_pressed()
 {
     QString newName;
 
@@ -1193,7 +1265,7 @@ void SettingsDialog::on_addBoat_pushButton_pressed()
 /*!
  * \brief Remove the selected boat.
  */
-void SettingsDialog::on_removeBoat_pushButton_pressed()
+void SettingsDialog::at_removeBoat_pushButton_pressed()
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1221,7 +1293,7 @@ void SettingsDialog::on_removeBoat_pushButton_pressed()
  *
  * \param arg1 The new name.
  */
-void SettingsDialog::on_boatName_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_boatName_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1255,7 +1327,7 @@ void SettingsDialog::on_boatName_lineEdit_textEdited(const QString& arg1)
  *
  * \param arg1 The new acronym.
  */
-void SettingsDialog::on_boatAcronym_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_boatAcronym_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1270,7 +1342,7 @@ void SettingsDialog::on_boatAcronym_lineEdit_textEdited(const QString& arg1)
  *
  * \param arg1 The new type.
  */
-void SettingsDialog::on_boatType_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_boatType_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1285,7 +1357,7 @@ void SettingsDialog::on_boatType_lineEdit_textEdited(const QString& arg1)
  *
  * \param arg1 The new fuel type.
  */
-void SettingsDialog::on_boatFuelType_comboBox_currentTextChanged(const QString& arg1)
+void SettingsDialog::at_boatFuelType_comboBox_currentTextChanged(const QString& arg1)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1300,7 +1372,7 @@ void SettingsDialog::on_boatFuelType_comboBox_currentTextChanged(const QString& 
  *
  * \param arg1 The new radio call name.
  */
-void SettingsDialog::on_boatRadioCallName_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_boatRadioCallName_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1315,7 +1387,7 @@ void SettingsDialog::on_boatRadioCallName_lineEdit_textEdited(const QString& arg
  *
  * \param arg1 The new alternative radio call name.
  */
-void SettingsDialog::on_boatRadioCallNameAlt_lineEdit_textEdited(const QString& arg1)
+void SettingsDialog::at_boatRadioCallNameAlt_lineEdit_textEdited(const QString& arg1)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1334,7 +1406,7 @@ void SettingsDialog::on_boatRadioCallNameAlt_lineEdit_textEdited(const QString& 
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void SettingsDialog::on_copyBoatRadioCallNameAlt_radioButton_toggled(const bool checked)
+void SettingsDialog::at_copyBoatRadioCallNameAlt_radioButton_toggled(const bool checked)
 {
     if (checked)
     {
@@ -1342,7 +1414,7 @@ void SettingsDialog::on_copyBoatRadioCallNameAlt_radioButton_toggled(const bool 
         ui->boatRadioCallNameAlt_lineEdit->setText(ui->boatRadioCallName_lineEdit->text());
 
         //QLineEdit::setText() does not trigger textEdited() signal; call slot directly
-        on_boatRadioCallNameAlt_lineEdit_textEdited(ui->boatRadioCallNameAlt_lineEdit->text());
+        at_boatRadioCallNameAlt_lineEdit_textEdited(ui->boatRadioCallNameAlt_lineEdit->text());
     }
 }
 
@@ -1351,7 +1423,7 @@ void SettingsDialog::on_copyBoatRadioCallNameAlt_radioButton_toggled(const bool 
  *
  * \param index The new home station's combo box item index.
  */
-void SettingsDialog::on_boatHomeStation_comboBox_currentIndexChanged(const int index)
+void SettingsDialog::at_boatHomeStation_comboBox_currentIndexChanged(const int index)
 {
     if (ui->boats_comboBox->currentIndex() == -1)
         return;
@@ -1373,7 +1445,7 @@ void SettingsDialog::on_boatHomeStation_comboBox_currentIndexChanged(const int i
  *
  * \param arg1 The new number of documents.
  */
-void SettingsDialog::on_numDocuments_spinBox_valueChanged(const int arg1)
+void SettingsDialog::at_numDocuments_spinBox_valueChanged(const int arg1)
 {
     int tOldRowCount = ui->documents_tableWidget->rowCount();
 
@@ -1398,7 +1470,7 @@ void SettingsDialog::on_numDocuments_spinBox_valueChanged(const int arg1)
  *
  * Sets the document path in the currently selected row to a file selected by a file chooser dialog.
  */
-void SettingsDialog::on_chooseDocument_pushButton_pressed()
+void SettingsDialog::at_chooseDocument_pushButton_pressed()
 {
     if (ui->documents_tableWidget->currentRow() == -1)
         return;
@@ -1435,7 +1507,7 @@ void SettingsDialog::on_chooseDocument_pushButton_pressed()
  * \param row Row of the edited item.
  * \param column Column of the edited item.
  */
-void SettingsDialog::on_documents_tableWidget_cellChanged(const int row, const int column)
+void SettingsDialog::at_documents_tableWidget_cellChanged(const int row, const int column)
 {
     if (row == -1 || column == -1)
         return;
@@ -1458,9 +1530,9 @@ void SettingsDialog::on_documents_tableWidget_cellChanged(const int row, const i
  *
  * \param arg1 Check box check state.
  */
-void SettingsDialog::on_singleInstance_checkBox_stateChanged(const int arg1)
+void SettingsDialog::at_singleInstance_checkBox_stateChanged(const int arg1)
 {
-    if ((arg1 == Qt::CheckState::Checked) && !SettingsCache::getBoolSetting("app_singleInstance"))
+    if (Aux::checkedFromCheckState(static_cast<Qt::CheckState>(arg1)) && !SettingsCache::getBoolSetting("app_singleInstance"))
     {
         QMessageBox(QMessageBox::Information, "Nur eine Instanz erlauben",
                     "Damit diese Änderung wirksam wird, muss das Programm neu gestartet werden!", QMessageBox::Ok, this).exec();

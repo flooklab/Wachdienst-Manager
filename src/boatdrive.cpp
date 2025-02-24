@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -175,7 +175,7 @@ void BoatDrive::setBoatman(QString pIdent)
  *
  * \return Map with person identifiers as keys and their boat functions as values.
  */
-std::map<QString, Person::BoatFunction> BoatDrive::crew() const
+const std::map<QString, Person::BoatFunction>& BoatDrive::crew() const
 {
     return crewMap;
 }

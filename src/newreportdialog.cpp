@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -40,8 +40,11 @@
 #include <QRadioButton>
 #include <QShortcut>
 #include <QStackedWidget>
+#include <Qt>
 #include <QTime>
 #include <QTimeEdit>
+
+#include <utility>
 
 /*!
  * \brief Constructor.
@@ -59,10 +62,12 @@ NewReportDialog::NewReportDialog(QWidget *const pParent) :
 {
     ui->setupUi(this);
 
+    connectSlots();
+
     ui->stackedWidget->setCurrentIndex(0);
 
     //Set progress bar text
-    on_stackedWidget_currentChanged(0);
+    at_stackedWidget_currentChanged(0);
 
     //Avoid automatic focusing of "previous" button in order that return key triggers "next" button
     ui->previous_pushButton->setFocusPolicy(Qt::NoFocus);
@@ -95,7 +100,6 @@ NewReportDialog::NewReportDialog(QWidget *const pParent) :
             tDefaultStationIdent = tStationIdent;
 
         stations.insert({std::move(tStationIdent), std::move(it.second)});
-
     }
 
     //Use boat name instead of 'rowid' as key
@@ -110,7 +114,7 @@ NewReportDialog::NewReportDialog(QWidget *const pParent) :
             if (it.first == defaultBoatRowId)
                 tDefaultBoatName = it.second.name;
 
-            boats.insert({it.second.name, std::move(it.second)});
+            boats.insert({it.second.name, it.second});
         }
     }
 
@@ -126,6 +130,14 @@ NewReportDialog::NewReportDialog(QWidget *const pParent) :
 
     ui->dutyTimesBegin_timeEdit->setTime(QTime::fromString(SettingsCache::getStrSetting("app_default_dutyTimeBegin"), "hh:mm"));
     ui->dutyTimesEnd_timeEdit->setTime(QTime::fromString(SettingsCache::getStrSetting("app_default_dutyTimeEnd"), "hh:mm"));
+
+    if (SettingsCache::getBoolSetting("app_newReport_forceSelectDutyPurpose"))
+        ui->dutyPurpose_comboBox->setCurrentIndex(-1);
+    else
+    {
+        ui->dutyPurpose_comboBox->setCurrentIndex(ui->dutyPurpose_comboBox->findText(
+                                                      Report::dutyPurposeToLabel(Report::DutyPurpose::Watchkeeping)));
+    }
 
     if (tDefaultStationIdent == "")
         ui->station_comboBox->setCurrentIndex(ui->station_comboBox->count() > 0 ? 0 : -1);
@@ -154,13 +166,16 @@ NewReportDialog::NewReportDialog(QWidget *const pParent) :
     else
         ui->boat_comboBox->setCurrentIndex(ui->boat_comboBox->findText(tDefaultBoatName));
 
+    //Update enabled state of navigation buttons
+    updatePreviousNextEnabled();
+
     //Add navigation shortcuts
 
     QShortcut* previousShortcut = new QShortcut(QKeySequence("Alt+Left"), this);
-    connect(previousShortcut, &QShortcut::activated, this, &NewReportDialog::on_previous_pushButton_pressed);
+    connect(previousShortcut, &QShortcut::activated, this, &NewReportDialog::at_previous_pushButton_released);
 
     QShortcut* nextShortcut = new QShortcut(QKeySequence("Alt+Right"), this);
-    connect(nextShortcut, &QShortcut::activated, this, &NewReportDialog::on_next_pushButton_pressed);
+    connect(nextShortcut, &QShortcut::activated, this, &NewReportDialog::at_next_pushButton_released);
 }
 
 /*!
@@ -183,6 +198,59 @@ NewReportDialog::~NewReportDialog()
 void NewReportDialog::getReport(Report& pReport) const
 {
     pReport = std::move(report);
+}
+
+//Private
+
+/*!
+ * \brief Connect UI signals to their slots.
+ *
+ * Connects required signals from the ".ui" file widgets to their corresponding slots.
+ */
+void NewReportDialog::connectSlots() const
+{
+    connect(ui->stackedWidget, &QStackedWidget::currentChanged, this, &NewReportDialog::at_stackedWidget_currentChanged);
+    connect(ui->previous_pushButton, &QPushButton::released, this, &NewReportDialog::at_previous_pushButton_released);
+    connect(ui->next_pushButton, &QPushButton::released, this, &NewReportDialog::at_next_pushButton_released);
+    connect(ui->dutyPurpose_comboBox, &QComboBox::currentTextChanged,
+            this, &NewReportDialog::at_dutyPurpose_comboBox_currentTextChanged);
+    connect(ui->station_comboBox, &QComboBox::currentTextChanged, this, &NewReportDialog::at_station_comboBox_currentTextChanged);
+    connect(ui->boat_comboBox, &QComboBox::currentTextChanged, this, &NewReportDialog::at_boat_comboBox_currentTextChanged);
+    connect(ui->clearStation_radioButton, &QRadioButton::toggled, this, &NewReportDialog::at_clearStation_radioButton_toggled);
+    connect(ui->clearBoat_radioButton, &QRadioButton::toggled, this, &NewReportDialog::at_clearBoat_radioButton_toggled);
+    connect(ui->noLoadLastReportCarries_radioButton, &QRadioButton::toggled,
+            this, &NewReportDialog::at_noLoadLastReportCarries_radioButton_toggled);
+    connect(ui->loadLastReportCarries_radioButton, &QRadioButton::toggled,
+            this, &NewReportDialog::at_loadLastReportCarries_radioButton_toggled);
+    connect(ui->loadLastReportCarries_radioButton, &QRadioButton::pressed,
+            this, &NewReportDialog::at_loadLastReportCarries_radioButton_pressed);
+}
+
+//
+
+/*!
+ * \brief Update enabled state of the navigation buttons.
+ *
+ * If the page for setting the duty purpose (etc.) is selected:
+ * - If \e no duty purpose is currently selected the navigation button for the \e next page gets disabled.
+ * - If a duty purpose \e is selected the button gets enabled.
+ *
+ * Both navigation buttons (previous/next) get enabled for any other page.
+ */
+void NewReportDialog::updatePreviousNextEnabled()
+{
+    if (ui->stackedWidget->currentIndex() == 1)
+    {
+        if (ui->dutyPurpose_comboBox->currentIndex() == -1)
+            ui->next_pushButton->setEnabled(false);
+        else
+            ui->next_pushButton->setEnabled(true);
+    }
+    else
+    {
+        ui->previous_pushButton->setEnabled(true);
+        ui->next_pushButton->setEnabled(true);
+    }
 }
 
 //Private slots
@@ -243,14 +311,19 @@ void NewReportDialog::accept()
  *
  * Sets progress bar percentage and label according to selected page (\p arg1).
  * Changes 'previous button' label to "Abort", iff on first page, and 'next button' label to "Finish", iff on last page.
+ * Calls updatePreviousNextEnabled() to updates enabled state of 'previous/next' buttons according to filled values on current page.
+ *
+ * When the page for setting the duty purpose (etc.) was selected and no duty purpose is currently selected the selection popup
+ * for the duty purpose combo box gets opened automatically (the default selection is normally Report::DutyPurpose::Watchkeeping
+ * but is initially cleared if manual selection is enforced by the "app_newReport_forceSelectDutyPurpose" setting).
  *
  * When the page for loading the last report's carryovers was selected and no such report is currently
  * selected (which is initially the case) the corresponding radio button for selection of the last
- * report gets triggered automatically (see on_loadLastReportCarries_radioButton_pressed()).
+ * report gets triggered automatically (see at_loadLastReportCarries_radioButton_pressed()).
  *
  * \param arg1 New page index.
  */
-void NewReportDialog::on_stackedWidget_currentChanged(const int arg1)
+void NewReportDialog::at_stackedWidget_currentChanged(const int arg1)
 {
     //Update progress
     ui->progressBar->setValue(static_cast<int>(100 * static_cast<double>(arg1) / ui->stackedWidget->count()));
@@ -275,6 +348,14 @@ void NewReportDialog::on_stackedWidget_currentChanged(const int arg1)
     else
         ui->previous_pushButton->setText("Zurück");
 
+    //Update enabled state of navigation buttons
+    updatePreviousNextEnabled();
+
+    //Automatically open the popup for the duty purpose combo box whenever the
+    //corresponding page gets selected but no duty purpose has been selected yet
+    if (ui->stackedWidget->currentIndex() == 1 && ui->dutyPurpose_comboBox->currentIndex() == -1)
+        ui->dutyPurpose_comboBox->showPopup();
+
     //Automatically trigger the selection of a file name to load last report's carryovers from
     //whenever the corresponding page gets selected and no such report has been selected yet
     if (ui->stackedWidget->currentIndex() == ui->stackedWidget->count()-1 && !ui->loadLastReportCarries_radioButton->isChecked())
@@ -284,7 +365,7 @@ void NewReportDialog::on_stackedWidget_currentChanged(const int arg1)
 /*!
  * \brief Go to previous page or reject the dialog, if on first page.
  */
-void NewReportDialog::on_previous_pushButton_pressed()
+void NewReportDialog::at_previous_pushButton_released()
 {
     if (ui->stackedWidget->currentIndex() == 0)
         reject();
@@ -295,7 +376,7 @@ void NewReportDialog::on_previous_pushButton_pressed()
 /*!
  * \brief Go to next page or accept the dialog, if on last page.
  */
-void NewReportDialog::on_next_pushButton_pressed()
+void NewReportDialog::at_next_pushButton_released()
 {
     if (ui->stackedWidget->currentIndex() == ui->stackedWidget->count()-1)
         accept();
@@ -306,6 +387,17 @@ void NewReportDialog::on_next_pushButton_pressed()
 //
 
 /*!
+ * \brief Enable navigation buttons if a duty purpose selected.
+ *
+ * See updatePreviousNextEnabled().
+ */
+void NewReportDialog::at_dutyPurpose_comboBox_currentTextChanged(const QString&)
+{
+    //Update enabled state of navigation buttons
+    updatePreviousNextEnabled();
+}
+
+/*!
  * \brief Update selectable radio call names from selected station.
  *
  * Changes the selectable station radio call name combo box items to those radio call names defined for the selected station.
@@ -313,7 +405,7 @@ void NewReportDialog::on_next_pushButton_pressed()
  *
  * \param arg1 Selected combo box label representing a station.
  */
-void NewReportDialog::on_station_comboBox_currentTextChanged(const QString& arg1)
+void NewReportDialog::at_station_comboBox_currentTextChanged(const QString& arg1)
 {
     ui->stationRadioCallName_comboBox->clear();
 
@@ -335,7 +427,7 @@ void NewReportDialog::on_station_comboBox_currentTextChanged(const QString& arg1
  *
  * \param arg1 Selected combo box label representing a boat.
  */
-void NewReportDialog::on_boat_comboBox_currentTextChanged(const QString& arg1)
+void NewReportDialog::at_boat_comboBox_currentTextChanged(const QString& arg1)
 {
     ui->boatRadioCallName_comboBox->clear();
 
@@ -356,7 +448,7 @@ void NewReportDialog::on_boat_comboBox_currentTextChanged(const QString& arg1)
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_clearStation_radioButton_toggled(const bool checked)
+void NewReportDialog::at_clearStation_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;
@@ -372,7 +464,7 @@ void NewReportDialog::on_clearStation_radioButton_toggled(const bool checked)
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_clearBoat_radioButton_toggled(const bool checked)
+void NewReportDialog::at_clearBoat_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;
@@ -390,7 +482,7 @@ void NewReportDialog::on_clearBoat_radioButton_toggled(const bool checked)
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_noLoadLastReportCarries_radioButton_toggled(const bool checked)
+void NewReportDialog::at_noLoadLastReportCarries_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;
@@ -406,7 +498,7 @@ void NewReportDialog::on_noLoadLastReportCarries_radioButton_toggled(const bool 
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void NewReportDialog::on_loadLastReportCarries_radioButton_toggled(const bool checked)
+void NewReportDialog::at_loadLastReportCarries_radioButton_toggled(const bool checked)
 {
     if (!checked)
         return;
@@ -426,12 +518,12 @@ void NewReportDialog::on_loadLastReportCarries_radioButton_toggled(const bool ch
 }
 
 /*!
- * \brief See on_loadLastReportCarries_radioButton_toggled().
+ * \brief See at_loadLastReportCarries_radioButton_toggled().
  *
- * Calls on_loadLastReportCarries_radioButton_toggled() with current check state as argument.
+ * Calls at_loadLastReportCarries_radioButton_toggled() with current check state as argument.
  */
-void NewReportDialog::on_loadLastReportCarries_radioButton_pressed()
+void NewReportDialog::at_loadLastReportCarries_radioButton_pressed()
 {
     //Also trigger the slot, when pressed while already checked
-    on_loadLastReportCarries_radioButton_toggled(ui->loadLastReportCarries_radioButton->isChecked());
+    at_loadLastReportCarries_radioButton_toggled(ui->loadLastReportCarries_radioButton->isChecked());
 }

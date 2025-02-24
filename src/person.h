@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef PERSON_H
-#define PERSON_H
+#ifndef WDMGR_PERSON_H
+#define WDMGR_PERSON_H
 
 #include <QString>
 #include <QStringList>
@@ -114,8 +114,8 @@ public:
      */
     struct Qualifications
     {
-        Qualifications(const QStringList& pQualifications); ///< Constructor.
-        Qualifications(const QString& pQualifications);     ///< Constructor.
+        explicit Qualifications(const QStringList& pQualifications);    ///< Constructor.
+        explicit Qualifications(const QString& pQualifications);        ///< Constructor.
         //
         static QStringList listAllQualifications();         ///< List all qualifications in principle available.
         //
@@ -145,18 +145,18 @@ public:
      */
     enum class Function : int8_t
     {
-        _WF = 0,        ///< "Wachführer".
-        _SL = 1,        ///< "Stationsleiter".
-        _BF = 2,        ///< "Bootsführer".
-        _WR = 3,        ///< "Wasserretter".
-        _RS = 4,        ///< "Rettungsschwimmer".
-        _PR = 5,        ///< "Praktikant".
-        _SAN = 6,       ///< "Sanitäter/Sanitätshelfer".
-        _FU = 7,        ///< "Funker".
-        _SR = 8,        ///< "Strömungsretter".
-        _ET = 9,        ///< "Einsatztaucher".
-        _FUD = 10,      ///< "Führungsdienst".
-        _OTHER = 127    ///< Reserved.
+        Wf = 0,         ///< "Wachführer".
+        Sl = 1,         ///< "Stationsleiter".
+        Bf = 2,         ///< "Bootsführer".
+        Wr = 3,         ///< "Wasserretter".
+        Rs = 4,         ///< "Rettungsschwimmer".
+        Pr = 5,         ///< "Praktikant".
+        San = 6,        ///< "Sanitäter/Sanitätshelfer".
+        Fu = 7,         ///< "Funker".
+        Sr = 8,         ///< "Strömungsretter".
+        Et = 9,         ///< "Einsatztaucher".
+        Fud = 10,       ///< "Führungsdienst".
+        Other = 127     ///< Reserved.
     };
     /*!
      * \brief Possible boat functions.
@@ -167,14 +167,14 @@ public:
      */
     enum class BoatFunction : int8_t
     {
-        _BG = 1,        ///< "Bootsgast".
-        _RS = 2,        ///< "Rettungsschwimmer".
-        _PR = 3,        ///< "Praktikant".
-        _SAN = 4,       ///< "Sanitäter/Sanitätshelfer".
-        _SR = 5,        ///< "Strömungsretter".
-        _ET = 6,        ///< "Einsatztaucher".
-        _EXT = 100,     ///< External ("other") people not part of duty personnel.
-        _OTHER = 127    ///< Reserved.
+        Bg = 1,        ///< "Bootsgast".
+        Rs = 2,        ///< "Rettungsschwimmer".
+        Pr = 3,        ///< "Praktikant".
+        San = 4,       ///< "Sanitäter/Sanitätshelfer".
+        Sr = 5,        ///< "Strömungsretter".
+        Et = 6,        ///< "Einsatztaucher".
+        Ext = 100,     ///< External ("other") people not part of duty personnel.
+        Other = 127    ///< Reserved.
     };
 
 public:
@@ -198,17 +198,17 @@ public:
     template <typename FuncT, typename... Args>
     static void iterateFunctions(FuncT pFunction, Args&... pArgs)
     {
-        for (Function func : {Function::_WF,
-                              Function::_SL,
-                              Function::_BF,
-                              Function::_WR,
-                              Function::_RS,
-                              Function::_PR,
-                              Function::_SAN,
-                              Function::_FU,
-                              Function::_SR,
-                              Function::_ET,
-                              Function::_FUD})
+        for (Function func : {Function::Wf,
+                              Function::Sl,
+                              Function::Bf,
+                              Function::Wr,
+                              Function::Rs,
+                              Function::Pr,
+                              Function::San,
+                              Function::Fu,
+                              Function::Sr,
+                              Function::Et,
+                              Function::Fud})
         {
             pFunction(func, pArgs...);
         }
@@ -233,12 +233,12 @@ public:
     template <typename FuncT, typename... Args>
     static void iterateBoatFunctions(FuncT pFunction, Args&... pArgs)
     {
-        for (BoatFunction func : {BoatFunction::_BG,
-                                  BoatFunction::_RS,
-                                  BoatFunction::_PR,
-                                  BoatFunction::_SAN,
-                                  BoatFunction::_SR,
-                                  BoatFunction::_ET})
+        for (BoatFunction func : {BoatFunction::Bg,
+                                  BoatFunction::Rs,
+                                  BoatFunction::Pr,
+                                  BoatFunction::San,
+                                  BoatFunction::Sr,
+                                  BoatFunction::Et})
         {
             pFunction(func, pArgs...);
         }
@@ -251,4 +251,4 @@ private:
     bool active;                    //Is person active/enabled?
 };
 
-#endif // PERSON_H
+#endif // WDMGR_PERSON_H

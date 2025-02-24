@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef DATABASECREATOR_H
-#define DATABASECREATOR_H
+#ifndef WDMGR_DATABASECREATOR_H
+#define WDMGR_DATABASECREATOR_H
 
 /*!
  * \brief Basic database handling.
@@ -56,4 +56,4 @@ private:
     static bool setPersonnelVersion(int pVersion);  ///< Write the personnel database version.
 };
 
-#endif // DATABASECREATOR_H
+#endif // WDMGR_DATABASECREATOR_H

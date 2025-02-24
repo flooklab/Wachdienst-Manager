@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef STARTUPWINDOW_H
-#define STARTUPWINDOW_H
+#ifndef WDMGR_STARTUPWINDOW_H
+#define WDMGR_STARTUPWINDOW_H
 
 #include "report.h"
 #include "reportwindow.h"
@@ -35,9 +35,7 @@
 #include <memory>
 #include <set>
 
-QT_BEGIN_NAMESPACE
 namespace Ui { class StartupWindow; }
-QT_END_NAMESPACE
 
 /*!
  * \brief The main control window.
@@ -50,7 +48,7 @@ class StartupWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    StartupWindow(QWidget* pParent = nullptr);              ///< Constructor.
+    explicit StartupWindow(QWidget* pParent = nullptr);     ///< Constructor.
     ~StartupWindow();                                       ///< Destructor.
     //
     void newReport();                                       ///< Create a new report using assistant dialog and open report window.
@@ -62,20 +60,22 @@ private:
     void dragEnterEvent(QDragEnterEvent* pEvent) override;  ///< Reimplementation of QMainWindow::dragEnterEvent().
     void dropEvent(QDropEvent* pEvent) override;            ///< Reimplementation of QMainWindow::dropEvent().
     //
+    void connectSlots() const;                              ///< Connect UI signals to their slots.
+    //
     void showReportWindow(Report&& pReport);                ///< Hide this window and create and show a new report window.
 
 private slots:
-    void on_reportWindowClosed(const ReportWindow* pWindow);                                ///< \brief Destroy and remove the pointer
+    void at_reportWindowClosed(const ReportWindow* pWindow);                                ///< \brief Destroy and remove the pointer
                                                                                             ///  to the closed report window.
-    void on_openAnotherReportRequested(const QString& pFileName, bool pChooseFile = false); ///< \brief Load a report from file and
+    void at_openAnotherReportRequested(const QString& pFileName, bool pChooseFile = false); ///< \brief Load a report from file and
                                                                                             ///  open a new report window for it.
     //
-    void on_newReport_pushButton_pressed();                 ///< Create (and show) a new report.
-    void on_loadReport_pushButton_pressed();                ///< Open a report from file.
-    void on_personnel_pushButton_pressed();                 ///< Maintain the personnel database.
-    void on_settings_pushButton_pressed();                  ///< Change the program settings.
-    void on_about_pushButton_pressed();                     ///< Show program information.
-    void on_quit_pushButton_pressed();                      ///< Close the program.
+    void at_newReport_pushButton_pressed();                 ///< Create (and show) a new report.
+    void at_loadReport_pushButton_pressed();                ///< Open a report from file.
+    void at_personnel_pushButton_pressed();                 ///< Maintain the personnel database.
+    void at_settings_pushButton_pressed();                  ///< Change the program settings.
+    void at_about_pushButton_pressed();                     ///< Show program information.
+    void at_quit_pushButton_pressed();                      ///< Close the program.
 
 signals:
     void openAnotherReportRequested(const QString& pFileName);  ///< \brief Signal emitted when "master" application instance received
@@ -86,4 +86,4 @@ private:
     //
     std::set<std::unique_ptr<ReportWindow>> reportWindowPtrs;   //All open report windows
 };
-#endif // STARTUPWINDOW_H
+#endif // WDMGR_STARTUPWINDOW_H

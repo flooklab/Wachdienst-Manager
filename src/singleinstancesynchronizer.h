@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef SINGLEINSTANCESYNCHRONIZER_H
-#define SINGLEINSTANCESYNCHRONIZER_H
+#ifndef WDMGR_SINGLEINSTANCESYNCHRONIZER_H
+#define WDMGR_SINGLEINSTANCESYNCHRONIZER_H
 
 #include "startupwindow.h"
 
@@ -68,17 +68,17 @@ private:
     /*!
      * \brief Symbols that can be used for the bus control signal.
      *
-     * The values define different states of the bus. If the bus is BusCtrlSymbol::_IDLE then the master
+     * The values define different states of the bus. If the bus is BusCtrlSymbol::Idle then the master
      * instance is waiting for requests from slave instances (see listen()). In the idle state slave instances
      * can send requests on the bus if they can acquire the lock for the control signal. The request is sent
-     * by setting the control signal to a symbol different from BusCtrlSymbol::_IDLE and releasing the lock.
+     * by setting the control signal to a symbol different from BusCtrlSymbol::Idle and releasing the lock.
      * Additional data that need to be sent via the data signal must be set before releasing the control lock.
      */
     enum class BusCtrlSymbol : int8_t
     {
-        _IDLE = 0,          ///< Idle state.
-        _NEW_REPORT = 1,    ///< Create a new report and show it in another report window. See also sendNewReport().
-        _OPEN_REPORT = 2    ///< Open an existing report in another report window. See also sendOpenReport().
+        Idle = 0,       ///< Idle state.
+        NewReport = 1,  ///< Create a new report and show it in another report window. See also sendNewReport().
+        OpenReport = 2  ///< Open an existing report in another report window. See also sendOpenReport().
     };
 
 private:
@@ -91,4 +91,4 @@ private:
     static const std::size_t shmDataLength; //Maximum number of wide characters to be stored in the "data signal" shared memory segment
 };
 
-#endif // SINGLEINSTANCESYNCHRONIZER_H
+#endif // WDMGR_SINGLEINSTANCESYNCHRONIZER_H

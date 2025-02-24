@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -36,6 +36,7 @@
 #include <QModelIndexList>
 #include <QPushButton>
 #include <QString>
+#include <Qt>
 #include <QTableWidget>
 
 #include <functional>
@@ -65,6 +66,8 @@ PersonnelDatabaseDialog::PersonnelDatabaseDialog(QWidget *const pParent) :
     editDisabled(false)
 {
     ui->setupUi(this);
+
+    connectSlots();
 
     //Format table header and configure selection mode
     ui->personnel_tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -132,6 +135,22 @@ PersonnelDatabaseDialog::~PersonnelDatabaseDialog()
 }
 
 //Private
+
+/*!
+ * \brief Connect UI signals to their slots.
+ *
+ * Connects required signals from the ".ui" file widgets to their corresponding slots.
+ */
+void PersonnelDatabaseDialog::connectSlots() const
+{
+    connect(ui->add_pushButton, &QPushButton::pressed, this, &PersonnelDatabaseDialog::at_add_pushButton_pressed);
+    connect(ui->edit_pushButton, &QPushButton::pressed, this, &PersonnelDatabaseDialog::at_edit_pushButton_pressed);
+    connect(ui->remove_pushButton, &QPushButton::pressed, this, &PersonnelDatabaseDialog::at_remove_pushButton_pressed);
+    connect(ui->personnel_tableWidget, &QTableWidget::cellDoubleClicked,
+            this, &PersonnelDatabaseDialog::at_personnel_tableWidget_cellDoubleClicked);
+}
+
+//
 
 /*!
  * \brief Show an up to date personnel list from the database cache.
@@ -208,12 +227,12 @@ void PersonnelDatabaseDialog::updatePersonnelTable()
  *
  * Returns immediately, if editing was disabled due to wrong password or if database is read-only.
  */
-void PersonnelDatabaseDialog::on_add_pushButton_pressed()
+void PersonnelDatabaseDialog::at_add_pushButton_pressed()
 {
     if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
 
-    PersonnelEditorDialog dialog(Person::dummyPerson(), PersonnelEditorDialog::PersonType::_INTERNAL, false, this);
+    PersonnelEditorDialog dialog(Person::dummyPerson(), PersonnelEditorDialog::PersonType::Internal, false, this);
 
     if (dialog.exec() != QDialog::Accepted)
         return;
@@ -251,7 +270,7 @@ void PersonnelDatabaseDialog::on_add_pushButton_pressed()
  *
  * Returns immediately, if editing was disabled due to wrong password or if database is read-only.
  */
-void PersonnelDatabaseDialog::on_edit_pushButton_pressed()
+void PersonnelDatabaseDialog::at_edit_pushButton_pressed()
 {
     if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
@@ -269,7 +288,7 @@ void PersonnelDatabaseDialog::on_edit_pushButton_pressed()
         Person tPerson = Person::dummyPerson();
         DatabaseCache::getPerson(tPerson, tIdent);
 
-        PersonnelEditorDialog dialog(tPerson, PersonnelEditorDialog::PersonType::_INTERNAL, false, this);
+        PersonnelEditorDialog dialog(tPerson, PersonnelEditorDialog::PersonType::Internal, false, this);
 
         if (dialog.exec() != QDialog::Accepted)
             continue;
@@ -309,7 +328,7 @@ void PersonnelDatabaseDialog::on_edit_pushButton_pressed()
  *
  * Returns immediately, if editing was disabled due to wrong password or if database is read-only.
  */
-void PersonnelDatabaseDialog::on_remove_pushButton_pressed()
+void PersonnelDatabaseDialog::at_remove_pushButton_pressed()
 {
     if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
@@ -362,14 +381,14 @@ void PersonnelDatabaseDialog::on_remove_pushButton_pressed()
 /*!
  * \brief Edit the selected persons.
  *
- * Edits the selected persons. See on_edit_pushButton_pressed().
+ * Edits the selected persons. See at_edit_pushButton_pressed().
  *
  * Returns immediately, if editing was disabled due to wrong password or if database is read-only.
  */
-void PersonnelDatabaseDialog::on_personnel_tableWidget_cellDoubleClicked(int, int)
+void PersonnelDatabaseDialog::at_personnel_tableWidget_cellDoubleClicked(int, int)
 {
     if (editDisabled || DatabaseCache::isPersonnelReadOnly())
         return;
 
-    on_edit_pushButton_pressed();
+    at_edit_pushButton_pressed();
 }

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -44,6 +44,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <utility>
 #include <vector>
 
 //Public
@@ -296,7 +297,8 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
     if (tFontFamily == "DLRG Univers 55 Roman")
         windRaiseboxAmount = "1.0pt";
 
-    QString texString0 = rawTexString0.arg(tFontsString, windRaiseboxAmount, pReport.getDate().toString("dd.MM.yyyy"), Aux::programVersionString);
+    QString texString0 = rawTexString0.arg(tFontsString, windRaiseboxAmount, pReport.getDate().toString("dd.MM.yyyy"),
+                                           Aux::programVersionString);
 
     //Report header
 
@@ -307,7 +309,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
     QString tStationName = "---";
 
     //Get station information from database
-    std::map<int, Aux::Station> tStations = DatabaseCache::stations();
+    const std::map<int, Aux::Station>& tStations = DatabaseCache::stations();
     int tStRowId = 0;
     QString tStName, tStLoc;
     if (Aux::stationNameLocationFromIdent(pReport.getStation(), tStName, tStLoc) &&
@@ -352,7 +354,8 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
     QString rawTexString1 = "{\\LARGE\\textbf{Wachbericht}}\n"
        "\n"
        "\\vspace{-2pt}\\hspace{-0.5in}\n"
-       "\\begin{minipage}[b][0pt][t]{\\linewidth+0.5in+0.4in-2pt-8pt}\\vspace{-51pt+8pt}\\hfill\\includegraphics[width=105pt]{logo}\\end{minipage}\n"
+       "\\begin{minipage}[b][0pt][t]{\\linewidth+0.5in+0.4in-2pt-8pt}\\vspace{-51pt+8pt}\\hfill"
+       "\\includegraphics[width=105pt]{logo}\\end{minipage}\n"
        "\n"
        "\\begin{minipage}{\\linewidth}\n"
        "\\renewcommand{\\arraystretch}{1.55}\n"
@@ -473,7 +476,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
         //Can use enumeration value to directly calculate wind arrow rotation angle
         tWindDirectionSymbol = " \\hspace{2pt}\\rotatedWindArrow{" + QString::number(22.5*static_cast<int8_t>(windDirection)) + "}";
     }
-    else if (windDirection == Aux::WindDirection::_VARIABLE)
+    else if (windDirection == Aux::WindDirection::Variable)
         tWindDirectionSymbol = " \\hspace{2pt}\\windChanging";
 
     QString tWeatherComments = pReport.getWeatherComments();
@@ -519,7 +522,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
     {
         if (pCurrentRescueTypeNum++ == 0)
             pTexString4.append(" \\toprule\n");
-        else if (pRescue == Report::RescueOperation::_MORTAL_DANGER_INVOLVED)
+        else if (pRescue == Report::RescueOperation::MortalDangerInvolved)
             pTexString4.append(" \\bottomrule\\addlinespace[\\belowrulesep]\n");
         else
             pTexString4.append(" \\midrule\n");
@@ -531,14 +534,14 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
     //Add table row for each type of rescue operation, summarizing the numbers of carried out operations;
     //determine available (non-deprecated) rescue operation types and place deprecated ones (possibly loaded from file) in front
 
-    std::map<Report::RescueOperation, int> tRescOpCtrs = pReport.getRescueOperationCtrs();
+    const std::map<Report::RescueOperation, int>& tRescOpCtrs = pReport.getRescueOperationCtrs();
 
     std::set<Report::RescueOperation> tAvailRescOps = Report::getAvailableRescueOperations();
 
     int tCurrentRescueTypeNum = 0;
 
     //Add new row for each deprecated 'RescueOperation' with non-zero count
-    for (auto it : tRescOpCtrs)
+    for (const auto& it : tRescOpCtrs)
         if (tAvailRescOps.find(it.first) == tAvailRescOps.end() && it.second != 0)
             tRescOpFunc(it.first, tRescOpCtrs, texString4, tCurrentRescueTypeNum);
 
@@ -769,7 +772,7 @@ void PDFExporter::reportToLaTeX(const Report& pReport, QString& pTeXString,
     const BoatLog& boatLog = *pReport.boatLog();
 
     //Get boat information from database
-    std::map<int, Aux::Boat> tBoats = DatabaseCache::boats();
+    const std::map<int, Aux::Boat>& tBoats = DatabaseCache::boats();
     int tBtRowId = 0;
     if (DatabaseCache::boatRowIdFromName(boatLog.getBoat(), tBtRowId))
     {

@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef BOATDRIVE_H
-#define BOATDRIVE_H
+#ifndef WDMGR_BOATDRIVE_H
+#define WDMGR_BOATDRIVE_H
 
 #include "person.h"
 
@@ -58,7 +58,7 @@ public:
     QString getBoatman() const;             ///< Get the boatman.
     void setBoatman(QString pIdent);        ///< Set the boatman.
     //
-    std::map<QString, Person::BoatFunction> crew() const;                               ///< Get all crew members' functions.
+    const std::map<QString, Person::BoatFunction>& crew() const;                        ///< Get all crew members' functions.
     int crewSize() const;                                                               ///< Get the number of crew members.
     bool getCrewMember(const QString& pIdent, Person::BoatFunction& pFunction) const;   ///< Get the function of a crew member.
     bool getExtCrewMemberName(const QString& pIdent,
@@ -87,4 +87,4 @@ private:
     std::map<QString, std::pair<QString, QString>> crewExtNames;    //Last and first names of external crew members
 };
 
-#endif // BOATDRIVE_H
+#endif // WDMGR_BOATDRIVE_H

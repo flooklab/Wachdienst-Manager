@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef NEWREPORTDIALOG_H
-#define NEWREPORTDIALOG_H
+#ifndef WDMGR_NEWREPORTDIALOG_H
+#define WDMGR_NEWREPORTDIALOG_H
 
 #include "auxil.h"
 #include "report.h"
@@ -32,9 +32,7 @@
 
 #include <map>
 
-namespace Ui {
-class NewReportDialog;
-}
+namespace Ui { class NewReportDialog; }
 
 /*!
  * \brief Create a new Report with default settings.
@@ -62,21 +60,27 @@ public:
     //
     void getReport(Report& pReport) const;                          ///< Get the new report.
 
+private:
+    void connectSlots() const;                                      ///< Connect UI signals to their slots.
+    //
+    void updatePreviousNextEnabled();                               ///< Update enabled state of the navigation buttons.
+
 private slots:
     void accept() override;                                         ///< Reimplementation of QDialog::accept().
     //
-    void on_stackedWidget_currentChanged(int arg1);                 ///< Update progress bar value/label and navigation button labels.
-    void on_previous_pushButton_pressed();                          ///< Go to previous page or reject the dialog, if on first page.
-    void on_next_pushButton_pressed();                              ///< Go to next page or accept the dialog, if on last page.
+    void at_stackedWidget_currentChanged(int arg1);                 ///< Update progress bar value/label and navigation button labels.
+    void at_previous_pushButton_released();                         ///< Go to previous page or reject the dialog, if on first page.
+    void at_next_pushButton_released();                             ///< Go to next page or accept the dialog, if on last page.
     //
-    void on_station_comboBox_currentTextChanged(const QString& arg1);   ///< Update selectable radio call names from selected station.
-    void on_boat_comboBox_currentTextChanged(const QString& arg1);      ///< Update selectable radio call names from selected boat.
-    void on_clearStation_radioButton_toggled(bool checked);             ///< Clear station selection (and reset the radio button).
-    void on_clearBoat_radioButton_toggled(bool checked);                ///< Clear boat selection (and reset the radio button).
+    void at_dutyPurpose_comboBox_currentTextChanged(const QString& arg1);   ///< Enable navigation buttons if a duty purpose selected.
+    void at_station_comboBox_currentTextChanged(const QString& arg1);   ///< Update selectable radio call names from selected station.
+    void at_boat_comboBox_currentTextChanged(const QString& arg1);      ///< Update selectable radio call names from selected boat.
+    void at_clearStation_radioButton_toggled(bool checked);             ///< Clear station selection (and reset the radio button).
+    void at_clearBoat_radioButton_toggled(bool checked);                ///< Clear boat selection (and reset the radio button).
     //
-    void on_noLoadLastReportCarries_radioButton_toggled(bool checked);  ///< Reset file name selected/displayed for last report.
-    void on_loadLastReportCarries_radioButton_toggled(bool checked);    ///< Select a file name to load last report's carryovers from.
-    void on_loadLastReportCarries_radioButton_pressed();                ///< See on_loadLastReportCarries_radioButton_toggled().
+    void at_noLoadLastReportCarries_radioButton_toggled(bool checked);  ///< Reset file name selected/displayed for last report.
+    void at_loadLastReportCarries_radioButton_toggled(bool checked);    ///< Select a file name to load last report's carryovers from.
+    void at_loadLastReportCarries_radioButton_pressed();                ///< See at_loadLastReportCarries_radioButton_toggled().
 
 private:
     Ui::NewReportDialog* ui;                    //UI
@@ -87,4 +91,4 @@ private:
     std::map<QString, Aux::Boat> boats;         //Map of boats with boat name as key
 };
 
-#endif // NEWREPORTDIALOG_H
+#endif // WDMGR_NEWREPORTDIALOG_H

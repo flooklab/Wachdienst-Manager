@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef PERSONNELEDITORDIALOG_H
-#define PERSONNELEDITORDIALOG_H
+#ifndef WDMGR_PERSONNELEDITORDIALOG_H
+#define WDMGR_PERSONNELEDITORDIALOG_H
 
 #include "person.h"
 
@@ -32,9 +32,7 @@
 
 #include <map>
 
-namespace Ui {
-class PersonnelEditorDialog;
-}
+namespace Ui { class PersonnelEditorDialog; }
 
 /*!
  * \brief Edit or create an internal or external Person.
@@ -60,6 +58,8 @@ public:
     Person getPerson() const;   ///< Create a person from the current content of the input widgets.
 
 private:
+    void connectSlots() const;  ///< Connect UI signals to their slots.
+    //
     void checkEmptyTexts();     ///< Disable accepting the dialog, if a required line edit is empty, enable otherwise.
     void disableAccept();       ///< Prevent accepting the dialog.
     void enableAccept();        ///< Allow accepting the dialog.
@@ -72,23 +72,23 @@ private:
 private slots:
     void accept() override;                                                 ///< Reimplementation of QDialog::accept().
     //
-    void on_firstName_lineEdit_textEdited(const QString&);                  ///< Disable accepting, if a required line edit is empty.
-    void on_lastName_lineEdit_textEdited(const QString&);                   ///< Disable accepting, if a required line edit is empty.
-    void on_membershipNumber_lineEdit_textEdited(const QString&);           ///< Disable accepting, if a required line edit is empty.
-    void on_qualifications_listWidget_itemDoubleClicked(QListWidgetItem* item);     ///< Toggle the list widget item's check state.
+    void at_firstName_lineEdit_textEdited(const QString&);                  ///< Disable accepting, if a required line edit is empty.
+    void at_lastName_lineEdit_textEdited(const QString&);                   ///< Disable accepting, if a required line edit is empty.
+    void at_membershipNumber_lineEdit_textEdited(const QString&);           ///< Disable accepting, if a required line edit is empty.
+    void at_qualifications_listWidget_itemDoubleClicked(QListWidgetItem* item);     ///< Toggle the list widget item's check state.
 
 public:
     /*!
      * \brief Category of personnel that the edited person belongs to.
      *
-     * Categories _INTERNAL / _EXTERNAL / _OTHER correspond to
+     * Categories Internal / External / Other correspond to
      * Person identifiers starting with 'i'/'e'/'o', respectively.
      */
     enum class PersonType : int8_t
     {
-        _INTERNAL = 0,  ///< Internal personnel (part of duty personnel; to be found in the database).
-        _EXTERNAL = 1,  ///< External personnel (also part of duty personnel but from other local group; not in the database).
-        _OTHER =    2,  ///< Other people not part of duty personnel (e.g., temporarily present as part of a boat drive's crew).
+        Internal = 0,   ///< Internal personnel (part of duty personnel; to be found in the database).
+        External = 1,   ///< External personnel (also part of duty personnel but from other local group; not in the database).
+        Other =    2,   ///< Other people not part of duty personnel (e.g., temporarily present as part of a boat drive's crew).
     };
 
 private:
@@ -103,4 +103,4 @@ private:
     QString extIdentSuffix;                 //In the case of an external person, keep the ident suffix from constructor
 };
 
-#endif // PERSONNELEDITORDIALOG_H
+#endif // WDMGR_PERSONNELEDITORDIALOG_H

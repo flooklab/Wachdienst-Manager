@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -24,6 +24,8 @@
 
 #include <QByteArray>
 #include <QCryptographicHash>
+
+#include <utility>
 
 /*!
  * \brief Constructor.
@@ -283,29 +285,29 @@ QString Person::functionToLabel(const Function pFunction)
 {
     switch (pFunction)
     {
-        case Function::_WF:
+        case Function::Wf:
             return "WF";
-        case Function::_SL:
+        case Function::Sl:
             return "SL";
-        case Function::_BF:
+        case Function::Bf:
             return "BF";
-        case Function::_WR:
+        case Function::Wr:
             return "WR";
-        case Function::_RS:
+        case Function::Rs:
             return "RS";
-        case Function::_PR:
+        case Function::Pr:
             return "PR";
-        case Function::_SAN:
+        case Function::San:
             return "SAN";
-        case Function::_FU:
+        case Function::Fu:
             return "FU";
-        case Function::_SR:
+        case Function::Sr:
             return "SR";
-        case Function::_ET:
+        case Function::Et:
             return "ET";
-        case Function::_FUD:
+        case Function::Fud:
             return "FüD";
-        case Function::_OTHER:
+        case Function::Other:
             return "SONST";
         default:
             return "SONST";
@@ -324,31 +326,31 @@ QString Person::functionToLabel(const Function pFunction)
 Person::Function Person::labelToFunction(const QString& pFunction)
 {
     if (pFunction == "WF")
-        return Function::_WF;
+        return Function::Wf;
     else if (pFunction == "SL")
-        return Function::_SL;
+        return Function::Sl;
     else if (pFunction == "BF")
-        return Function::_BF;
+        return Function::Bf;
     else if (pFunction == "WR")
-        return Function::_WR;
+        return Function::Wr;
     else if (pFunction == "RS")
-        return Function::_RS;
+        return Function::Rs;
     else if (pFunction == "PR")
-        return Function::_PR;
+        return Function::Pr;
     else if (pFunction == "SAN")
-        return Function::_SAN;
+        return Function::San;
     else if (pFunction == "FU")
-        return Function::_FU;
+        return Function::Fu;
     else if (pFunction == "SR")
-        return Function::_SR;
+        return Function::Sr;
     else if (pFunction == "ET")
-        return Function::_ET;
+        return Function::Et;
     else if (pFunction == "FüD")
-        return Function::_FUD;
+        return Function::Fud;
     else if (pFunction == "SONST")
-        return Function::_OTHER;
+        return Function::Other;
     else
-        return Function::_OTHER;
+        return Function::Other;
 }
 
 /*!
@@ -388,21 +390,21 @@ QString Person::boatFunctionToLabel(const BoatFunction pFunction)
 {
     switch (pFunction)
     {
-        case BoatFunction::_BG:
+        case BoatFunction::Bg:
             return "BG";
-        case BoatFunction::_RS:
+        case BoatFunction::Rs:
             return "RS";
-        case BoatFunction::_PR:
+        case BoatFunction::Pr:
             return "PR";
-        case BoatFunction::_SAN:
+        case BoatFunction::San:
             return "SAN";
-        case BoatFunction::_SR:
+        case BoatFunction::Sr:
             return "SR";
-        case BoatFunction::_ET:
+        case BoatFunction::Et:
             return "ET";
-        case BoatFunction::_EXT:
+        case BoatFunction::Ext:
             return "EXT";
-        case BoatFunction::_OTHER:
+        case BoatFunction::Other:
             return "SONST";
         default:
             return "SONST";
@@ -421,23 +423,23 @@ QString Person::boatFunctionToLabel(const BoatFunction pFunction)
 Person::BoatFunction Person::labelToBoatFunction(const QString& pFunction)
 {
     if (pFunction == "BG")
-        return BoatFunction::_BG;
+        return BoatFunction::Bg;
     else if (pFunction == "RS")
-        return BoatFunction::_RS;
+        return BoatFunction::Rs;
     else if (pFunction == "PR")
-        return BoatFunction::_PR;
+        return BoatFunction::Pr;
     else if (pFunction == "SAN")
-        return BoatFunction::_SAN;
+        return BoatFunction::San;
     else if (pFunction == "SR")
-        return BoatFunction::_SR;
+        return BoatFunction::Sr;
     else if (pFunction == "ET")
-        return BoatFunction::_ET;
+        return BoatFunction::Et;
     else if (pFunction == "EXT")
-        return BoatFunction::_EXT;
+        return BoatFunction::Ext;
     else if (pFunction == "SONST")
-        return BoatFunction::_OTHER;
+        return BoatFunction::Other;
     else
-        return BoatFunction::_OTHER;
+        return BoatFunction::Other;
 }
 
 /*!

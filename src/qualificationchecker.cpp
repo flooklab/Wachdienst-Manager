@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -37,49 +37,49 @@ bool QualificationChecker::checkPersonnelFunction(const Person::Function pFuncti
 {
     switch (pFunction)
     {
-        case Person::Function::_WF:
+        case Person::Function::Wf:
             if (pQualifications.wf)
                 return true;
             return false;
-        case Person::Function::_SL:
+        case Person::Function::Sl:
             if (checkBoatman(pQualifications))
                 return true;
             return false;
-        case Person::Function::_BF:
+        case Person::Function::Bf:
             if (checkBoatman(pQualifications))
                 return true;
             return false;
-        case Person::Function::_WR:
+        case Person::Function::Wr:
             if (pQualifications.faWrd)
                 return true;
             return false;
-        case Person::Function::_RS:
+        case Person::Function::Rs:
             if (pQualifications.drsaS)
                 return true;
             return false;
-        case Person::Function::_PR:
+        case Person::Function::Pr:
             return true;
-        case Person::Function::_SAN:
+        case Person::Function::San:
             if (pQualifications.sanA)
                 return true;
             return false;
-        case Person::Function::_FU:
+        case Person::Function::Fu:
             if (pQualifications.bos)
                 return true;
             return false;
-        case Person::Function::_SR:
+        case Person::Function::Sr:
             if (pQualifications.sr1)
                 return true;
             return false;
-        case Person::Function::_ET:
+        case Person::Function::Et:
             if (pQualifications.et)
                 return true;
             return false;
-        case Person::Function::_FUD:
+        case Person::Function::Fud:
             if (pQualifications.zf)
                 return true;
             return false;
-        case Person::Function::_OTHER:
+        case Person::Function::Other:
             return false;
         default:
             return false;
@@ -97,29 +97,29 @@ bool QualificationChecker::checkBoatFunction(const Person::BoatFunction pFunctio
 {
     switch (pFunction)
     {
-        case Person::BoatFunction::_BG:
+        case Person::BoatFunction::Bg:
             if (pQualifications.faWrd)
                 return true;
             return false;
-        case Person::BoatFunction::_RS:
+        case Person::BoatFunction::Rs:
             if (pQualifications.drsaS)
                 return true;
             return false;
-        case Person::BoatFunction::_PR:
+        case Person::BoatFunction::Pr:
             return true;
-        case Person::BoatFunction::_SAN:
+        case Person::BoatFunction::San:
             if (pQualifications.sanA)
                 return true;
             return false;
-        case Person::BoatFunction::_SR:
+        case Person::BoatFunction::Sr:
             if (pQualifications.sr1)
                 return true;
             return false;
-        case Person::BoatFunction::_ET:
+        case Person::BoatFunction::Et:
             if (pQualifications.et)
                 return true;
             return false;
-        case Person::BoatFunction::_OTHER:
+        case Person::BoatFunction::Other:
             return false;
         default:
             return false;

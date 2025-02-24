@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef SETTINGSCACHE_H
-#define SETTINGSCACHE_H
+#ifndef WDMGR_SETTINGSCACHE_H
+#define WDMGR_SETTINGSCACHE_H
 
 #include <QLockFile>
 #include <QString>
@@ -81,7 +81,7 @@ private:
     static bool setDisableBoatLog(int pValue);                          ///< Write "app_boatLog_disabled" setting to database cache.
     static int getAutoApplyBoatDriveChanges(bool pNoMsgBox = false);    ///< \brief Read "app_reportWindow_autoApplyBoatDriveChanges"
                                                                         ///  setting from database cache (defines default value).
-    static bool setAutoApplyBoatDriveChanges(int pValue);               ///< Write "app_reportWindow_autoApplyBoatDriveChanges"
+    static bool setAutoApplyBoatDriveChanges(int pValue);               ///< \brief Write "app_reportWindow_autoApplyBoatDriveChanges"
                                                                         ///  setting to database cache.
     //
     static int getSingleApplicationInstance(bool pNoMsgBox = false);    ///< \brief Read "app_singleInstance" setting
@@ -93,6 +93,10 @@ private:
     static bool setDefaultStation(int pValue);              ///< Write "app_default_station" setting to database cache.
     static int getDefaultBoat(bool pNoMsgBox = false);  ///< Read "app_default_boat" setting from database cache (defines default value).
     static bool setDefaultBoat(int pValue);             ///< Write "app_default_boat" setting to database cache.
+    static int getForceSelectDutyPurpose(bool pNoMsgBox = false);       ///< \brief Read "app_newReport_forceSelectDutyPurpose"
+                                                                        ///  setting from database cache (defines default value).
+    static bool setForceSelectDutyPurpose(int pValue);                  ///< \brief Write "app_newReport_forceSelectDutyPurpose"
+                                                                        ///  setting to database cache.
     //
     static QString getDutyTimeBegin(bool pNoMsgBox = false);    ///< \brief Read "app_default_dutyTimeBegin" setting
                                                                 ///  from database cache (defines default value).
@@ -149,4 +153,4 @@ private:
                               std::function<bool(const QString&)>>> availableStrSettings;   //String settings with getters and setters
 };
 
-#endif // SETTINGSCACHE_H
+#endif // WDMGR_SETTINGSCACHE_H

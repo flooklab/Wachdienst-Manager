@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -38,7 +38,10 @@
 #include <QMimeData>
 #include <QShortcut>
 #include <QStringList>
+#include <Qt>
 #include <QUrl>
+
+#include <utility>
 
 /*!
  * \brief Constructor.
@@ -63,28 +66,30 @@ StartupWindow::StartupWindow(QWidget *const pParent) :
 {
     ui->setupUi(this);
 
+    connectSlots();
+
     //Show current program version in window title
     setWindowTitle("Wachdienst-Manager " + Aux::programVersionStringPretty);
 
     //Add button shortcuts
 
     QShortcut* newReportShortcut = new QShortcut(QKeySequence("Ctrl+N"), this);
-    connect(newReportShortcut, &QShortcut::activated, this, &StartupWindow::on_newReport_pushButton_pressed);
+    connect(newReportShortcut, &QShortcut::activated, this, &StartupWindow::at_newReport_pushButton_pressed);
 
     QShortcut* loadReportShortcut = new QShortcut(QKeySequence("Ctrl+O"), this);
-    connect(loadReportShortcut, &QShortcut::activated, this, &StartupWindow::on_loadReport_pushButton_pressed);
+    connect(loadReportShortcut, &QShortcut::activated, this, &StartupWindow::at_loadReport_pushButton_pressed);
 
     QShortcut* personnelShortcut = new QShortcut(QKeySequence("Ctrl+P"), this);
-    connect(personnelShortcut, &QShortcut::activated, this, &StartupWindow::on_personnel_pushButton_pressed);
+    connect(personnelShortcut, &QShortcut::activated, this, &StartupWindow::at_personnel_pushButton_pressed);
 
     QShortcut* settingsShortcut = new QShortcut(QKeySequence("Ctrl+E"), this);
-    connect(settingsShortcut, &QShortcut::activated, this, &StartupWindow::on_settings_pushButton_pressed);
+    connect(settingsShortcut, &QShortcut::activated, this, &StartupWindow::at_settings_pushButton_pressed);
 
     QShortcut* aboutShortcut = new QShortcut(QKeySequence("Ctrl+A"), this);
-    connect(aboutShortcut, &QShortcut::activated, this, &StartupWindow::on_about_pushButton_pressed);
+    connect(aboutShortcut, &QShortcut::activated, this, &StartupWindow::at_about_pushButton_pressed);
 
     QShortcut* quitShortcut = new QShortcut(QKeySequence("Ctrl+Q"), this);
-    connect(quitShortcut, &QShortcut::activated, this, &StartupWindow::on_quit_pushButton_pressed);
+    connect(quitShortcut, &QShortcut::activated, this, &StartupWindow::at_quit_pushButton_pressed);
 
     //Enable drag and drop in order to open reports being dropped on the window
     setAcceptDrops(true);
@@ -94,7 +99,7 @@ StartupWindow::StartupWindow(QWidget *const pParent) :
     {
         connect(this, &StartupWindow::openAnotherReportRequested, this,
                 [this](const QString& pFileName) -> void {              //Use lambda expression to enable use of slot's default argument
-                    this->on_openAnotherReportRequested(pFileName);
+                    this->at_openAnotherReportRequested(pFileName);
                 });
     }
 }
@@ -164,7 +169,7 @@ bool StartupWindow::openReport(const QString& pFileName)
  * \brief Emit the openAnotherReportRequested() signal.
  *
  * If the single instance mode is active, this function can be used as a workaround to indirectly call
- * newReport() or openReport() from a different thread. See also on_openAnotherReportRequested().
+ * newReport() or openReport() from a different thread. See also at_openAnotherReportRequested().
  *
  * \param pFileName File name of the report.
  */
@@ -224,16 +229,33 @@ void StartupWindow::dropEvent(QDropEvent *const pEvent)
 //
 
 /*!
+ * \brief Connect UI signals to their slots.
+ *
+ * Connects required signals from the ".ui" file widgets to their corresponding slots.
+ */
+void StartupWindow::connectSlots() const
+{
+    connect(ui->newReport_pushButton, &QPushButton::pressed, this, &StartupWindow::at_newReport_pushButton_pressed);
+    connect(ui->loadReport_pushButton, &QPushButton::pressed, this, &StartupWindow::at_loadReport_pushButton_pressed);
+    connect(ui->personnel_pushButton, &QPushButton::pressed, this, &StartupWindow::at_personnel_pushButton_pressed);
+    connect(ui->settings_pushButton, &QPushButton::pressed, this, &StartupWindow::at_settings_pushButton_pressed);
+    connect(ui->about_pushButton, &QPushButton::pressed, this, &StartupWindow::at_about_pushButton_pressed);
+    connect(ui->quit_pushButton, &QPushButton::pressed, this, &StartupWindow::at_quit_pushButton_pressed);
+}
+
+//
+
+/*!
  * \brief Hide this window and create and show a new report window.
  *
  * Creates a new report window, moving \p pReport to the window instance.
  *
  * This window gets hidden and the ReportWindow::closed() signal is
- * connected to on_reportWindowClosed() in order to eventually remove
+ * connected to at_reportWindowClosed() in order to eventually remove
  * the window from the list of open report windows and to re-show
  * this window when no other report windows are still open.
  *
- * The ReportWindow::openAnotherReportRequested() signal is connected to on_openAnotherReportRequested()
+ * The ReportWindow::openAnotherReportRequested() signal is connected to at_openAnotherReportRequested()
  * in order to be able to open other report windows from within a report window.
  *
  * \param pReport The actual report to use for the report window.
@@ -247,10 +269,10 @@ void StartupWindow::showReportWindow(Report&& pReport)
     reportWindowPtr->setAttribute(Qt::WA_DeleteOnClose);
 
     //React on report window's closed() signal to release pointer and to show startup window again if no report windows open anymore
-    connect(reportWindowPtr.get(), &ReportWindow::closed, this, &StartupWindow::on_reportWindowClosed);
+    connect(reportWindowPtr.get(), &ReportWindow::closed, this, &StartupWindow::at_reportWindowClosed);
 
     //React on report window's openAnotherReportRequested() signal to open an existing or a new report in another report window
-    connect(reportWindowPtr.get(), &ReportWindow::openAnotherReportRequested, this, &StartupWindow::on_openAnotherReportRequested);
+    connect(reportWindowPtr.get(), &ReportWindow::openAnotherReportRequested, this, &StartupWindow::at_openAnotherReportRequested);
 
     //Hide startup window before showing report window
     hide();
@@ -266,13 +288,13 @@ void StartupWindow::showReportWindow(Report&& pReport)
 /*!
  * \brief Destroy and remove the pointer to the closed report window.
  *
- * Disconnects this very slot and on_openAnotherReportRequested() from the connected signals again,
+ * Disconnects this very slot and at_openAnotherReportRequested() from the connected signals again,
  * destroys the report window \p pWindow, removes it from the list of open report windows and,
  * if no other report window is still open, shows this window again.
  *
  * \param pWindow Pointer to the report window that has been closed.
  */
-void StartupWindow::on_reportWindowClosed(const ReportWindow *const pWindow)
+void StartupWindow::at_reportWindowClosed(const ReportWindow *const pWindow)
 {
     decltype(reportWindowPtrs)::const_iterator windowIt = reportWindowPtrs.end();
 
@@ -288,8 +310,8 @@ void StartupWindow::on_reportWindowClosed(const ReportWindow *const pWindow)
     if (windowIt == reportWindowPtrs.end())
         return;
 
-    disconnect(pWindow, &ReportWindow::closed, this, &StartupWindow::on_reportWindowClosed);
-    disconnect(pWindow, &ReportWindow::openAnotherReportRequested, this, &StartupWindow::on_openAnotherReportRequested);
+    disconnect(pWindow, &ReportWindow::closed, this, &StartupWindow::at_reportWindowClosed);
+    disconnect(pWindow, &ReportWindow::openAnotherReportRequested, this, &StartupWindow::at_openAnotherReportRequested);
 
     //Window is already deleted, see showReportWindow()
     reportWindowPtrs.extract(windowIt).value().release();
@@ -305,15 +327,15 @@ void StartupWindow::on_reportWindowClosed(const ReportWindow *const pWindow)
  *
  * If \p pChooseFile is true, it will be asked for a file name. Note that in this case no empty
  * report will be created and shown if the file dialog is rejected. Multiple file names can be
- * choosen in order to open multiple reports (see also on_loadReport_pushButton_pressed()).
+ * choosen in order to open multiple reports (see also at_loadReport_pushButton_pressed()).
  *
  * \param pFileName File name of the report.
  * \param pChooseFile Ask for a file name (ignore \p pFileName).
  */
-void StartupWindow::on_openAnotherReportRequested(const QString& pFileName, const bool pChooseFile)
+void StartupWindow::at_openAnotherReportRequested(const QString& pFileName, const bool pChooseFile)
 {
     if (pChooseFile)
-        on_loadReport_pushButton_pressed();
+        at_loadReport_pushButton_pressed();
     else if (pFileName == "")
         newReport();
     else
@@ -327,7 +349,7 @@ void StartupWindow::on_openAnotherReportRequested(const QString& pFileName, cons
  *
  * Create a new report using the assistant dialog and show it in the report window.
  */
-void StartupWindow::on_newReport_pushButton_pressed()
+void StartupWindow::at_newReport_pushButton_pressed()
 {
     newReport();
 }
@@ -337,7 +359,7 @@ void StartupWindow::on_newReport_pushButton_pressed()
  *
  * Asks for one or multiple file names, loads reports from those files and shows them in individual report windows.
  */
-void StartupWindow::on_loadReport_pushButton_pressed()
+void StartupWindow::at_loadReport_pushButton_pressed()
 {
     QStringList fileNames = QFileDialog::getOpenFileNames(this, "Wachbericht öffnen", "", "Wachberichte (*.wbr)");
 
@@ -351,7 +373,7 @@ void StartupWindow::on_loadReport_pushButton_pressed()
  *
  * Open a dialog to maintain the personnel database.
  */
-void StartupWindow::on_personnel_pushButton_pressed()
+void StartupWindow::at_personnel_pushButton_pressed()
 {
     PersonnelDatabaseDialog personnelDialog(this);
     personnelDialog.exec();
@@ -362,7 +384,7 @@ void StartupWindow::on_personnel_pushButton_pressed()
  *
  * Open a dialog to change program settings.
  */
-void StartupWindow::on_settings_pushButton_pressed()
+void StartupWindow::at_settings_pushButton_pressed()
 {
     SettingsDialog settingsDialog(this);
     settingsDialog.exec();
@@ -373,7 +395,7 @@ void StartupWindow::on_settings_pushButton_pressed()
  *
  * Open a dialog to show program version information, license etc.
  */
-void StartupWindow::on_about_pushButton_pressed()
+void StartupWindow::at_about_pushButton_pressed()
 {
     AboutDialog aboutDialog(this);
     aboutDialog.exec();
@@ -382,7 +404,7 @@ void StartupWindow::on_about_pushButton_pressed()
 /*!
  * \brief Close the program.
  */
-void StartupWindow::on_quit_pushButton_pressed()
+void StartupWindow::at_quit_pushButton_pressed()
 {
     close();
 }

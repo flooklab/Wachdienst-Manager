@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef REPORT_H
-#define REPORT_H
+#ifndef WDMGR_REPORT_H
+#define WDMGR_REPORT_H
 
 #include "auxil.h"
 #include "boatlog.h"
@@ -90,6 +90,8 @@ public:
     void setBeginTime(QTime pTime);                                 ///< Set the time when the duty begins.
     QTime getEndTime() const;                                       ///< Get the time when the duty ends.
     void setEndTime(QTime pTime);                                   ///< Set the time when the duty ends.
+    bool getEndsOnNextDayConfirmed() const;                         ///< Check if duty end time smaller than begin time was confirmed.
+    void setEndsOnNextDayConfirmed(bool pEndsOnNextDay);            ///< Confirm that duty end time smaller than begin time is correct.
     //
     Aux::Precipitation getPrecipitation() const;                    ///< Get the type of precipitation.
     void setPrecipitation(Aux::Precipitation pPrecipitation);       ///< Set the type of precipitation.
@@ -138,7 +140,7 @@ public:
     //
     std::shared_ptr<BoatLog> boatLog() const;                                   ///< Get the boat log.
     //
-    std::map<RescueOperation, int> getRescueOperationCtrs() const;              ///< Get the numbers of carried out rescue operations.
+    const std::map<RescueOperation, int>& getRescueOperationCtrs() const;       ///< Get the numbers of carried out rescue operations.
     int getRescueOperationCtr(RescueOperation pRescue) const;                   ///< Get the number of carried out rescue operations.
     void setRescueOperationCtr(RescueOperation pRescue, int pCount);            ///< Set the number of carried out rescue operations.
     //
@@ -178,45 +180,45 @@ public:
      * \brief A number of possible duty purposes.
      *
      * The values correspond to the most common general scenarios.
-     * Use DutyPurpose::_OTHER (and set a proper duty purpose comment for the Report), if no scenario fits.
+     * Use DutyPurpose::Other (and set a proper duty purpose comment for the Report), if no scenario fits.
      */
     enum class DutyPurpose : int8_t
     {
-        _WATCHKEEPING = 0,      ///< "Wachdienst".
-        _SAILING_REGATTA = 1,   ///< "Regatta".
-        _SAILING_PRACTICE = 2,  ///< "Segeltraining".
-        _SWIMMING_PRACTICE = 3, ///< "Training".
-        _RESCUE_EXERCISE = 4,   ///< "Übung".
-        _RESCUE_OPERATION = 5,  ///< "Einsatz".
-        _COURSE = 6,            ///< "Lehrgang".
-        _OTHER = 127,           ///< Other purpose.
+        Watchkeeping = 0,       ///< "Wachdienst".
+        SailingRegatta = 1,     ///< "Regatta".
+        SailingPractice = 2,    ///< "Segeltraining".
+        SwimmingPractice = 3,   ///< "Training".
+        RescueExercise = 4,     ///< "Übung".
+        RescueOperation = 5,    ///< "Einsatz".
+        Course = 6,             ///< "Lehrgang".
+        Other = 127,            ///< Other purpose.
     };
     /*!
      * \brief A number of categories of frequently carried out rescue operations.
      *
      * The values correspond to the most common rescue operations.
-     * Use RescueOperation::_OTHER_ASSISTANCE, if no value fits.
-     * Use RescueOperation::_MORTAL_DANGER_INVOLVED to describe a subset of all rescue operations where persons were in mortal danger.
+     * Use RescueOperation::OtherAssistance, if no value fits.
+     * Use RescueOperation::MortalDangerInvolved to describe a subset of all rescue operations where persons were in mortal danger.
      */
     enum class RescueOperation : int8_t
     {
-        _FIRST_AID = 0,                 ///< "Erste Hilfe".
-        _FIRST_AID_MATERIAL = 1,        ///< "Einfaches Herausgeben von EH-/SAN-Material".
-        _WATER_PREVENTIVE_MEASURES = 2, ///< "Vorbeugende Unterstützung von z.B. Querschwimmern".
-        _WATER_RESCUE_GENERAL = 3,      ///< "Personenrettung aus dem Wasser".
-        _CAPSIZE [[deprecated]] = 4,    ///< \brief "Bootskenterung (veraltet)".
-                                        ///< \deprecated Use RescueOperation::_CAPSIZE_WATER_RESCUE or
-                                        ///  RescueOperation::_CAPSIZE_TECH_ASSISTANCE instead.
-        _MATERIAL_RETRIEVAL = 5,        ///< "Sachgutbergung".
-        _CAPSIZE_WATER_RESCUE = 6,      ///< "Bootskenterung mit Personenrettung/-unterstützung".
-        _CAPSIZE_TECH_ASSISTANCE = 7,   ///< "Rein technische Unterstützung bei Bootskenterung".
-        _MISSING_PERSON = 8,            ///< "Personensuche".
-        _OTHER_ASSISTANCE = 50,         ///< "Sonstige Hilfeleistung".
-        _MORTAL_DANGER_INVOLVED = 100   ///< "... davon Rettung aus Lebensgefahr".
+        FirstAid = 0,                   ///< "Erste Hilfe".
+        FirstAidMaterial = 1,           ///< "Einfaches Herausgeben von EH-/SAN-Material".
+        WaterPreventiveMeasures = 2,    ///< "Vorbeugende Unterstützung von z.B. Querschwimmern".
+        WaterRescueGeneral = 3,         ///< "Personenrettung aus dem Wasser".
+        Capsize [[deprecated]] = 4,     ///< \brief "Bootskenterung (veraltet)".
+                                        ///< \deprecated Use RescueOperation::CapsizeWaterRescue or
+                                        ///  RescueOperation::CapsizeTechAssistance instead.
+        MaterialRetrieval = 5,          ///< "Sachgutbergung".
+        CapsizeWaterRescue = 6,         ///< "Bootskenterung mit Personenrettung/-unterstützung".
+        CapsizeTechAssistance = 7,      ///< "Rein technische Unterstützung bei Bootskenterung".
+        MissingPerson = 8,              ///< "Personensuche".
+        OtherAssistance = 50,           ///< "Sonstige Hilfeleistung".
+        MortalDangerInvolved = 100      ///< "... davon Rettung aus Lebensgefahr".
     };
 
 private:
-    static constexpr int8_t RescueOperation_CAPSIZE_deprecated = 4; //Replacement for deprecated RescueOperation::_CAPSIZE
+    static constexpr int8_t RescueOperation_Capsize_deprecated = 4; //Replacement for deprecated RescueOperation::Capsize
 
 public:
     /*!
@@ -239,14 +241,14 @@ public:
     template <typename FuncT, typename... Args>
     static void iterateDutyPurposes(FuncT pFunction, Args&... pArgs)
     {
-        for (DutyPurpose purpose : {DutyPurpose::_WATCHKEEPING,
-                                    DutyPurpose::_SAILING_REGATTA,
-                                    DutyPurpose::_SAILING_PRACTICE,
-                                    DutyPurpose::_SWIMMING_PRACTICE,
-                                    DutyPurpose::_RESCUE_EXERCISE,
-                                    DutyPurpose::_RESCUE_OPERATION,
-                                    DutyPurpose::_COURSE,
-                                    DutyPurpose::_OTHER})
+        for (DutyPurpose purpose : {DutyPurpose::Watchkeeping,
+                                    DutyPurpose::SailingRegatta,
+                                    DutyPurpose::SailingPractice,
+                                    DutyPurpose::SwimmingPractice,
+                                    DutyPurpose::RescueExercise,
+                                    DutyPurpose::RescueOperation,
+                                    DutyPurpose::Course,
+                                    DutyPurpose::Other})
         {
             pFunction(purpose, pArgs...);
         }
@@ -271,16 +273,16 @@ public:
     template <typename FuncT, typename... Args>
     static void iterateRescueOperations(FuncT pFunction, Args&... pArgs)
     {
-        for (RescueOperation rescue : {RescueOperation::_FIRST_AID,
-                                       RescueOperation::_FIRST_AID_MATERIAL,
-                                       RescueOperation::_WATER_RESCUE_GENERAL,
-                                       RescueOperation::_WATER_PREVENTIVE_MEASURES,
-                                       RescueOperation::_CAPSIZE_WATER_RESCUE,
-                                       RescueOperation::_CAPSIZE_TECH_ASSISTANCE,
-                                       RescueOperation::_MISSING_PERSON,
-                                       RescueOperation::_MATERIAL_RETRIEVAL,
-                                       RescueOperation::_OTHER_ASSISTANCE,
-                                       RescueOperation::_MORTAL_DANGER_INVOLVED})
+        for (RescueOperation rescue : {RescueOperation::FirstAid,
+                                       RescueOperation::FirstAidMaterial,
+                                       RescueOperation::WaterRescueGeneral,
+                                       RescueOperation::WaterPreventiveMeasures,
+                                       RescueOperation::CapsizeWaterRescue,
+                                       RescueOperation::CapsizeTechAssistance,
+                                       RescueOperation::MissingPerson,
+                                       RescueOperation::MaterialRetrieval,
+                                       RescueOperation::OtherAssistance,
+                                       RescueOperation::MortalDangerInvolved})
         {
             pFunction(rescue, pArgs...);
         }
@@ -301,6 +303,7 @@ private:
     //
     QDate date;                         //Date
     QTime begin, end;                   //Timeframe of the duty
+    bool endsOnNextDayConfirmed;        //Duty end time is on next day (time frame should still be < 24h!)
     //
     Aux::Precipitation precipitation;   //Precipitation type
     Aux::Cloudiness cloudiness;         //Cloudiness level
@@ -333,4 +336,4 @@ private:
     std::vector<std::pair<QString, std::pair<QTime, QTime>>> resources; //List of used resources with their begin/end of use times
 };
 
-#endif // REPORT_H
+#endif // WDMGR_REPORT_H

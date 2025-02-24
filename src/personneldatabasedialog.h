@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,15 +20,13 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef PERSONNELDATABASEDIALOG_H
-#define PERSONNELDATABASEDIALOG_H
+#ifndef WDMGR_PERSONNELDATABASEDIALOG_H
+#define WDMGR_PERSONNELDATABASEDIALOG_H
 
 #include <QDialog>
 #include <QWidget>
 
-namespace Ui {
-class PersonnelDatabaseDialog;
-}
+namespace Ui { class PersonnelDatabaseDialog; }
 
 /*!
  * \brief Show and edit the records of the personnel database.
@@ -46,13 +44,15 @@ public:
     ~PersonnelDatabaseDialog();                                         ///< Destructor.
 
 private:
+    void connectSlots() const;                                          ///< Connect UI signals to their slots.
+    //
     void updatePersonnelTable();                                        ///< Show an up to date personnel list from the database cache.
 
 private slots:
-    void on_add_pushButton_pressed();                                   ///< Add a new person to personnel.
-    void on_edit_pushButton_pressed();                                  ///< Edit the selected persons.
-    void on_remove_pushButton_pressed();                                ///< Remove a person from personnel.
-    void on_personnel_tableWidget_cellDoubleClicked(int, int);          ///< Edit the selected persons.
+    void at_add_pushButton_pressed();                                   ///< Add a new person to personnel.
+    void at_edit_pushButton_pressed();                                  ///< Edit the selected persons.
+    void at_remove_pushButton_pressed();                                ///< Remove a person from personnel.
+    void at_personnel_tableWidget_cellDoubleClicked(int, int);          ///< Edit the selected persons.
 
 private:
     Ui::PersonnelDatabaseDialog* ui;    //UI
@@ -60,4 +60,4 @@ private:
     bool editDisabled;                  //Disable writing to the database
 };
 
-#endif // PERSONNELDATABASEDIALOG_H
+#endif // WDMGR_PERSONNELDATABASEDIALOG_H

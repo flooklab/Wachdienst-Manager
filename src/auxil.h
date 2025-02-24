@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,12 +20,13 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef AUXIL_H
-#define AUXIL_H
+#ifndef WDMGR_AUXIL_H
+#define WDMGR_AUXIL_H
 
 #include <QRegularExpressionValidator>
 #include <QString>
 #include <QStringList>
+#include <Qt>
 #include <QTime>
 #include <QWidget>
 
@@ -63,6 +64,9 @@ public:
                                      QString& pNewHash, QString& pNewSalt); ///< Generate new salt and hash based on given passphrase.
     //
     static QTime roundQuarterHour(QTime pTime);                     ///< Round a time to the nearest quarter.
+    //
+    static Qt::CheckState checkStateFromChecked(bool pChecked);     ///< Convert "checkedness" of check box to Qt::CheckState.
+    static bool checkedFromCheckState(Qt::CheckState pCheckState);  ///< Convert Qt::CheckState to "checkedness" of check box.
     //
     static void latexEscapeSpecialChars(QString& pString);          ///< Escape special LaTeX characters.
     static void latexFixLineBreaks(QString& pString);               ///< Convert line breaks into double line breaks.
@@ -171,23 +175,23 @@ public:
      */
     enum class Precipitation : int8_t
     {
-        _NONE = 0,              ///< None.
-        _FOG = 1,               ///< "Nebel".
-        _DEW = 2,               ///< "Tau".
-        _HOAR_FROST = 3,        ///< "Reif".
-        _RIME_ICE = 4,          ///< "Raureif".
-        _CLEAR_ICE = 5,         ///< "Klareis".
-        _DRIZZLE = 6,           ///< "Nieselregen".
-        _LIGHT_RAIN = 7,        ///< "Leichter Regen".
-        _MEDIUM_RAIN = 8,       ///< "Mittlerer Regen".
-        _HEAVY_RAIN = 9,        ///< "Starker Regen".
-        _FREEZING_RAIN = 10,    ///< "Gefrierender Regen".
-        _ICE_PELLETS = 11,      ///< "Eiskörner".
-        _HAIL = 12,             ///< "Hagel".
-        _SOFT_HAIL = 13,        ///< "Graupel".
-        _SNOW = 14,             ///< "Schnee".
-        _SLEET = 15,            ///< "Schneeregen".
-        _DIAMOND_DUST = 16,     ///< "Polarschnee".
+        None = 0,           ///< None.
+        Fog = 1,            ///< "Nebel".
+        Dew = 2,            ///< "Tau".
+        HoarFrost = 3,      ///< "Reif".
+        RimeIce = 4,        ///< "Raureif".
+        ClearIce = 5,       ///< "Klareis".
+        Drizzle = 6,        ///< "Nieselregen".
+        LightRain = 7,      ///< "Leichter Regen".
+        MediumRain = 8,     ///< "Mittlerer Regen".
+        HeavyRain = 9,      ///< "Starker Regen".
+        FreezingRain = 10,  ///< "Gefrierender Regen".
+        IcePellets = 11,    ///< "Eiskörner".
+        Hail = 12,          ///< "Hagel".
+        SoftHail = 13,      ///< "Graupel".
+        Snow = 14,          ///< "Schnee".
+        Sleet = 15,         ///< "Schneeregen".
+        DiamondDust = 16,   ///< "Polarschnee".
     };
     /*!
      * \brief A number of cloudiness levels.
@@ -197,18 +201,18 @@ public:
      */
     enum class Cloudiness : int8_t
     {
-        _CLOUDLESS = 0,             ///< "Wolkenlos".
-        _SUNNY = 1,                 ///< "Sonnig".
-        _FAIR = 2,                  ///< "Heiter".
-        _SLIGHTLY_CLOUDY = 3,       ///< "Leicht bewölkt".
-        _MODERATELY_CLOUDY = 4,     ///< "Wolkig".
-        _CONSIDERABLY_CLOUDY = 5,   ///< "Bewölkt".
-        _MOSTLY_CLOUDY = 6,         ///< "Stark bewölkt".
-        _NEARLY_OVERCAST = 7,       ///< "Fast bedeckt".
-        _FULLY_OVERCAST = 8,        ///< "Bedeckt".
+        Cloudless = 0,          ///< "Wolkenlos".
+        Sunny = 1,              ///< "Sonnig".
+        Fair = 2,               ///< "Heiter".
+        SlightlyCloudy = 3,     ///< "Leicht bewölkt".
+        ModeratelyCloudy = 4,   ///< "Wolkig".
+        ConsiderablyCloudy = 5, ///< "Bewölkt".
+        MostlyCloudy = 6,       ///< "Stark bewölkt".
+        NearlyOvercast = 7,     ///< "Fast bedeckt".
+        FullyOvercast = 8,      ///< "Bedeckt".
         //
-        _THUNDERCLOUDS = 50,        ///< "Gewitterwolken".
-        _VARIABLE = 100             ///< "Wechselnd bewölkt".
+        Thunderclouds = 50,     ///< "Gewitterwolken".
+        Variable = 100          ///< "Wechselnd bewölkt".
     };
     /*!
      * \brief A number of wind strengths.
@@ -218,19 +222,19 @@ public:
      */
     enum class WindStrength : int8_t
     {
-        _CALM = 0,              ///< "Windstille".
-        _LIGHT_AIR = 1,         ///< "Leiser Zug".
-        _LIGHT_BREEZE = 2,      ///< "Leichte Brise".
-        _GENTLE_BREEZE = 3,     ///< "Schwache Brise".
-        _MODERATE_BREEZE = 4,   ///< "Mäßige Brise".
-        _FRESH_BREEZE = 5,      ///< "Frische Brise".
-        _STRONG_BREEZE = 6,     ///< "Starker Wind".
-        _NEAR_GALE = 7,         ///< "Steifer Wind".
-        _GALE = 8,              ///< "Stürmischer Wind".
-        _STRONG_GALE = 9,       ///< "Sturm".
-        _STORM = 10,            ///< "Schwerer Sturm".
-        _VIOLENT_STORM = 11,    ///< "Orkanartiger Sturm".
-        _HURRICANE = 12         ///< "Orkan".
+        Calm = 0,              ///< "Windstille".
+        LightAir = 1,         ///< "Leiser Zug".
+        LightBreeze = 2,      ///< "Leichte Brise".
+        GentleBreeze = 3,     ///< "Schwache Brise".
+        ModerateBreeze = 4,   ///< "Mäßige Brise".
+        FreshBreeze = 5,      ///< "Frische Brise".
+        StrongBreeze = 6,     ///< "Starker Wind".
+        NearGale = 7,         ///< "Steifer Wind".
+        Gale = 8,              ///< "Stürmischer Wind".
+        StrongGale = 9,       ///< "Sturm".
+        Storm = 10,            ///< "Schwerer Sturm".
+        ViolentStorm = 11,    ///< "Orkanartiger Sturm".
+        Hurricane = 12         ///< "Orkan".
     };
     /*!
      * \brief A number of wind directions.
@@ -240,26 +244,26 @@ public:
      */
     enum class WindDirection : int8_t
     {
-        _S = 0,             ///< "Süd".
-        _SSE = 1,           ///< "Südsüdost".
-        _SE = 2,            ///< "Südost".
-        _ESE = 3,           ///< "Ostsüdost".
-        _E = 4,             ///< "Ost".
-        _ENE = 5,           ///< "Ostnordost".
-        _NE = 6,            ///< "Nordost".
-        _NNE = 7,           ///< "Nordnordost".
-        _N = 8,             ///< "Nord".
-        _NNW = 9,           ///< "Nordnordwest".
-        _NW = 10,           ///< "Nordwest".
-        _WNW = 11,          ///< "Westnordwest".
-        _W = 12,            ///< "West".
-        _WSW = 13,          ///< "Westsüdwest".
-        _SW = 14,           ///< "Südwest".
-        _SSW = 15,          ///< "Südsüdwest".
+        S = 0,          ///< "Süd".
+        Sse = 1,        ///< "Südsüdost".
+        Se = 2,         ///< "Südost".
+        Ese = 3,        ///< "Ostsüdost".
+        E = 4,          ///< "Ost".
+        Ene = 5,        ///< "Ostnordost".
+        Ne = 6,         ///< "Nordost".
+        Nne = 7,        ///< "Nordnordost".
+        N = 8,          ///< "Nord".
+        Nnw = 9,        ///< "Nordnordwest".
+        Nw = 10,        ///< "Nordwest".
+        Wnw = 11,       ///< "Westnordwest".
+        W = 12,         ///< "West".
+        Wsw = 13,       ///< "Westsüdwest".
+        Sw = 14,        ///< "Südwest".
+        Ssw = 15,       ///< "Südsüdwest".
         //
-        _VARIABLE = 100,    ///< "Wechselnde Richtungen".
+        Variable = 100, ///< "Wechselnde Richtungen".
         //
-        _UNKNOWN = 110      ///< Unknown.
+        Unknown = 110   ///< Unknown.
     };
 
 public:
@@ -282,23 +286,23 @@ public:
     template <typename FuncT, typename... Args>
     static void iteratePrecipitationTypes(FuncT pFunction, Args&... pArgs)
     {
-        for (Precipitation prec : {Precipitation::_NONE,
-                                   Precipitation::_FOG,
-                                   Precipitation::_DEW,
-                                   Precipitation::_HOAR_FROST,
-                                   Precipitation::_RIME_ICE,
-                                   Precipitation::_CLEAR_ICE,
-                                   Precipitation::_DRIZZLE,
-                                   Precipitation::_LIGHT_RAIN,
-                                   Precipitation::_MEDIUM_RAIN,
-                                   Precipitation::_HEAVY_RAIN,
-                                   Precipitation::_FREEZING_RAIN,
-                                   Precipitation::_ICE_PELLETS,
-                                   Precipitation::_HAIL,
-                                   Precipitation::_SOFT_HAIL,
-                                   Precipitation::_SNOW,
-                                   Precipitation::_SLEET,
-                                   Precipitation::_DIAMOND_DUST})
+        for (Precipitation prec : {Precipitation::None,
+                                   Precipitation::Fog,
+                                   Precipitation::Dew,
+                                   Precipitation::HoarFrost,
+                                   Precipitation::RimeIce,
+                                   Precipitation::ClearIce,
+                                   Precipitation::Drizzle,
+                                   Precipitation::LightRain,
+                                   Precipitation::MediumRain,
+                                   Precipitation::HeavyRain,
+                                   Precipitation::FreezingRain,
+                                   Precipitation::IcePellets,
+                                   Precipitation::Hail,
+                                   Precipitation::SoftHail,
+                                   Precipitation::Snow,
+                                   Precipitation::Sleet,
+                                   Precipitation::DiamondDust})
         {
             pFunction(prec, pArgs...);
         }
@@ -322,17 +326,17 @@ public:
     template <typename FuncT, typename... Args>
     static void iterateCloudinessLevels(FuncT pFunction, Args&... pArgs)
     {
-        for (Cloudiness clouds : {Cloudiness::_CLOUDLESS,
-                                  Cloudiness::_SUNNY,
-                                  Cloudiness::_FAIR,
-                                  Cloudiness::_SLIGHTLY_CLOUDY,
-                                  Cloudiness::_MODERATELY_CLOUDY,
-                                  Cloudiness::_CONSIDERABLY_CLOUDY,
-                                  Cloudiness::_MOSTLY_CLOUDY,
-                                  Cloudiness::_NEARLY_OVERCAST,
-                                  Cloudiness::_FULLY_OVERCAST,
-                                  Cloudiness::_THUNDERCLOUDS,
-                                  Cloudiness::_VARIABLE})
+        for (Cloudiness clouds : {Cloudiness::Cloudless,
+                                  Cloudiness::Sunny,
+                                  Cloudiness::Fair,
+                                  Cloudiness::SlightlyCloudy,
+                                  Cloudiness::ModeratelyCloudy,
+                                  Cloudiness::ConsiderablyCloudy,
+                                  Cloudiness::MostlyCloudy,
+                                  Cloudiness::NearlyOvercast,
+                                  Cloudiness::FullyOvercast,
+                                  Cloudiness::Thunderclouds,
+                                  Cloudiness::Variable})
         {
             pFunction(clouds, pArgs...);
         }
@@ -356,19 +360,19 @@ public:
     template <typename FuncT, typename... Args>
     static void iterateWindStrengths(FuncT pFunction, Args&... pArgs)
     {
-        for (WindStrength wind : {WindStrength::_CALM,
-                                  WindStrength::_LIGHT_AIR,
-                                  WindStrength::_LIGHT_BREEZE,
-                                  WindStrength::_GENTLE_BREEZE,
-                                  WindStrength::_MODERATE_BREEZE,
-                                  WindStrength::_FRESH_BREEZE,
-                                  WindStrength::_STRONG_BREEZE,
-                                  WindStrength::_NEAR_GALE,
-                                  WindStrength::_GALE,
-                                  WindStrength::_STRONG_GALE,
-                                  WindStrength::_STORM,
-                                  WindStrength::_VIOLENT_STORM,
-                                  WindStrength::_HURRICANE})
+        for (WindStrength wind : {WindStrength::Calm,
+                                  WindStrength::LightAir,
+                                  WindStrength::LightBreeze,
+                                  WindStrength::GentleBreeze,
+                                  WindStrength::ModerateBreeze,
+                                  WindStrength::FreshBreeze,
+                                  WindStrength::StrongBreeze,
+                                  WindStrength::NearGale,
+                                  WindStrength::Gale,
+                                  WindStrength::StrongGale,
+                                  WindStrength::Storm,
+                                  WindStrength::ViolentStorm,
+                                  WindStrength::Hurricane})
         {
             pFunction(wind, pArgs...);
         }
@@ -392,28 +396,28 @@ public:
     template <typename FuncT, typename... Args>
     static void iterateWindDirections(FuncT pFunction, Args&... pArgs)
     {
-        for (WindDirection dir : {WindDirection::_UNKNOWN,
-                                  WindDirection::_N,
-                                  WindDirection::_NNW,
-                                  WindDirection::_NW,
-                                  WindDirection::_WNW,
-                                  WindDirection::_W,
-                                  WindDirection::_WSW,
-                                  WindDirection::_SW,
-                                  WindDirection::_SSW,
-                                  WindDirection::_S,
-                                  WindDirection::_SSE,
-                                  WindDirection::_SE,
-                                  WindDirection::_ESE,
-                                  WindDirection::_E,
-                                  WindDirection::_ENE,
-                                  WindDirection::_NE,
-                                  WindDirection::_NNE,
-                                  WindDirection::_VARIABLE})
+        for (WindDirection dir : {WindDirection::Unknown,
+                                  WindDirection::N,
+                                  WindDirection::Nnw,
+                                  WindDirection::Nw,
+                                  WindDirection::Wnw,
+                                  WindDirection::W,
+                                  WindDirection::Wsw,
+                                  WindDirection::Sw,
+                                  WindDirection::Ssw,
+                                  WindDirection::S,
+                                  WindDirection::Sse,
+                                  WindDirection::Se,
+                                  WindDirection::Ese,
+                                  WindDirection::E,
+                                  WindDirection::Ene,
+                                  WindDirection::Ne,
+                                  WindDirection::Nne,
+                                  WindDirection::Variable})
         {
             pFunction(dir, pArgs...);
         }
     }
 };
 
-#endif // AUXIL_H
+#endif // WDMGR_AUXIL_H

@@ -1361,6 +1361,35 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
+        <widget class="QGroupBox" name="newReport_groupBox">
+         <property name="title">
+          <string>Neuer Wachbericht</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_3">
+          <item row="0" column="0">
+           <widget class="QLabel" name="forceSelectDutyPurpose_label">
+            <property name="text">
+             <string>Einsatzzweck</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QCheckBox" name="forceSelectDutyPurpose_checkBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Auswahl erzwingen</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QGroupBox" name="boatLog_groupBox">
          <property name="title">
           <string>Bootstagebuch</string>
@@ -1572,6 +1601,7 @@
   <tabstop>numDocuments_spinBox</tabstop>
   <tabstop>documents_tableWidget</tabstop>
   <tabstop>chooseDocument_pushButton</tabstop>
+  <tabstop>forceSelectDutyPurpose_checkBox</tabstop>
   <tabstop>disableBoatLog_checkBox</tabstop>
   <tabstop>boatDriveAutoApplyChanges_checkBox</tabstop>
   <tabstop>boatingLicenseA_radioButton</tabstop>

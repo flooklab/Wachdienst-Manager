@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef REPORTWINDOW_H
-#define REPORTWINDOW_H
+#ifndef WDMGR_REPORTWINDOW_H
+#define WDMGR_REPORTWINDOW_H
 
 #include "auxil.h"
 #include "report.h"
@@ -48,9 +48,7 @@
 #include <memory>
 #include <vector>
 
-namespace Ui {
-class ReportWindow;
-}
+namespace Ui { class ReportWindow; }
 
 /*!
  * \brief View, fill or edit a Report.
@@ -100,6 +98,8 @@ private:
     //
     void dragEnterEvent(QDragEnterEvent* pEvent) override;                      ///< Reimplementation of QMainWindow::dragEnterEvent().
     void dropEvent(QDropEvent* pEvent) override;                                ///< Reimplementation of QMainWindow::dropEvent().
+    //
+    void connectSlots() const;                                                  ///< Connect UI signals to their slots.
     //
     void loadReportData();                                                      ///< Fill all widgets with the report data.
     //
@@ -152,139 +152,144 @@ private:
     QString personIdentFromLabel(const QString& pLabel) const;          ///< Get the person identifier from a combo box label.
 
 private slots:
-    void on_rescueOperationSpinBoxValueChanged(int pValue,
+    void at_rescueOperationSpinBoxValueChanged(int pValue,
                                                Report::RescueOperation pRescue);    ///< Set report rescue operation counter.
-    void on_openDocumentPushButtonPressed(const QString& pDocFile);                 ///< Open one of the important documents.
-    void on_resourceRemovePushButtonPressed(const QPushButton* pRemoveRowButton);   ///< Remove a used resource from the list.
-    void on_resourceLineEditTextEdited(const QPushButton* pRemoveRowButton);        ///< Change the radio call name of a used resource.
-    void on_resourceLineEditReturnPressed(const QPushButton* pRemoveRowButton);     ///< Add an empty row for another used resource.
-    void on_resourceTimeEditTimeChanged(const QPushButton* pRemoveRowButton);       ///< Change a used resource's begin/end times.
+    void at_openDocumentPushButtonPressed(const QString& pDocFile);                 ///< Open one of the important documents.
+    void at_resourceRemovePushButtonPressed(const QPushButton* pRemoveRowButton);   ///< Remove a used resource from the list.
+    void at_resourceLineEditTextEdited(const QPushButton* pRemoveRowButton);        ///< Change the radio call name of a used resource.
+    void at_resourceLineEditReturnPressed(const QPushButton* pRemoveRowButton);     ///< Add an empty row for another used resource.
+    void at_resourceTimeEditTimeChanged(const QPushButton* pRemoveRowButton);       ///< Change a used resource's begin/end times.
     //
-    void on_updateClocksTimerTimeout();                                             ///< Update the time displayed in every tab.
-    void on_autoSaveTimerTimeout();                                                 ///< Auto-save the report.
-    void on_findPersonShortcutActivated();                                          ///< Select all personnel matching the entered name.
-    void on_exportFailed();                                                         ///< Show message box explaining that export failed.
+    void at_updateClocksTimerTimeout();                                             ///< Update the time displayed in every tab.
+    void at_autoSaveTimerTimeout();                                                 ///< Auto-save the report.
+    void at_findPersonShortcutActivated();                                          ///< Select all personnel matching the entered name.
+    void at_exportFailed();                                                         ///< Show message box explaining that export failed.
     //
-    void on_saveFile_action_triggered();                                            ///< Save the report to (the same) file.
-    void on_saveFileAs_action_triggered();                                          ///< Save the report to a (different) file.
-    void on_exportFile_action_triggered();                                          ///< Export the report as PDF file.
-    void on_exportAndOpenFile_action_triggered();                                   ///< Export the report as PDF file and open the PDF.
-    void on_loadCarries_action_triggered();                                         ///< Load old report carryovers from a file.
-    void on_newReport_action_triggered();                                           ///< Create a new report in a different window.
-    void on_openReport_action_triggered();                                          ///< Open a report from a file in a different window.
-    void on_close_action_triggered();                                               ///< Close the report window.
-    void on_editPersonnelTableSplit_action_triggered();                             ///< Change the maximum PDF personnel table length.
-    void on_editBoatDrivesTableSplit_action_triggered();                            ///< Change the maximum PDF boat drives table length.
+    void at_saveFile_action_triggered();                                            ///< Save the report to (the same) file.
+    void at_saveFileAs_action_triggered();                                          ///< Save the report to a (different) file.
+    void at_exportFile_action_triggered();                                          ///< Export the report as PDF file.
+    void at_exportAndOpenFile_action_triggered();                                   ///< Export the report as PDF file and open the PDF.
+    void at_loadCarries_action_triggered();                                         ///< Load old report carryovers from a file.
+    void at_newReport_action_triggered();                                           ///< Create a new report in a different window.
+    void at_openReport_action_triggered();                                          ///< Open a report from a file in a different window.
+    void at_close_action_triggered();                                               ///< Close the report window.
+    void at_editPersonnelTableSplit_action_triggered();                             ///< Change the maximum PDF personnel table length.
+    void at_editBoatDrivesTableSplit_action_triggered();                            ///< Change the maximum PDF boat drives table length.
     //
-    void on_reportTab_calendarWidget_currentPageChanged(int year, int month);       ///< Synchronize the calendar widgets of every tab.
-    void on_boatTab_calendarWidget_currentPageChanged(int year, int month);         ///< Synchronize the calendar widgets of every tab.
-    void on_rescueTab_calendarWidget_currentPageChanged(int year, int month);       ///< Synchronize the calendar widgets of every tab.
-    void on_reportTab_calendarWidget_selectionChanged();                            ///< Synchronize the calendar widgets of every tab.
-    void on_boatTab_calendarWidget_selectionChanged();                              ///< Synchronize the calendar widgets of every tab.
-    void on_rescueTab_calendarWidget_selectionChanged();                            ///< Synchronize the calendar widgets of every tab.
+    void at_reportTab_calendarWidget_currentPageChanged(int year, int month);       ///< Synchronize the calendar widgets of every tab.
+    void at_boatTab_calendarWidget_currentPageChanged(int year, int month);         ///< Synchronize the calendar widgets of every tab.
+    void at_rescueTab_calendarWidget_currentPageChanged(int year, int month);       ///< Synchronize the calendar widgets of every tab.
+    void at_reportTab_calendarWidget_selectionChanged();                            ///< Synchronize the calendar widgets of every tab.
+    void at_boatTab_calendarWidget_selectionChanged();                              ///< Synchronize the calendar widgets of every tab.
+    void at_rescueTab_calendarWidget_selectionChanged();                            ///< Synchronize the calendar widgets of every tab.
     //
-    void on_reportNumberDecr_radioButton_toggled(bool checked);                     ///< Reduce the report serial number by one.
-    void on_reportNumberIncr_radioButton_toggled(bool checked);                     ///< Increase the report serial number by one.
-    void on_station_comboBox_currentTextChanged(const QString& arg1);               ///< \brief Set the report station and update
+    void at_reportNumberDecr_radioButton_toggled(bool checked);                     ///< Reduce the report serial number by one.
+    void at_reportNumberIncr_radioButton_toggled(bool checked);                     ///< Increase the report serial number by one.
+    void at_station_comboBox_currentTextChanged(const QString& arg1);               ///< \brief Set the report station and update
                                                                                     ///  selectable radio call names.
-    void on_stationRadioCallName_comboBox_currentTextChanged(const QString& arg1);  ///< Set the report station radio call name.
-    void on_dutyPurpose_comboBox_currentTextChanged(const QString& arg1);           ///< Set the report duty purpose.
-    void on_dutyPurposeComment_lineEdit_textEdited(const QString& arg1);            ///< Set the report duty purpose comment.
-    void on_reportDate_dateEdit_dateChanged(const QDate& date);                     ///< Set the report date.
-    void on_dutyTimesBegin_timeEdit_timeChanged(const QTime& time);                 ///< Set the report duty begin time.
-    void on_dutyTimesEnd_timeEdit_timeChanged(const QTime& time);                   ///< Set the report duty end time.
-    void on_reportComments_plainTextEdit_textChanged();                             ///< Set the report comments.
+    void at_stationRadioCallName_comboBox_currentTextChanged(const QString& arg1);  ///< Set the report station radio call name.
+    void at_dutyPurpose_comboBox_currentTextChanged(const QString& arg1);           ///< Set the report duty purpose.
+    void at_dutyPurposeComment_lineEdit_textEdited(const QString& arg1);            ///< Set the report duty purpose comment.
+    void at_reportDate_dateEdit_dateChanged(const QDate& date);                     ///< Set the report date.
+    void at_dutyTimesBegin_timeEdit_timeChanged(const QTime& time);                 ///< Set the report duty begin time.
+    void at_dutyTimesEnd_timeEdit_timeChanged(const QTime& time);                   ///< Set the report duty end time.
+    void at_endOnNextDay_checkBox_stateChanged(int arg1);                           ///< Set if the duty end time refers to the next day.
+    void at_reportComments_plainTextEdit_textChanged();                             ///< Set the report comments.
     //
-    void on_temperatureAir_spinBox_valueChanged(int arg1);                          ///< Set the report air temperature.
-    void on_temperatureWater_spinBox_valueChanged(int arg1);                        ///< Set the report water temperature.
-    void on_precipitation_comboBox_currentTextChanged(const QString& arg1);         ///< Set the report precipitation type.
-    void on_cloudiness_comboBox_currentTextChanged(const QString& arg1);            ///< Set the report level of cloudiness.
-    void on_windStrength_comboBox_currentTextChanged(const QString& arg1);          ///< Set the report wind strength.
-    void on_windStrength_comboBox_customContextMenuRequested(const QPoint& pos);    ///< Show a tooltip elucidating the wind strengths.
-    void on_windDirection_comboBox_currentTextChanged(const QString& arg1);         ///< Set the report wind direction.
-    void on_weatherComments_plainTextEdit_textChanged();                            ///< Set the report weather comments.
+    void at_temperatureAir_spinBox_valueChanged(int arg1);                          ///< Set the report air temperature.
+    void at_temperatureWater_spinBox_valueChanged(int arg1);                        ///< Set the report water temperature.
+    void at_precipitation_comboBox_currentTextChanged(const QString& arg1);         ///< Set the report precipitation type.
+    void at_cloudiness_comboBox_currentTextChanged(const QString& arg1);            ///< Set the report level of cloudiness.
+    void at_windStrength_comboBox_currentTextChanged(const QString& arg1);          ///< Set the report wind strength.
+    void at_windStrength_comboBox_customContextMenuRequested(const QPoint& pos);    ///< Show a tooltip elucidating the wind strengths.
+    void at_windDirection_comboBox_currentTextChanged(const QString& arg1);         ///< Set the report wind direction.
+    void at_weatherComments_plainTextEdit_textChanged();                            ///< Set the report weather comments.
     //
-    void on_operationProtocolsCtr_spinBox_valueChanged(int arg1);           ///< Set the report number of enclosed operation protocols.
-    void on_patientRecordsCtr_spinBox_valueChanged(int arg1);               ///< Set the report number of enclosed patient records.
-    void on_radioCallLogsCtr_spinBox_valueChanged(int arg1);                ///< Set the report number of enclosed radio call logs.
-    void on_otherEnclosures_lineEdit_textEdited(const QString& arg1);       ///< Set the report list of other enclosures.
-    void on_otherEnclosures_lineEdit_textChanged(const QString& arg1);      ///< Update line edit tool tip and enclosures list label.
+    void at_operationProtocolsCtr_spinBox_valueChanged(int arg1);           ///< Set the report number of enclosed operation protocols.
+    void at_patientRecordsCtr_spinBox_valueChanged(int arg1);               ///< Set the report number of enclosed patient records.
+    void at_radioCallLogsCtr_spinBox_valueChanged(int arg1);                ///< Set the report number of enclosed radio call logs.
+    void at_otherEnclosures_lineEdit_textEdited(const QString& arg1);       ///< Set the report list of other enclosures.
+    void at_otherEnclosures_lineEdit_textChanged(const QString& arg1);      ///< Update line edit tool tip and enclosures list label.
     //
-    void on_personLastName_lineEdit_textChanged(const QString&);            ///< Check entered person name and update dependent widgets.
-    void on_personFirstName_lineEdit_textChanged(const QString&);           ///< Check entered person name and update dependent widgets.
-    void on_personFirstName_lineEdit_returnPressed();                       ///< Add the selected person to the report personnel list.
-    void on_personIdent_comboBox_currentTextChanged(const QString& arg1);   ///< Update selectable personnel functions.
-    void on_setNewPersonTimeBegin_pushButton_pressed();                     ///< Set new person begin time edit to duty begin time.
-    void on_setNewPersonTimeBeginNow_pushButton_pressed();                  ///< Set new person begin time edit to now (nearest quarter).
-    void on_setNewPersonTimeEndNow_pushButton_pressed();                    ///< Set new person end time edit to now (nearest quarter).
-    void on_setNewPersonTimeEnd_pushButton_pressed();                       ///< Set new person end time edit to duty end time.
-    void on_addPerson_pushButton_pressed();                                 ///< Add the selected person to the report personnel list.
-    void on_addExtPerson_pushButton_pressed();                              ///< Add an external person to the report personnel list.
-    void on_updatePerson_pushButton_pressed();                              ///< Change selected persons' functions and times.
-    void on_removePerson_pushButton_pressed();                              ///< Remove selected persons from personnel.
-    void on_setPersonTimeBegin_pushButton_pressed();                ///< Set selected persons' begin times to begin time edit's time.
-    void on_setPersonTimeEnd_pushButton_pressed();                  ///< Set selected persons' end times to end time edit's time.
-    void on_setPersonTimeBeginNow_pushButton_pressed();             ///< Set selected persons' begin times to now (nearest quarter).
-    void on_setPersonTimeEndNow_pushButton_pressed();               ///< Set selected persons' end times to now (nearest quarter).
-    void on_personQualifications_pushButton_pressed();                      ///< View or change selected persons' qualifications.
-    void on_personnel_tableWidget_cellDoubleClicked(int, int);              ///< See on_updatePerson_pushButton_pressed().
+    void at_personLastName_lineEdit_textChanged(const QString&);            ///< Check entered person name and update dependent widgets.
+    void at_personFirstName_lineEdit_textChanged(const QString&);           ///< Check entered person name and update dependent widgets.
+    void at_personFirstName_lineEdit_returnPressed();                       ///< Add the selected person to the report personnel list.
+    void at_personIdent_comboBox_currentTextChanged(const QString& arg1);   ///< Update selectable personnel functions.
+    void at_setNewPersonTimeBegin_pushButton_pressed();                     ///< Set new person begin time edit to duty begin time.
+    void at_setNewPersonTimeBeginNow_pushButton_pressed();                  ///< Set new person begin time edit to now (nearest quarter).
+    void at_personTimeBegin_timeEdit_timeChanged(const QTime& time);        ///< \brief Update highlighting of new person begin
+                                                                            ///         and end time edits.
+    void at_personTimeEnd_timeEdit_timeChanged(const QTime&);               ///< \brief Update highlighting of new person begin
+                                                                            ///         and end time edits.
+    void at_setNewPersonTimeEndNow_pushButton_pressed();                    ///< Set new person end time edit to now (nearest quarter).
+    void at_setNewPersonTimeEnd_pushButton_pressed();                       ///< Set new person end time edit to duty end time.
+    void at_addPerson_pushButton_pressed();                                 ///< Add the selected person to the report personnel list.
+    void at_addExtPerson_pushButton_pressed();                              ///< Add an external person to the report personnel list.
+    void at_updatePerson_pushButton_pressed();                              ///< Change selected persons' functions and times.
+    void at_removePerson_pushButton_pressed();                              ///< Remove selected persons from personnel.
+    void at_setPersonTimeBegin_pushButton_pressed();                ///< Set selected persons' begin times to begin time edit's time.
+    void at_setPersonTimeEnd_pushButton_pressed();                  ///< Set selected persons' end times to end time edit's time.
+    void at_setPersonTimeBeginNow_pushButton_pressed();             ///< Set selected persons' begin times to now (nearest quarter).
+    void at_setPersonTimeEndNow_pushButton_pressed();               ///< Set selected persons' end times to now (nearest quarter).
+    void at_personQualifications_pushButton_pressed();                      ///< View or change selected persons' qualifications.
+    void at_personnel_tableWidget_cellDoubleClicked(int, int);              ///< See at_updatePerson_pushButton_pressed().
     //
-    void on_personnelHoursHours_spinBox_valueChanged(int);                  ///< Update total personnel hours display.
-    void on_personnelHoursMinutes_spinBox_valueChanged(int);                ///< Update total personnel hours display.
-    void on_personnelHoursCarryHours_spinBox_valueChanged(int arg1);        ///< Set personnel hours carry, update total hours display.
-    void on_personnelHoursCarryMinutes_spinBox_valueChanged(int arg1);      ///< Set personnel hours carry, update total hours display.
+    void at_personnelHoursHours_spinBox_valueChanged(int);                  ///< Update total personnel hours display.
+    void at_personnelHoursMinutes_spinBox_valueChanged(int);                ///< Update total personnel hours display.
+    void at_personnelHoursCarryHours_spinBox_valueChanged(int arg1);        ///< Set personnel hours carry, update total hours display.
+    void at_personnelHoursCarryMinutes_spinBox_valueChanged(int arg1);      ///< Set personnel hours carry, update total hours display.
     //
-    void on_boat_comboBox_currentTextChanged(const QString& arg1);      ///< Set the report boat and update selectable radio call names.
-    void on_boatRadioCallName_comboBox_currentTextChanged(const QString& arg1); ///< Set the report boat radio call name.
-    void on_boatSlippedBeginOfDuty_checkBox_stateChanged(int arg1);             ///< Set, if boat was lowered to water at begin of duty.
-    void on_boatSlippedEndOfDuty_checkBox_stateChanged(int arg1);               ///< Set, if boat was taken out of water at end of duty.
-    void on_boatReadyFrom_timeEdit_timeChanged(const QTime& time);              ///< Set report boat readiness time begin.
-    void on_boatReadyUntil_timeEdit_timeChanged(const QTime& time);             ///< Set report boat readiness time end.
+    void at_boat_comboBox_currentTextChanged(const QString& arg1);      ///< Set the report boat and update selectable radio call names.
+    void at_boatRadioCallName_comboBox_currentTextChanged(const QString& arg1); ///< Set the report boat radio call name.
+    void at_boatSlippedBeginOfDuty_checkBox_stateChanged(int arg1);             ///< Set, if boat was lowered to water at begin of duty.
+    void at_boatSlippedEndOfDuty_checkBox_stateChanged(int arg1);               ///< Set, if boat was taken out of water at end of duty.
+    void at_boatReadyFrom_timeEdit_timeChanged(const QTime& time);              ///< Set report boat readiness time begin.
+    void at_boatReadyUntil_timeEdit_timeChanged(const QTime& time);             ///< Set report boat readiness time end.
     //
-    void on_boatComments_plainTextEdit_textChanged();                           ///< Set report boat comments.
+    void at_boatComments_plainTextEdit_textChanged();                           ///< Set report boat comments.
     //
-    void on_engineHoursBeginOfDuty_doubleSpinBox_valueChanged(double arg1);     ///< Set report engine hours at begin of duty.
-    void on_engineHoursEndOfDuty_doubleSpinBox_valueChanged(double arg1);       ///< Set report engine hours at end of duty.
+    void at_engineHoursBeginOfDuty_doubleSpinBox_valueChanged(double arg1);     ///< Set report engine hours at begin of duty.
+    void at_engineHoursEndOfDuty_doubleSpinBox_valueChanged(double arg1);       ///< Set report engine hours at end of duty.
     //
-    void on_fuelBeginOfDuty_spinBox_valueChanged(int arg1);     ///< Set report fuel added at begin of duty and update total display.
-    void on_fuelAfterDrives_spinBox_valueChanged(int arg1);     ///< Update total added fuel display.
-    void on_fuelEndOfDuty_spinBox_valueChanged(int arg1);       ///< Set report fuel added at end of duty and update total display.
+    void at_fuelBeginOfDuty_spinBox_valueChanged(int arg1);     ///< Set report fuel added at begin of duty and update total display.
+    void at_fuelAfterDrives_spinBox_valueChanged(int arg1);     ///< Update total added fuel display.
+    void at_fuelEndOfDuty_spinBox_valueChanged(int arg1);       ///< Set report fuel added at end of duty and update total display.
     //
-    void on_boatDrives_tableWidget_currentCellChanged(int currentRow, int, int previousRow, int);
+    void at_boatDrives_tableWidget_currentCellChanged(int currentRow, int, int previousRow, int);
                                                                     ///< \brief Display data of the newly selected boat drive or revert
                                                                     ///  the table selection in case there are unapplied changes.
-    void on_addBoatDrive_pushButton_pressed();                      ///< Add new boat drive to report (after selected one).
-    void on_removeBoatDrive_pushButton_pressed();                   ///< Remove the selected boat drive from the report.
-    void on_moveBoatDriveUp_pushButton_pressed();                   ///< Change the order of selected drive and drive above.
-    void on_moveBoatDriveDown_pushButton_pressed();                 ///< Change the order of selected drive and drive below.
-    void on_setBoatDriveTimeBeginNow_pushButton_pressed();          ///< Set displayed boat drive begin time to now (nearest quarter).
-    void on_setBoatDriveTimeEndNow_pushButton_pressed();            ///< Set displayed boat drive end time to now (nearest quarter).
-    void on_splitBoatDrive_pushButton_pressed();                    ///< Split drive into two drives at current time (nearest quarter).
-    void on_applyBoatDriveChanges_pushButton_pressed();             ///< Apply changed boat drive data to selected boat drive in report.
-    void on_discardBoatDriveChanges_pushButton_pressed();           ///< Discard changed boat drive data and reload selected drive data.
+    void at_addBoatDrive_pushButton_pressed();                      ///< Add new boat drive to report (after selected one).
+    void at_removeBoatDrive_pushButton_pressed();                   ///< Remove the selected boat drive from the report.
+    void at_moveBoatDriveUp_pushButton_pressed();                   ///< Change the order of selected drive and drive above.
+    void at_moveBoatDriveDown_pushButton_pressed();                 ///< Change the order of selected drive and drive below.
+    void at_setBoatDriveTimeBeginNow_pushButton_pressed();          ///< Set displayed boat drive begin time to now (nearest quarter).
+    void at_setBoatDriveTimeEndNow_pushButton_pressed();            ///< Set displayed boat drive end time to now (nearest quarter).
+    void at_splitBoatDrive_pushButton_pressed();                    ///< Split drive into two drives at current time (nearest quarter).
+    void at_applyBoatDriveChanges_pushButton_pressed();             ///< Apply changed boat drive data to selected boat drive in report.
+    void at_discardBoatDriveChanges_pushButton_pressed();           ///< Discard changed boat drive data and reload selected drive data.
     //
-    void on_boatDrivePurpose_comboBox_currentTextChanged(const QString&);       ///< Set unapplied boat drive changes.
-    void on_boatDriveBegin_timeEdit_timeChanged(const QTime& time);             ///< Set unapplied boat drive changes.
-    void on_boatDriveEnd_timeEdit_timeChanged(const QTime& time);               ///< Set unapplied boat drive changes.
-    void on_boatDriveFuel_spinBox_valueChanged(int);                            ///< Set unapplied boat drive changes.
-    void on_boatDriveBoatman_comboBox_currentTextChanged(const QString& arg1);  ///< Check boatman, set unapplied boat drive changes.
-    void on_boatDriveComments_plainTextEdit_textChanged();                      ///< Set unapplied boat drive changes.
-    void on_boatCrewMember_comboBox_currentTextChanged(const QString& arg1);    ///< \brief Update selectable boat functions according to
+    void at_boatDrivePurpose_comboBox_currentTextChanged(const QString&);       ///< Set unapplied boat drive changes.
+    void at_boatDriveBegin_timeEdit_timeChanged(const QTime& time);             ///< Set unapplied boat drive changes.
+    void at_boatDriveEnd_timeEdit_timeChanged(const QTime& time);               ///< Set unapplied boat drive changes.
+    void at_boatDriveFuel_spinBox_valueChanged(int);                            ///< Set unapplied boat drive changes.
+    void at_boatDriveBoatman_comboBox_currentTextChanged(const QString& arg1);  ///< Check boatman, set unapplied boat drive changes.
+    void at_boatDriveComments_plainTextEdit_textChanged();                      ///< Set unapplied boat drive changes.
+    void at_boatCrewMember_comboBox_currentTextChanged(const QString& arg1);    ///< \brief Update selectable boat functions according to
                                                                                 ///  selected new crew member person's qualifications.
-    void on_addBoatCrewMember_pushButton_pressed();     ///< Add crew member to displayed drive's crew member table.
-    void on_addExtBoatCrewMember_pushButton_pressed();  ///< Add external crew member to displayed drive's crew member table.
-    void on_removeBoatCrewMember_pushButton_pressed();  ///< Remove selected crew member from displayed drive's crew member table.
-    void on_noBoatCrew_checkBox_stateChanged(int arg1); ///< Remove crew members from displayed drive's crew member table, if checked.
+    void at_addBoatCrewMember_pushButton_pressed();     ///< Add crew member to displayed drive's crew member table.
+    void at_addExtBoatCrewMember_pushButton_pressed();  ///< Add external crew member to displayed drive's crew member table.
+    void at_removeBoatCrewMember_pushButton_pressed();  ///< Remove selected crew member from displayed drive's crew member table.
+    void at_noBoatCrew_checkBox_stateChanged(int arg1); ///< Remove crew members from displayed drive's crew member table, if checked.
     //
-    void on_boatHoursHours_spinBox_valueChanged(int);               ///< Update total boat hours display.
-    void on_boatHoursMinutes_spinBox_valueChanged(int);             ///< Update total boat hours display.
-    void on_boatHoursCarryHours_spinBox_valueChanged(int arg1);     ///< Set report boat hours carry and update total boat hours display.
-    void on_boatHoursCarryMinutes_spinBox_valueChanged(int arg1);   ///< Set report boat hours carry and update total boat hours display.
+    void at_boatHoursHours_spinBox_valueChanged(int);               ///< Update total boat hours display.
+    void at_boatHoursMinutes_spinBox_valueChanged(int);             ///< Update total boat hours display.
+    void at_boatHoursCarryHours_spinBox_valueChanged(int arg1);     ///< Set report boat hours carry and update total boat hours display.
+    void at_boatHoursCarryMinutes_spinBox_valueChanged(int arg1);   ///< Set report boat hours carry and update total boat hours display.
     //
-    void on_assignmentNumber_lineEdit_textEdited(const QString& arg1);  ///< Set report assignment number.
+    void at_assignmentNumber_lineEdit_textEdited(const QString& arg1);  ///< Set report assignment number.
     //
-    void on_clearTimestamps_pushButton_pressed();                       ///< Clear the list of timestamps.
-    void on_addTimestamp_pushButton_pressed();                          ///< Add a new timestamp to the list of timestamps.
+    void at_clearTimestamps_pushButton_pressed();                       ///< Clear the list of timestamps.
+    void at_addTimestamp_pushButton_pressed();                          ///< Add a new timestamp to the list of timestamps.
 
 signals:
     void closed(const ReportWindow* pWindow);       ///< Signal emitted when window closes (for re-showing startup window).
@@ -354,4 +359,4 @@ private:
     QStringList databaseFirstNames;         //All distinct first names present in personnel database
 };
 
-#endif // REPORTWINDOW_H
+#endif // WDMGR_REPORTWINDOW_H

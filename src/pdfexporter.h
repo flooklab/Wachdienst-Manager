@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef PDFEXPORTER_H
-#define PDFEXPORTER_H
+#ifndef WDMGR_PDFEXPORTER_H
+#define WDMGR_PDFEXPORTER_H
 
 #include "report.h"
 
@@ -49,4 +49,4 @@ private:
                               int pPersonnelTableMaxLength, int pBoatDrivesTableMaxLength);     ///< Generate LaTeX document from report.
 };
 
-#endif // PDFEXPORTER_H
+#endif // WDMGR_PDFEXPORTER_H

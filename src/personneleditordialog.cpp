@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -37,8 +37,10 @@
 #include <QRegularExpressionValidator>
 #include <QSize>
 #include <QStringList>
+#include <Qt>
 
 #include <set>
+#include <utility>
 
 /*!
  * \brief Constructor.
@@ -47,18 +49,18 @@
  *
  * Loads name, qualifications and status of \p pPerson into the input widgets.
  * The membership number field will be set to the membership number of \p pPerson,
- * if \p pType is PersonType::_INTERNAL, or set to its identifier else. Note that
+ * if \p pType is PersonType::Internal, or set to its identifier else. Note that
  * the actual value of the identifier will be ignored. The person returned by
  * getPerson() will only depend on \p pType and the (edited) input fields.
  *
  * The membership number and status fields only will be made editable,
- * if \p pType is PersonType::_INTERNAL, i.e. for an internal person.
+ * if \p pType is PersonType::Internal, i.e. for an internal person.
  *
- * The qualifications selection field only will be made editable, if \p pType is *not* PersonType::_OTHER,
+ * The qualifications selection field only will be made editable, if \p pType is *not* PersonType::Other,
  * i.e. only for internal or external persons, which can be part of the actual duty personnel.
  *
  * If \p pEditExtQualisOnly is true then a restricted mode will be enabled, in which no fields are
- * editable, except for an editable qualifications selection if \p pType is PersonType::_EXTERNAL.
+ * editable, except for an editable qualifications selection if \p pType is PersonType::External.
  *
  * Note that wrongly formatted \p pPerson properties will be simply reset to an empty string before inserting.
  *
@@ -73,12 +75,14 @@ PersonnelEditorDialog::PersonnelEditorDialog(const Person& pPerson, const Person
                      Qt::WindowSystemMenuHint |
                      Qt::WindowCloseButtonHint),
     ui(new Ui::PersonnelEditorDialog),
-    acceptPermanentlyDisabled(pEditExtQualisOnly && pType != PersonType::_EXTERNAL),
+    acceptPermanentlyDisabled(pEditExtQualisOnly && pType != PersonType::External),
     acceptDisabled(acceptPermanentlyDisabled),
     personType(pType),
     extIdentSuffix("")
 {
     ui->setupUi(this);
+
+    connectSlots();
 
     //Set validators
 
@@ -109,14 +113,14 @@ PersonnelEditorDialog::PersonnelEditorDialog(const Person& pPerson, const Person
 
     //Adjust input widget contents and enabled states depending on person type
 
-    if (personType == PersonType::_INTERNAL)
+    if (personType == PersonType::Internal)
     {
         tMembershipNumber = Person::extractMembershipNumber(tIdent);
 
         if (Aux::membershipNumbersValidator.validate(tMembershipNumber, tmpInt) != QValidator::State::Acceptable)
             tMembershipNumber = "";
     }
-    else if (personType == PersonType::_EXTERNAL || personType == PersonType::_OTHER)
+    else if (personType == PersonType::External || personType == PersonType::Other)
     {
         //Disable membership number input and status checkbox, if creating or editing external/"other" person
         ui->membershipNumber_label->setEnabled(false);
@@ -125,7 +129,7 @@ PersonnelEditorDialog::PersonnelEditorDialog(const Person& pPerson, const Person
         ui->status_checkBox->setEnabled(false);
 
         //Also disable selection of qualifications in case of "other" person
-        if (personType == PersonType::_OTHER)
+        if (personType == PersonType::Other)
         {
             ui->qualifications_label->setEnabled(false);
             ui->qualifications_listWidget->setEnabled(false);
@@ -146,10 +150,10 @@ PersonnelEditorDialog::PersonnelEditorDialog(const Person& pPerson, const Person
     ui->lastName_lineEdit->setText(tLastName);
     ui->firstName_lineEdit->setText(tFirstName);
     ui->membershipNumber_lineEdit->setText(tMembershipNumber);
-    ui->status_checkBox->setChecked(!tActive);
+    ui->status_checkBox->setCheckState(Aux::checkStateFromChecked(!tActive));
 
     //Insert possible qualifications into list widget and check the provided person's qualifications
-    if (personType != PersonType::_OTHER)
+    if (personType != PersonType::Other)
         insertQualifications(tQualis);
 
     //In restricted editing mode disable editing of all input widgets but allow to edit qualifications in case of an external person
@@ -169,7 +173,7 @@ PersonnelEditorDialog::PersonnelEditorDialog(const Person& pPerson, const Person
         ui->status_checkBox->setAttribute(Qt::WA_TransparentForMouseEvents, true);
         ui->status_checkBox->setFocusPolicy(Qt::NoFocus);
 
-        if (personType != PersonType::_EXTERNAL)
+        if (personType != PersonType::External)
         {
             ui->qualifications_listWidget->setAttribute(Qt::WA_TransparentForMouseEvents, true);
             ui->qualifications_listWidget->setFocusPolicy(Qt::NoFocus);
@@ -216,17 +220,33 @@ Person PersonnelEditorDialog::getPerson() const
 
     QString ident;
 
-    if (personType == PersonType::_INTERNAL)
+    if (personType == PersonType::Internal)
         ident = Person::createInternalIdent(lastName, firstName, ui->membershipNumber_lineEdit->text());
-    else if (personType == PersonType::_EXTERNAL)
+    else if (personType == PersonType::External)
         ident = Person::createExternalIdent(lastName, firstName, qualifications, extIdentSuffix);
-    else if (personType == PersonType::_OTHER)
+    else if (personType == PersonType::Other)
         ident = Person::createOtherIdent(lastName, firstName, extIdentSuffix);
 
-    return Person(std::move(lastName), std::move(firstName), ident, qualifications, !ui->status_checkBox->isChecked());
+    return Person(std::move(lastName), std::move(firstName), ident, qualifications,
+                  !Aux::checkedFromCheckState(ui->status_checkBox->checkState()));
 }
 
 //Private
+
+/*!
+ * \brief Connect UI signals to their slots.
+ *
+ * Connects required signals from the ".ui" file widgets to their corresponding slots.
+ */
+void PersonnelEditorDialog::connectSlots() const
+{
+    connect(ui->firstName_lineEdit, &QLineEdit::textEdited, this, &PersonnelEditorDialog::at_firstName_lineEdit_textEdited);
+    connect(ui->lastName_lineEdit, &QLineEdit::textEdited, this, &PersonnelEditorDialog::at_lastName_lineEdit_textEdited);
+    connect(ui->membershipNumber_lineEdit, &QLineEdit::textEdited,
+            this, &PersonnelEditorDialog::at_membershipNumber_lineEdit_textEdited);
+    connect(ui->qualifications_listWidget, &QListWidget::itemDoubleClicked,
+            this, &PersonnelEditorDialog::at_qualifications_listWidget_itemDoubleClicked);
+}
 
 /*!
  * \brief Disable accepting the dialog, if a required line edit is empty, enable otherwise.
@@ -240,7 +260,7 @@ Person PersonnelEditorDialog::getPerson() const
 void PersonnelEditorDialog::checkEmptyTexts()
 {
     if (ui->lastName_lineEdit->text().trimmed() == "" || ui->firstName_lineEdit->text().trimmed() == "" ||
-        (personType == PersonType::_INTERNAL && ui->membershipNumber_lineEdit->text().trimmed() == ""))
+        (personType == PersonType::Internal && ui->membershipNumber_lineEdit->text().trimmed() == ""))
     {
         disableAccept();
     }
@@ -295,7 +315,7 @@ void PersonnelEditorDialog::enableAccept()
 void PersonnelEditorDialog::insertQualifications(const Person::Qualifications& pQualis)
 {
     std::set<QString> tQualis;
-    for (QString tQuali : pQualis.toString().split(','))
+    for (QString& tQuali : pQualis.toString().split(','))
         tQualis.insert(std::move(tQuali));
 
     ui->qualifications_listWidget->setStyleSheet("QListWidget::item { padding: -8px; }");
@@ -319,10 +339,7 @@ void PersonnelEditorDialog::insertQualifications(const Person::Qualifications& p
         tItem->setSizeHint(tWidget->size());
 
         //Check item, if person has this qualification
-        if (tQualis.find(qualiStr) == tQualis.end())
-            tItem->setCheckState(Qt::CheckState::Unchecked);
-        else
-            tItem->setCheckState(Qt::CheckState::Checked);
+        tItem->setCheckState(Aux::checkStateFromChecked(tQualis.find(qualiStr) != tQualis.end()));
 
         ui->qualifications_listWidget->insertItem(0, tItem);
         ui->qualifications_listWidget->setItemWidget(tItem, tWidget);
@@ -344,7 +361,7 @@ Person::Qualifications PersonnelEditorDialog::compileQualifications() const
     QStringList qualis;
 
     for (auto it : qualificationItems)
-        if ((it.second)->checkState() == Qt::CheckState::Checked)
+        if (Aux::checkedFromCheckState((it.second)->checkState()))
             qualis.append(std::move(it.first));
 
     return Person::Qualifications(qualis);
@@ -374,7 +391,7 @@ void PersonnelEditorDialog::accept()
  *
  * Disables accepting the dialog, if any required line edit text is empty, and enables it else.
  */
-void PersonnelEditorDialog::on_firstName_lineEdit_textEdited(const QString&)
+void PersonnelEditorDialog::at_firstName_lineEdit_textEdited(const QString&)
 {
     checkEmptyTexts();
 }
@@ -384,7 +401,7 @@ void PersonnelEditorDialog::on_firstName_lineEdit_textEdited(const QString&)
  *
  * Disables accepting the dialog, if any required line edit text is empty, and enables it else.
  */
-void PersonnelEditorDialog::on_lastName_lineEdit_textEdited(const QString&)
+void PersonnelEditorDialog::at_lastName_lineEdit_textEdited(const QString&)
 {
     checkEmptyTexts();
 }
@@ -394,7 +411,7 @@ void PersonnelEditorDialog::on_lastName_lineEdit_textEdited(const QString&)
  *
  * Disables accepting the dialog, if any required line edit text is empty, and enables it else.
  */
-void PersonnelEditorDialog::on_membershipNumber_lineEdit_textEdited(const QString&)
+void PersonnelEditorDialog::at_membershipNumber_lineEdit_textEdited(const QString&)
 {
     checkEmptyTexts();
 }
@@ -406,7 +423,7 @@ void PersonnelEditorDialog::on_membershipNumber_lineEdit_textEdited(const QStrin
  *
  * \param item The qualification item to be toggled.
  */
-void PersonnelEditorDialog::on_qualifications_listWidget_itemDoubleClicked(QListWidgetItem *const item)
+void PersonnelEditorDialog::at_qualifications_listWidget_itemDoubleClicked(QListWidgetItem *const item)
 {
     if (item->checkState() == Qt::Checked)
         item->setCheckState(Qt::Unchecked);

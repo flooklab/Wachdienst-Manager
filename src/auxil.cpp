@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -308,6 +308,36 @@ QTime Aux::roundQuarterHour(const QTime pTime)
 //
 
 /*!
+ * \brief Convert "checkedness" of check box to Qt::CheckState.
+ *
+ * \param pChecked Whether a check box is checked.
+ * \return Qt::CheckState::Checked if \p pChecked and Qt::CheckState::Unchecked else.
+ */
+Qt::CheckState Aux::checkStateFromChecked(const bool pChecked)
+{
+    if (pChecked)
+        return Qt::CheckState::Checked;
+    else
+        return Qt::CheckState::Unchecked;
+}
+
+/*!
+ * \brief Convert Qt::CheckState to "checkedness" of check box.
+ *
+ * \param pCheckState Check state of a check box.
+ * \return Whether the check state is Qt::CheckState::Checked.
+ */
+bool Aux::checkedFromCheckState(const Qt::CheckState pCheckState)
+{
+    if (pCheckState == Qt::CheckState::Checked)
+        return true;
+    else
+        return false;
+}
+
+//
+
+/*!
  * \brief Escape special LaTeX characters.
  *
  * Allows safe insertion of normal text \p pString in a LaTeX document.
@@ -394,39 +424,39 @@ QString Aux::precipitationToLabel(const Precipitation pPrecip)
 {
     switch (pPrecip)
     {
-        case Precipitation::_NONE:
+        case Precipitation::None:
             return "Kein";
-        case Precipitation::_FOG:
+        case Precipitation::Fog:
             return "Nebel";
-        case Precipitation::_DEW:
+        case Precipitation::Dew:
             return "Tau";
-        case Precipitation::_HOAR_FROST:
+        case Precipitation::HoarFrost:
             return "Reif";
-        case Precipitation::_RIME_ICE:
+        case Precipitation::RimeIce:
             return "Raureif";
-        case Precipitation::_CLEAR_ICE:
+        case Precipitation::ClearIce:
             return "Klareis";
-        case Precipitation::_DRIZZLE:
+        case Precipitation::Drizzle:
             return "Nieselregen";
-        case Precipitation::_LIGHT_RAIN:
+        case Precipitation::LightRain:
             return "Leichter Regen";
-        case Precipitation::_MEDIUM_RAIN:
+        case Precipitation::MediumRain:
             return "Mittlerer Regen";
-        case Precipitation::_HEAVY_RAIN:
+        case Precipitation::HeavyRain:
             return "Starker Regen";
-        case Precipitation::_FREEZING_RAIN:
+        case Precipitation::FreezingRain:
             return "Gefrierender Regen";
-        case Precipitation::_ICE_PELLETS:
+        case Precipitation::IcePellets:
             return "Eiskörner";
-        case Precipitation::_HAIL:
+        case Precipitation::Hail:
             return "Hagel";
-        case Precipitation::_SOFT_HAIL:
+        case Precipitation::SoftHail:
             return "Graupel";
-        case Precipitation::_SNOW:
+        case Precipitation::Snow:
             return "Schnee";
-        case Precipitation::_SLEET:
+        case Precipitation::Sleet:
             return "Schneeregen";
-        case Precipitation::_DIAMOND_DUST:
+        case Precipitation::DiamondDust:
             return "Polarschnee";
         default:
             return "Kein";
@@ -445,41 +475,41 @@ QString Aux::precipitationToLabel(const Precipitation pPrecip)
 Aux::Precipitation Aux::labelToPrecipitation(const QString& pPrecip)
 {
     if (pPrecip == "Kein")
-        return Precipitation::_NONE;
+        return Precipitation::None;
     else if (pPrecip == "Nebel")
-        return Precipitation::_FOG;
+        return Precipitation::Fog;
     else if (pPrecip == "Tau")
-        return Precipitation::_DEW;
+        return Precipitation::Dew;
     else if (pPrecip == "Reif")
-        return Precipitation::_HOAR_FROST;
+        return Precipitation::HoarFrost;
     else if (pPrecip == "Raureif")
-        return Precipitation::_RIME_ICE;
+        return Precipitation::RimeIce;
     else if (pPrecip == "Klareis")
-        return Precipitation::_CLEAR_ICE;
+        return Precipitation::ClearIce;
     else if (pPrecip == "Nieselregen")
-        return Precipitation::_DRIZZLE;
+        return Precipitation::Drizzle;
     else if (pPrecip == "Leichter Regen")
-        return Precipitation::_LIGHT_RAIN;
+        return Precipitation::LightRain;
     else if (pPrecip == "Mittlerer Regen")
-        return Precipitation::_MEDIUM_RAIN;
+        return Precipitation::MediumRain;
     else if (pPrecip == "Starker Regen")
-        return Precipitation::_HEAVY_RAIN;
+        return Precipitation::HeavyRain;
     else if (pPrecip == "Gefrierender Regen")
-        return Precipitation::_FREEZING_RAIN;
+        return Precipitation::FreezingRain;
     else if (pPrecip == "Eiskörner")
-        return Precipitation::_ICE_PELLETS;
+        return Precipitation::IcePellets;
     else if (pPrecip == "Hagel")
-        return Precipitation::_HAIL;
+        return Precipitation::Hail;
     else if (pPrecip == "Graupel")
-        return Precipitation::_SOFT_HAIL;
+        return Precipitation::SoftHail;
     else if (pPrecip == "Schnee")
-        return Precipitation::_SNOW;
+        return Precipitation::Snow;
     else if (pPrecip == "Schneeregen")
-        return Precipitation::_SLEET;
+        return Precipitation::Sleet;
     else if (pPrecip == "Polarschnee")
-        return Precipitation::_DIAMOND_DUST;
+        return Precipitation::DiamondDust;
     else
-        return Precipitation::_NONE;
+        return Precipitation::None;
 }
 
 /*!
@@ -495,27 +525,27 @@ QString Aux::cloudinessToLabel(const Cloudiness pClouds)
 {
     switch (pClouds)
     {
-        case Cloudiness::_CLOUDLESS:
+        case Cloudiness::Cloudless:
             return "Wolkenlos";
-        case Cloudiness::_SUNNY:
+        case Cloudiness::Sunny:
             return "Sonnig";
-        case Cloudiness::_FAIR:
+        case Cloudiness::Fair:
             return "Heiter";
-        case Cloudiness::_SLIGHTLY_CLOUDY:
+        case Cloudiness::SlightlyCloudy:
             return "Leicht bewölkt";
-        case Cloudiness::_MODERATELY_CLOUDY:
+        case Cloudiness::ModeratelyCloudy:
             return "Wolkig";
-        case Cloudiness::_CONSIDERABLY_CLOUDY:
+        case Cloudiness::ConsiderablyCloudy:
             return "Bewölkt";
-        case Cloudiness::_MOSTLY_CLOUDY:
+        case Cloudiness::MostlyCloudy:
             return "Stark bewölkt";
-        case Cloudiness::_NEARLY_OVERCAST:
+        case Cloudiness::NearlyOvercast:
             return "Fast bedeckt";
-        case Cloudiness::_FULLY_OVERCAST:
+        case Cloudiness::FullyOvercast:
             return "Bedeckt";
-        case Cloudiness::_THUNDERCLOUDS:
+        case Cloudiness::Thunderclouds:
             return "Gewitterwolken";
-        case Cloudiness::_VARIABLE:
+        case Cloudiness::Variable:
             return "Wechselnd bewölkt";
         default:
             return "Wolkenlos";
@@ -534,29 +564,29 @@ QString Aux::cloudinessToLabel(const Cloudiness pClouds)
 Aux::Cloudiness Aux::labelToCloudiness(const QString& pClouds)
 {
     if (pClouds == "Wolkenlos")
-        return Cloudiness::_CLOUDLESS;
+        return Cloudiness::Cloudless;
     else if (pClouds == "Sonnig")
-        return Cloudiness::_SUNNY;
+        return Cloudiness::Sunny;
     else if (pClouds == "Heiter")
-        return Cloudiness::_FAIR;
+        return Cloudiness::Fair;
     else if (pClouds == "Leicht bewölkt")
-        return Cloudiness::_SLIGHTLY_CLOUDY;
+        return Cloudiness::SlightlyCloudy;
     else if (pClouds == "Wolkig")
-        return Cloudiness::_MODERATELY_CLOUDY;
+        return Cloudiness::ModeratelyCloudy;
     else if (pClouds == "Bewölkt")
-        return Cloudiness::_CONSIDERABLY_CLOUDY;
+        return Cloudiness::ConsiderablyCloudy;
     else if (pClouds == "Stark bewölkt")
-        return Cloudiness::_MOSTLY_CLOUDY;
+        return Cloudiness::MostlyCloudy;
     else if (pClouds == "Fast bedeckt")
-        return Cloudiness::_NEARLY_OVERCAST;
+        return Cloudiness::NearlyOvercast;
     else if (pClouds == "Bedeckt")
-        return Cloudiness::_FULLY_OVERCAST;
+        return Cloudiness::FullyOvercast;
     else if (pClouds == "Gewitterwolken")
-        return Cloudiness::_THUNDERCLOUDS;
+        return Cloudiness::Thunderclouds;
     else if (pClouds == "Wechselnd bewölkt")
-        return Cloudiness::_VARIABLE;
+        return Cloudiness::Variable;
     else
-        return Cloudiness::_CLOUDLESS;
+        return Cloudiness::Cloudless;
 }
 
 /*!
@@ -572,31 +602,31 @@ QString Aux::windStrengthToLabel(const WindStrength pWind)
 {
     switch (pWind)
     {
-        case WindStrength::_CALM:
+        case WindStrength::Calm:
             return "0 Bft (Windstille)";
-        case WindStrength::_LIGHT_AIR:
+        case WindStrength::LightAir:
             return "1 Bft (Leiser Zug)";
-        case WindStrength::_LIGHT_BREEZE:
+        case WindStrength::LightBreeze:
             return "2 Bft (Leichte Brise)";
-        case WindStrength::_GENTLE_BREEZE:
+        case WindStrength::GentleBreeze:
             return "3 Bft (Schwache Brise)";
-        case WindStrength::_MODERATE_BREEZE:
+        case WindStrength::ModerateBreeze:
             return "4 Bft (Mäßige Brise)";
-        case WindStrength::_FRESH_BREEZE:
+        case WindStrength::FreshBreeze:
             return "5 Bft (Frische Brise)";
-        case WindStrength::_STRONG_BREEZE:
+        case WindStrength::StrongBreeze:
             return "6 Bft (Starker Wind)";
-        case WindStrength::_NEAR_GALE:
+        case WindStrength::NearGale:
             return "7 Bft (Steifer Wind)";
-        case WindStrength::_GALE:
+        case WindStrength::Gale:
             return "8 Bft (Stürmischer Wind)";
-        case WindStrength::_STRONG_GALE:
+        case WindStrength::StrongGale:
             return "9 Bft (Sturm)";
-        case WindStrength::_STORM:
+        case WindStrength::Storm:
             return "10 Bft (Schwerer Sturm)";
-        case WindStrength::_VIOLENT_STORM:
+        case WindStrength::ViolentStorm:
             return "11 Bft (Orkanartiger Sturm)";
-        case WindStrength::_HURRICANE:
+        case WindStrength::Hurricane:
             return "12 Bft (Orkan)";
         default:
             return "0 Bft (Windstille)";
@@ -615,33 +645,33 @@ QString Aux::windStrengthToLabel(const WindStrength pWind)
 Aux::WindStrength Aux::labelToWindStrength(const QString& pWind)
 {
     if (pWind == "0 Bft (Windstille)")
-        return WindStrength::_CALM;
+        return WindStrength::Calm;
     else if (pWind == "1 Bft (Leiser Zug)")
-        return WindStrength::_LIGHT_AIR;
+        return WindStrength::LightAir;
     else if (pWind == "2 Bft (Leichte Brise)")
-        return WindStrength::_LIGHT_BREEZE;
+        return WindStrength::LightBreeze;
     else if (pWind == "3 Bft (Schwache Brise)")
-        return WindStrength::_GENTLE_BREEZE;
+        return WindStrength::GentleBreeze;
     else if (pWind == "4 Bft (Mäßige Brise)")
-        return WindStrength::_MODERATE_BREEZE;
+        return WindStrength::ModerateBreeze;
     else if (pWind == "5 Bft (Frische Brise)")
-        return WindStrength::_FRESH_BREEZE;
+        return WindStrength::FreshBreeze;
     else if (pWind == "6 Bft (Starker Wind)")
-        return WindStrength::_STRONG_BREEZE;
+        return WindStrength::StrongBreeze;
     else if (pWind == "7 Bft (Steifer Wind)")
-        return WindStrength::_NEAR_GALE;
+        return WindStrength::NearGale;
     else if (pWind == "8 Bft (Stürmischer Wind)")
-        return WindStrength::_GALE;
+        return WindStrength::Gale;
     else if (pWind == "9 Bft (Sturm)")
-        return WindStrength::_STRONG_GALE;
+        return WindStrength::StrongGale;
     else if (pWind == "10 Bft (Schwerer Sturm)")
-        return WindStrength::_STORM;
+        return WindStrength::Storm;
     else if (pWind == "11 Bft (Orkanartiger Sturm)")
-        return WindStrength::_VIOLENT_STORM;
+        return WindStrength::ViolentStorm;
     else if (pWind == "12 Bft (Orkan)")
-        return WindStrength::_HURRICANE;
+        return WindStrength::Hurricane;
     else
-        return WindStrength::_CALM;
+        return WindStrength::Calm;
 }
 
 /*!
@@ -657,41 +687,41 @@ QString Aux::windDirectionToLabel(const WindDirection pDirection)
 {
     switch (pDirection)
     {
-        case WindDirection::_S:
+        case WindDirection::S:
             return "S (Süd)";
-        case WindDirection::_SSE:
+        case WindDirection::Sse:
             return "SSE (Südsüdost)";
-        case WindDirection::_SE:
+        case WindDirection::Se:
             return "SE (Südost)";
-        case WindDirection::_ESE:
+        case WindDirection::Ese:
             return "ESE (Ostsüdost)";
-        case WindDirection::_E:
+        case WindDirection::E:
             return "E (Ost)";
-        case WindDirection::_ENE:
+        case WindDirection::Ene:
             return "ENE (Ostnordost)";
-        case WindDirection::_NE:
+        case WindDirection::Ne:
             return "NE (Nordost)";
-        case WindDirection::_NNE:
+        case WindDirection::Nne:
             return "NNE (Nordnordost)";
-        case WindDirection::_N:
+        case WindDirection::N:
             return "N (Nord)";
-        case WindDirection::_NNW:
+        case WindDirection::Nnw:
             return "NNW (Nordnordwest)";
-        case WindDirection::_NW:
+        case WindDirection::Nw:
             return "NW (Nordwest)";
-        case WindDirection::_WNW:
+        case WindDirection::Wnw:
             return "WNW (Westnordwest)";
-        case WindDirection::_W:
+        case WindDirection::W:
             return "W (West)";
-        case WindDirection::_WSW:
+        case WindDirection::Wsw:
             return "WSW (Westsüdwest)";
-        case WindDirection::_SW:
+        case WindDirection::Sw:
             return "SW (Südwest)";
-        case WindDirection::_SSW:
+        case WindDirection::Ssw:
             return "SSW (Südsüdwest)";
-        case WindDirection::_VARIABLE:
+        case WindDirection::Variable:
             return "Wechselnde Richtungen";
-        case WindDirection::_UNKNOWN:
+        case WindDirection::Unknown:
             return "Unbekannt";
         default:
             return "Unbekannt";
@@ -710,43 +740,43 @@ QString Aux::windDirectionToLabel(const WindDirection pDirection)
 Aux::WindDirection Aux::labelToWindDirection(const QString& pDirection)
 {
     if (pDirection == "S (Süd)")
-        return WindDirection::_S;
+        return WindDirection::S;
     else if (pDirection == "SSE (Südsüdost)")
-        return WindDirection::_SSE;
+        return WindDirection::Sse;
     else if (pDirection == "SE (Südost)")
-        return WindDirection::_SE;
+        return WindDirection::Se;
     else if (pDirection == "ESE (Ostsüdost)")
-        return WindDirection::_ESE;
+        return WindDirection::Ese;
     else if (pDirection == "E (Ost)")
-        return WindDirection::_E;
+        return WindDirection::E;
     else if (pDirection == "ENE (Ostnordost)")
-        return WindDirection::_ENE;
+        return WindDirection::Ene;
     else if (pDirection == "NE (Nordost)")
-        return WindDirection::_NE;
+        return WindDirection::Ne;
     else if (pDirection == "NNE (Nordnordost)")
-        return WindDirection::_NNE;
+        return WindDirection::Nne;
     else if (pDirection == "N (Nord)")
-        return WindDirection::_N;
+        return WindDirection::N;
     else if (pDirection == "NNW (Nordnordwest)")
-        return WindDirection::_NNW;
+        return WindDirection::Nnw;
     else if (pDirection == "NW (Nordwest)")
-        return WindDirection::_NW;
+        return WindDirection::Nw;
     else if (pDirection == "WNW (Westnordwest)")
-        return WindDirection::_WNW;
+        return WindDirection::Wnw;
     else if (pDirection == "W (West)")
-        return WindDirection::_W;
+        return WindDirection::W;
     else if (pDirection == "WSW (Westsüdwest)")
-        return WindDirection::_WSW;
+        return WindDirection::Wsw;
     else if (pDirection == "SW (Südwest)")
-        return WindDirection::_SW;
+        return WindDirection::Sw;
     else if (pDirection == "SSW (Südsüdwest)")
-        return WindDirection::_SSW;
+        return WindDirection::Ssw;
     else if (pDirection == "Wechselnde Richtungen")
-        return WindDirection::_VARIABLE;
+        return WindDirection::Variable;
     else if (pDirection == "Unbekannt")
-        return WindDirection::_UNKNOWN;
+        return WindDirection::Unknown;
     else
-        return WindDirection::_UNKNOWN;
+        return WindDirection::Unknown;
 }
 
 //

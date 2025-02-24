@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -20,8 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 */
 
-#ifndef UPDATEREPORTPERSONENTRYDIALOG_H
-#define UPDATEREPORTPERSONENTRYDIALOG_H
+#ifndef WDMGR_UPDATEREPORTPERSONENTRYDIALOG_H
+#define WDMGR_UPDATEREPORTPERSONENTRYDIALOG_H
 
 #include "person.h"
 
@@ -29,9 +29,7 @@
 #include <QTime>
 #include <QWidget>
 
-namespace Ui {
-class UpdateReportPersonEntryDialog;
-}
+namespace Ui { class UpdateReportPersonEntryDialog; }
 
 /*!
  * \brief Change the personnel function and begin/end times of a Person.
@@ -63,4 +61,4 @@ private:
     Ui::UpdateReportPersonEntryDialog* ui;  //UI
 };
 
-#endif // UPDATEREPORTPERSONENTRYDIALOG_H
+#endif // WDMGR_UPDATEREPORTPERSONENTRYDIALOG_H

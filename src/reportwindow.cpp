@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -60,6 +60,7 @@
 #include <QStandardItemModel>
 #include <QStandardPaths>
 #include <QStatusBar>
+#include <Qt>
 #include <QTableWidget>
 #include <QTimer>
 #include <QToolTip>
@@ -69,6 +70,7 @@
 #include <functional>
 #include <set>
 #include <thread>
+#include <utility>
 
 /*!
  * \brief Constructor.
@@ -85,10 +87,10 @@
  * such that these can always get selected.
  *
  * Adds a spin box for each value of Report::RescueOperation to count the carried out rescue operations.
- * Connects each 'valueChanged' signal to the parameterized slot on_rescueOperationSpinBoxValueChanged().
+ * Connects each 'valueChanged' signal to the parameterized slot at_rescueOperationSpinBoxValueChanged().
  *
  * Adds a push button for each "important document" listed in settings.
- * Connects each 'pressed' signal to slot on_openDocumentPushButtonPressed().
+ * Connects each 'pressed' signal to slot at_openDocumentPushButtonPressed().
  *
  * Sets validators from Aux for peronnel name and assignment number line edits.
  *
@@ -124,6 +126,8 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
 {
     ui->setupUi(this);
 
+    connectSlots();
+
     setWindowState(Qt::WindowState::WindowMaximized);
 
     //Add spin boxes to count the different types of rescue operations;
@@ -153,7 +157,7 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
         int row = pGroupBoxLayout->rowCount();
 
         //Separate '_MORTAL_DANGER_INVOLVED' from previous rows by adding a horizontal line
-        if (pRescue == Report::RescueOperation::_MORTAL_DANGER_INVOLVED)
+        if (pRescue == Report::RescueOperation::MortalDangerInvolved)
         {
             QFrame* tHLine = new QFrame(pGroupBox);
             tHLine->setFrameShape(QFrame::Shape::HLine);
@@ -172,11 +176,11 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
         pRescuesTableRows.insert({pRescue, {tSpinBox, tLabel2}});
     };
 
-    std::map<Report::RescueOperation, int> tRescOpCtrs = pReport.getRescueOperationCtrs();
+    const std::map<Report::RescueOperation, int>& tRescOpCtrs = pReport.getRescueOperationCtrs();
     std::set<Report::RescueOperation> tAvailRescOps = Report::getAvailableRescueOperations();
 
     //Add a spin box to the layout for each deprecated 'RescueOperation'
-    for (auto it : tRescOpCtrs)
+    for (const auto& it : tRescOpCtrs)
         if (tAvailRescOps.find(it.first) == tAvailRescOps.end())
             tRescueFunc(it.first, ui->rescues_groupBox, tRescuesGroupBoxLayout, rescuesTableRows);
 
@@ -194,7 +198,7 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
 
         connect(tSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
                 [this, tRescue](int pValue) -> void {
-                    this->on_rescueOperationSpinBoxValueChanged(pValue, tRescue);
+                    this->at_rescueOperationSpinBoxValueChanged(pValue, tRescue);
                 });
     }
 
@@ -220,7 +224,7 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
         //Connect 'pressed' signal of each document button to a single slot to open the document
         connect(tButton, &QPushButton::pressed, this,
                 [this, tDocFile](void) -> void {
-                    this->on_openDocumentPushButtonPressed(tDocFile);
+                    this->at_openDocumentPushButtonPressed(tDocFile);
                 });
     }
 
@@ -328,26 +332,26 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
     ui->statusbar->addPermanentWidget(statusBarLabel);
 
     //Show error message from main thread always when export thread signals an export failure
-    connect(this, &ReportWindow::exportFailed, this, &ReportWindow::on_exportFailed);
+    connect(this, &ReportWindow::exportFailed, this, &ReportWindow::at_exportFailed);
 
     //Set timer to update clock displays of all tabs every second
-    on_updateClocksTimerTimeout();
+    at_updateClocksTimerTimeout();
     QTimer* clockTimer = new QTimer(this);
-    connect(clockTimer, &QTimer::timeout, this, &ReportWindow::on_updateClocksTimerTimeout);
+    connect(clockTimer, &QTimer::timeout, this, &ReportWindow::at_updateClocksTimerTimeout);
     clockTimer->start(1000);
 
     //Set timer to auto-save the report every 10 minutes
     QTimer* autoSaveTimer = new QTimer(this);
-    connect(autoSaveTimer, &QTimer::timeout, this, &ReportWindow::on_autoSaveTimerTimeout);
+    connect(autoSaveTimer, &QTimer::timeout, this, &ReportWindow::at_autoSaveTimerTimeout);
     autoSaveTimer->start(10 * 60 * 1000);
 
     //Add shortcut to record the current time as a new timestamp in the timestamps table
     QShortcut* timestampShortcut = new QShortcut(QKeySequence("Ctrl+T"), this);
-    connect(timestampShortcut, &QShortcut::activated, this, &ReportWindow::on_addTimestamp_pushButton_pressed);
+    connect(timestampShortcut, &QShortcut::activated, this, &ReportWindow::at_addTimestamp_pushButton_pressed);
 
     //Add shortcut to select persons in the personnel table that match the currently entered person name
     QShortcut* findPersonShortcut = new QShortcut(QKeySequence("Ctrl+F"), this);
-    connect(findPersonShortcut, &QShortcut::activated, this, &ReportWindow::on_findPersonShortcutActivated);
+    connect(findPersonShortcut, &QShortcut::activated, this, &ReportWindow::at_findPersonShortcutActivated);
 
     //Add stations and boats to combo boxes
 
@@ -361,7 +365,7 @@ ReportWindow::ReportWindow(Report&& pReport, QWidget *const pParent) :
 
     //Use boat name instead of 'rowid' as key
     for (const auto& it : DatabaseCache::boats())
-        boats.insert({it.second.name, std::move(it.second)});
+        boats.insert({it.second.name, it.second});
 
     for (const auto& it : stations)
         ui->station_comboBox->insertItem(ui->station_comboBox->count(), Aux::stationLabelFromIdent(it.first));
@@ -526,7 +530,7 @@ void ReportWindow::dragEnterEvent(QDragEnterEvent *const pEvent)
  *
  * The signal openAnotherReportRequested() is emitted with the dropped file name as argument.
  *
- * See also StartupWindow::on_openAnotherReportRequested(), which may be connected to the signal
+ * See also StartupWindow::at_openAnotherReportRequested(), which may be connected to the signal
  * in order to open a report from the dropped file name and show it in a different report window.
  *
  * \param pEvent The event containing information about the drag and drop action that was dropped on the window.
@@ -538,10 +542,163 @@ void ReportWindow::dropEvent(QDropEvent *const pEvent)
         pEvent->setDropAction(Qt::DropAction::LinkAction);
         pEvent->accept();
 
-        emit openAnotherReportRequested(pEvent->mimeData()->urls().at(0).toLocalFile());
+        emit openAnotherReportRequested(pEvent->mimeData()->urls().at(0).toLocalFile());    // cppcheck-suppress shadowFunction
     }
     else
         pEvent->ignore();
+}
+
+//
+
+/*!
+ * \brief Connect UI signals to their slots.
+ *
+ * Connects required signals from the ".ui" file widgets to their corresponding slots.
+ */
+void ReportWindow::connectSlots() const
+{
+    connect(ui->saveFile_action, &QAction::triggered, this, &ReportWindow::at_saveFile_action_triggered);
+    connect(ui->saveFileAs_action, &QAction::triggered, this, &ReportWindow::at_saveFileAs_action_triggered);
+    connect(ui->exportFile_action, &QAction::triggered, this, &ReportWindow::at_exportFile_action_triggered);
+    connect(ui->exportAndOpenFile_action, &QAction::triggered, this, &ReportWindow::at_exportAndOpenFile_action_triggered);
+    connect(ui->loadCarries_action, &QAction::triggered, this, &ReportWindow::at_loadCarries_action_triggered);
+    connect(ui->newReport_action, &QAction::triggered, this, &ReportWindow::at_newReport_action_triggered);
+    connect(ui->openReport_action, &QAction::triggered, this, &ReportWindow::at_openReport_action_triggered);
+    connect(ui->close_action, &QAction::triggered, this, &ReportWindow::at_close_action_triggered);
+    connect(ui->editPersonnelTableSplit_action, &QAction::triggered, this, &ReportWindow::at_editPersonnelTableSplit_action_triggered);
+    connect(ui->editBoatDrivesTableSplit_action, &QAction::triggered, this, &ReportWindow::at_editBoatDrivesTableSplit_action_triggered);
+    connect(ui->reportTab_calendarWidget, &QCalendarWidget::currentPageChanged,
+            this, &ReportWindow::at_reportTab_calendarWidget_currentPageChanged);
+    connect(ui->boatTab_calendarWidget, &QCalendarWidget::currentPageChanged,
+            this, &ReportWindow::at_boatTab_calendarWidget_currentPageChanged);
+    connect(ui->rescueTab_calendarWidget, &QCalendarWidget::currentPageChanged,
+            this, &ReportWindow::at_rescueTab_calendarWidget_currentPageChanged);
+    connect(ui->reportTab_calendarWidget, &QCalendarWidget::selectionChanged,
+            this, &ReportWindow::at_reportTab_calendarWidget_selectionChanged);
+    connect(ui->boatTab_calendarWidget, &QCalendarWidget::selectionChanged,
+            this, &ReportWindow::at_boatTab_calendarWidget_selectionChanged);
+    connect(ui->rescueTab_calendarWidget, &QCalendarWidget::selectionChanged,
+            this, &ReportWindow::at_rescueTab_calendarWidget_selectionChanged);
+    connect(ui->reportNumberDecr_radioButton, &QRadioButton::toggled, this, &ReportWindow::at_reportNumberDecr_radioButton_toggled);
+    connect(ui->reportNumberIncr_radioButton, &QRadioButton::toggled, this, &ReportWindow::at_reportNumberIncr_radioButton_toggled);
+    connect(ui->station_comboBox, &QComboBox::currentTextChanged, this, &ReportWindow::at_station_comboBox_currentTextChanged);
+    connect(ui->stationRadioCallName_comboBox, &QComboBox::currentTextChanged,
+            this, &ReportWindow::at_stationRadioCallName_comboBox_currentTextChanged);
+    connect(ui->dutyPurpose_comboBox, &QComboBox::currentTextChanged, this, &ReportWindow::at_dutyPurpose_comboBox_currentTextChanged);
+    connect(ui->dutyPurposeComment_lineEdit, &QLineEdit::textEdited, this, &ReportWindow::at_dutyPurposeComment_lineEdit_textEdited);
+    connect(ui->reportDate_dateEdit, &QDateEdit::dateChanged, this, &ReportWindow::at_reportDate_dateEdit_dateChanged);
+    connect(ui->dutyTimesBegin_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_dutyTimesBegin_timeEdit_timeChanged);
+    connect(ui->dutyTimesEnd_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_dutyTimesEnd_timeEdit_timeChanged);
+    connect(ui->endOnNextDay_checkBox, &QCheckBox::stateChanged, this, &ReportWindow::at_endOnNextDay_checkBox_stateChanged);
+    connect(ui->reportComments_plainTextEdit, &QPlainTextEdit::textChanged,
+            this, &ReportWindow::at_reportComments_plainTextEdit_textChanged);
+    connect(ui->temperatureAir_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_temperatureAir_spinBox_valueChanged);
+    connect(ui->temperatureWater_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_temperatureWater_spinBox_valueChanged);
+    connect(ui->precipitation_comboBox, &QComboBox::currentTextChanged,
+            this, &ReportWindow::at_precipitation_comboBox_currentTextChanged);
+    connect(ui->cloudiness_comboBox, &QComboBox::currentTextChanged, this, &ReportWindow::at_cloudiness_comboBox_currentTextChanged);
+    connect(ui->windStrength_comboBox, &QComboBox::currentTextChanged, this, &ReportWindow::at_windStrength_comboBox_currentTextChanged);
+    connect(ui->windStrength_comboBox, &QComboBox::customContextMenuRequested,
+            this, &ReportWindow::at_windStrength_comboBox_customContextMenuRequested);
+    connect(ui->windDirection_comboBox, &QComboBox::currentTextChanged,
+            this, &ReportWindow::at_windDirection_comboBox_currentTextChanged);
+    connect(ui->weatherComments_plainTextEdit, &QPlainTextEdit::textChanged,
+            this, &ReportWindow::at_weatherComments_plainTextEdit_textChanged);
+    connect(ui->operationProtocolsCtr_spinBox, &QSpinBox::valueChanged,
+            this, &ReportWindow::at_operationProtocolsCtr_spinBox_valueChanged);
+    connect(ui->patientRecordsCtr_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_patientRecordsCtr_spinBox_valueChanged);
+    connect(ui->radioCallLogsCtr_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_radioCallLogsCtr_spinBox_valueChanged);
+    connect(ui->otherEnclosures_lineEdit, &QLineEdit::textEdited, this, &ReportWindow::at_otherEnclosures_lineEdit_textEdited);
+    connect(ui->otherEnclosures_lineEdit, &QLineEdit::textChanged, this, &ReportWindow::at_otherEnclosures_lineEdit_textChanged);
+    connect(ui->personLastName_lineEdit, &QLineEdit::textChanged, this, &ReportWindow::at_personLastName_lineEdit_textChanged);
+    connect(ui->personFirstName_lineEdit, &QLineEdit::textChanged, this, &ReportWindow::at_personFirstName_lineEdit_textChanged);
+    connect(ui->personFirstName_lineEdit, &QLineEdit::returnPressed, this, &ReportWindow::at_personFirstName_lineEdit_returnPressed);
+    connect(ui->personIdent_comboBox, &QComboBox::currentTextChanged, this, &ReportWindow::at_personIdent_comboBox_currentTextChanged);
+    connect(ui->setNewPersonTimeBegin_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_setNewPersonTimeBegin_pushButton_pressed);
+    connect(ui->setNewPersonTimeBeginNow_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_setNewPersonTimeBeginNow_pushButton_pressed);
+    connect(ui->personTimeBegin_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_personTimeBegin_timeEdit_timeChanged);
+    connect(ui->personTimeEnd_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_personTimeEnd_timeEdit_timeChanged);
+    connect(ui->setNewPersonTimeEndNow_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_setNewPersonTimeEndNow_pushButton_pressed);
+    connect(ui->setNewPersonTimeEnd_pushButton, &QPushButton::pressed, this, &ReportWindow::at_setNewPersonTimeEnd_pushButton_pressed);
+    connect(ui->addPerson_pushButton, &QPushButton::pressed, this, &ReportWindow::at_addPerson_pushButton_pressed);
+    connect(ui->addExtPerson_pushButton, &QPushButton::pressed, this, &ReportWindow::at_addExtPerson_pushButton_pressed);
+    connect(ui->updatePerson_pushButton, &QPushButton::pressed, this, &ReportWindow::at_updatePerson_pushButton_pressed);
+    connect(ui->removePerson_pushButton, &QPushButton::pressed, this, &ReportWindow::at_removePerson_pushButton_pressed);
+    connect(ui->setPersonTimeBegin_pushButton, &QPushButton::pressed, this, &ReportWindow::at_setPersonTimeBegin_pushButton_pressed);
+    connect(ui->setPersonTimeEnd_pushButton, &QPushButton::pressed, this, &ReportWindow::at_setPersonTimeEnd_pushButton_pressed);
+    connect(ui->setPersonTimeBeginNow_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_setPersonTimeBeginNow_pushButton_pressed);
+    connect(ui->setPersonTimeEndNow_pushButton, &QPushButton::pressed, this, &ReportWindow::at_setPersonTimeEndNow_pushButton_pressed);
+    connect(ui->personQualifications_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_personQualifications_pushButton_pressed);
+    connect(ui->personnel_tableWidget, &QTableWidget::cellDoubleClicked,
+            this, &ReportWindow::at_personnel_tableWidget_cellDoubleClicked);
+    connect(ui->personnelHoursHours_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_personnelHoursHours_spinBox_valueChanged);
+    connect(ui->personnelHoursMinutes_spinBox, &QSpinBox::valueChanged,
+            this, &ReportWindow::at_personnelHoursMinutes_spinBox_valueChanged);
+    connect(ui->personnelHoursCarryHours_spinBox, &QSpinBox::valueChanged,
+            this, &ReportWindow::at_personnelHoursCarryHours_spinBox_valueChanged);
+    connect(ui->personnelHoursCarryMinutes_spinBox, &QSpinBox::valueChanged,
+            this, &ReportWindow::at_personnelHoursCarryMinutes_spinBox_valueChanged);
+    connect(ui->boat_comboBox, &QComboBox::currentTextChanged, this, &ReportWindow::at_boat_comboBox_currentTextChanged);
+    connect(ui->boatRadioCallName_comboBox, &QComboBox::currentTextChanged,
+            this, &ReportWindow::at_boatRadioCallName_comboBox_currentTextChanged);
+    connect(ui->boatSlippedBeginOfDuty_checkBox, &QCheckBox::stateChanged,
+            this, &ReportWindow::at_boatSlippedBeginOfDuty_checkBox_stateChanged);
+    connect(ui->boatSlippedEndOfDuty_checkBox, &QCheckBox::stateChanged,
+            this, &ReportWindow::at_boatSlippedEndOfDuty_checkBox_stateChanged);
+    connect(ui->boatReadyFrom_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_boatReadyFrom_timeEdit_timeChanged);
+    connect(ui->boatReadyUntil_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_boatReadyUntil_timeEdit_timeChanged);
+    connect(ui->boatComments_plainTextEdit, &QPlainTextEdit::textChanged,
+            this, &ReportWindow::at_boatComments_plainTextEdit_textChanged);
+    connect(ui->engineHoursBeginOfDuty_doubleSpinBox, &QDoubleSpinBox::valueChanged,
+            this, &ReportWindow::at_engineHoursBeginOfDuty_doubleSpinBox_valueChanged);
+    connect(ui->engineHoursEndOfDuty_doubleSpinBox, &QDoubleSpinBox::valueChanged,
+            this, &ReportWindow::at_engineHoursEndOfDuty_doubleSpinBox_valueChanged);
+    connect(ui->fuelBeginOfDuty_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_fuelBeginOfDuty_spinBox_valueChanged);
+    connect(ui->fuelAfterDrives_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_fuelAfterDrives_spinBox_valueChanged);
+    connect(ui->fuelEndOfDuty_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_fuelEndOfDuty_spinBox_valueChanged);
+    connect(ui->boatDrives_tableWidget, &QTableWidget::currentCellChanged,
+            this, &ReportWindow::at_boatDrives_tableWidget_currentCellChanged);
+    connect(ui->addBoatDrive_pushButton, &QPushButton::pressed, this, &ReportWindow::at_addBoatDrive_pushButton_pressed);
+    connect(ui->removeBoatDrive_pushButton, &QPushButton::pressed, this, &ReportWindow::at_removeBoatDrive_pushButton_pressed);
+    connect(ui->moveBoatDriveUp_pushButton, &QPushButton::pressed, this, &ReportWindow::at_moveBoatDriveUp_pushButton_pressed);
+    connect(ui->moveBoatDriveDown_pushButton, &QPushButton::pressed, this, &ReportWindow::at_moveBoatDriveDown_pushButton_pressed);
+    connect(ui->setBoatDriveTimeBeginNow_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_setBoatDriveTimeBeginNow_pushButton_pressed);
+    connect(ui->setBoatDriveTimeEndNow_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_setBoatDriveTimeEndNow_pushButton_pressed);
+    connect(ui->splitBoatDrive_pushButton, &QPushButton::pressed, this, &ReportWindow::at_splitBoatDrive_pushButton_pressed);
+    connect(ui->applyBoatDriveChanges_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_applyBoatDriveChanges_pushButton_pressed);
+    connect(ui->discardBoatDriveChanges_pushButton, &QPushButton::pressed,
+            this, &ReportWindow::at_discardBoatDriveChanges_pushButton_pressed);
+    connect(ui->boatDrivePurpose_comboBox, &QComboBox::currentTextChanged,
+            this, &ReportWindow::at_boatDrivePurpose_comboBox_currentTextChanged);
+    connect(ui->boatDriveBegin_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_boatDriveBegin_timeEdit_timeChanged);
+    connect(ui->boatDriveEnd_timeEdit, &QTimeEdit::timeChanged, this, &ReportWindow::at_boatDriveEnd_timeEdit_timeChanged);
+    connect(ui->boatDriveFuel_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_boatDriveFuel_spinBox_valueChanged);
+    connect(ui->boatDriveBoatman_comboBox, &QComboBox::currentTextChanged,
+            this, &ReportWindow::at_boatDriveBoatman_comboBox_currentTextChanged);
+    connect(ui->boatDriveComments_plainTextEdit, &QPlainTextEdit::textChanged,
+            this, &ReportWindow::at_boatDriveComments_plainTextEdit_textChanged);
+    connect(ui->boatCrewMember_comboBox, &QComboBox::currentTextChanged,
+            this, &ReportWindow::at_boatCrewMember_comboBox_currentTextChanged);
+    connect(ui->addBoatCrewMember_pushButton, &QPushButton::pressed, this, &ReportWindow::at_addBoatCrewMember_pushButton_pressed);
+    connect(ui->addExtBoatCrewMember_pushButton, &QPushButton::pressed, this, &ReportWindow::at_addExtBoatCrewMember_pushButton_pressed);
+    connect(ui->removeBoatCrewMember_pushButton, &QPushButton::pressed, this, &ReportWindow::at_removeBoatCrewMember_pushButton_pressed);
+    connect(ui->noBoatCrew_checkBox, &QCheckBox::stateChanged, this, &ReportWindow::at_noBoatCrew_checkBox_stateChanged);
+    connect(ui->boatHoursHours_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_boatHoursHours_spinBox_valueChanged);
+    connect(ui->boatHoursMinutes_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_boatHoursMinutes_spinBox_valueChanged);
+    connect(ui->boatHoursCarryHours_spinBox, &QSpinBox::valueChanged, this, &ReportWindow::at_boatHoursCarryHours_spinBox_valueChanged);
+    connect(ui->boatHoursCarryMinutes_spinBox, &QSpinBox::valueChanged,
+            this, &ReportWindow::at_boatHoursCarryMinutes_spinBox_valueChanged);
+    connect(ui->assignmentNumber_lineEdit, &QLineEdit::textEdited, this, &ReportWindow::at_assignmentNumber_lineEdit_textEdited);
+    connect(ui->clearTimestamps_pushButton, &QPushButton::pressed, this, &ReportWindow::at_clearTimestamps_pushButton_pressed);
+    connect(ui->addTimestamp_pushButton, &QPushButton::pressed, this, &ReportWindow::at_addTimestamp_pushButton_pressed);
 }
 
 //
@@ -583,19 +740,19 @@ void ReportWindow::loadReportData()
         ui->station_comboBox->setCurrentIndex(ui->station_comboBox->findText(tStationLabel));
 
         //Call slot in case index has not changed
-        on_station_comboBox_currentTextChanged(tStationLabel);
+        at_station_comboBox_currentTextChanged(tStationLabel);
 
         ui->stationRadioCallName_comboBox->setCurrentIndex(ui->stationRadioCallName_comboBox->findText(tRadioCallName));
 
         //Call slot in case index has not changed
-        on_stationRadioCallName_comboBox_currentTextChanged(ui->stationRadioCallName_comboBox->currentText());
+        at_stationRadioCallName_comboBox_currentTextChanged(ui->stationRadioCallName_comboBox->currentText());
     }
     else
     {
         ui->station_comboBox->setCurrentIndex(-1);
 
-        on_station_comboBox_currentTextChanged("");
-        on_stationRadioCallName_comboBox_currentTextChanged("");
+        at_station_comboBox_currentTextChanged("");
+        at_stationRadioCallName_comboBox_currentTextChanged("");
     }
 
     ui->dutyPurpose_comboBox->setCurrentIndex(ui->dutyPurpose_comboBox->findText(Report::dutyPurposeToLabel(report.getDutyPurpose())));
@@ -604,6 +761,7 @@ void ReportWindow::loadReportData()
     ui->reportDate_dateEdit->setDate(report.getDate());
     ui->dutyTimesBegin_timeEdit->setTime(report.getBeginTime());
     ui->dutyTimesEnd_timeEdit->setTime(report.getEndTime());
+    ui->endOnNextDay_checkBox->setCheckState(Aux::checkStateFromChecked(report.getEndsOnNextDayConfirmed()));
 
     ui->reportComments_plainTextEdit->setPlainText(report.getComments());
 
@@ -649,27 +807,27 @@ void ReportWindow::loadReportData()
         ui->boat_comboBox->setCurrentIndex(ui->boat_comboBox->findText(tBoatName));
 
         //Call slot in case index has not changed
-        on_boat_comboBox_currentTextChanged(tBoatName);
+        at_boat_comboBox_currentTextChanged(tBoatName);
 
         ui->boatRadioCallName_comboBox->setCurrentIndex(ui->boatRadioCallName_comboBox->findText(tRadioCallName));
 
         //Call slot in case index has not changed
-        on_boatRadioCallName_comboBox_currentTextChanged(ui->boatRadioCallName_comboBox->currentText());
+        at_boatRadioCallName_comboBox_currentTextChanged(ui->boatRadioCallName_comboBox->currentText());
     }
     else
     {
         ui->boat_comboBox->setCurrentIndex(-1);
 
-        on_boat_comboBox_currentTextChanged("");
-        on_boatRadioCallName_comboBox_currentTextChanged("");
+        at_boat_comboBox_currentTextChanged("");
+        at_boatRadioCallName_comboBox_currentTextChanged("");
     }
 
-    ui->boatSlippedBeginOfDuty_checkBox->setChecked(boatLogPtr->getSlippedInitial());
-    ui->boatSlippedEndOfDuty_checkBox->setChecked(boatLogPtr->getSlippedFinal());
+    ui->boatSlippedBeginOfDuty_checkBox->setCheckState(Aux::checkStateFromChecked(boatLogPtr->getSlippedInitial()));
+    ui->boatSlippedEndOfDuty_checkBox->setCheckState(Aux::checkStateFromChecked(boatLogPtr->getSlippedFinal()));
 
     //Call slots in case check states did not change
-    on_boatSlippedBeginOfDuty_checkBox_stateChanged(ui->boatSlippedBeginOfDuty_checkBox->checkState());
-    on_boatSlippedEndOfDuty_checkBox_stateChanged(ui->boatSlippedEndOfDuty_checkBox->checkState());
+    at_boatSlippedBeginOfDuty_checkBox_stateChanged(ui->boatSlippedBeginOfDuty_checkBox->checkState());
+    at_boatSlippedEndOfDuty_checkBox_stateChanged(ui->boatSlippedEndOfDuty_checkBox->checkState());
 
     //Remember time since it gets overwritten by time edit spin box slot
     QTime tReadyUntil = boatLogPtr->getReadyUntil();
@@ -689,7 +847,7 @@ void ReportWindow::loadReportData()
 
     //Select no boat drive
     ui->boatDrives_tableWidget->setCurrentCell(-1, 0);
-    on_boatDrives_tableWidget_currentCellChanged(-1, 0, -1, 0);
+    at_boatDrives_tableWidget_currentCellChanged(-1, 0, -1, 0);
 
     setBoatHoursCarry(boatLogPtr->getBoatMinutesCarry());
 
@@ -708,26 +866,28 @@ void ReportWindow::loadReportData()
 
     //Fix widget highlighting etc. (slots not called when values not changed, e.g. if stays zero)
 
-    on_dutyTimesBegin_timeEdit_timeChanged(ui->dutyTimesBegin_timeEdit->time());
-    on_dutyTimesEnd_timeEdit_timeChanged(ui->dutyTimesEnd_timeEdit->time());
-    on_temperatureAir_spinBox_valueChanged(ui->temperatureAir_spinBox->value());
-    on_temperatureWater_spinBox_valueChanged(ui->temperatureWater_spinBox->value());
-    on_personnelHoursCarryHours_spinBox_valueChanged(ui->personnelHoursCarryHours_spinBox->value());
-    on_personnelHoursCarryMinutes_spinBox_valueChanged(ui->personnelHoursCarryMinutes_spinBox->value());
+    at_dutyTimesBegin_timeEdit_timeChanged(report.getBeginTime());
+    at_dutyTimesEnd_timeEdit_timeChanged(report.getEndTime());
+    at_temperatureAir_spinBox_valueChanged(report.getAirTemperature());
+    at_temperatureWater_spinBox_valueChanged(report.getWaterTemperature());
+    at_personTimeBegin_timeEdit_timeChanged(ui->personTimeBegin_timeEdit->time());
+    at_personTimeEnd_timeEdit_timeChanged(ui->personTimeEnd_timeEdit->time());
+    at_personnelHoursCarryHours_spinBox_valueChanged(report.getPersonnelMinutesCarry() / 60);
+    at_personnelHoursCarryMinutes_spinBox_valueChanged(report.getPersonnelMinutesCarry() % 60);
 
-    on_boatReadyFrom_timeEdit_timeChanged(ui->boatReadyFrom_timeEdit->time());
-    on_boatReadyUntil_timeEdit_timeChanged(ui->boatReadyUntil_timeEdit->time());
-    on_engineHoursBeginOfDuty_doubleSpinBox_valueChanged(ui->engineHoursBeginOfDuty_doubleSpinBox->value());
-    on_engineHoursEndOfDuty_doubleSpinBox_valueChanged(ui->engineHoursEndOfDuty_doubleSpinBox->value());
-    on_fuelAfterDrives_spinBox_valueChanged(ui->fuelAfterDrives_spinBox->value());
-    on_fuelEndOfDuty_spinBox_valueChanged(ui->fuelEndOfDuty_spinBox->value());
-    on_boatDriveBegin_timeEdit_timeChanged(ui->boatDriveBegin_timeEdit->time());
-    on_boatDriveEnd_timeEdit_timeChanged(ui->boatDriveEnd_timeEdit->time());
-    on_boatHoursCarryHours_spinBox_valueChanged(ui->boatHoursCarryHours_spinBox->value());
-    on_boatHoursCarryMinutes_spinBox_valueChanged(ui->boatHoursCarryMinutes_spinBox->value());
+    at_boatReadyFrom_timeEdit_timeChanged(boatLogPtr->getReadyFrom());
+    at_boatReadyUntil_timeEdit_timeChanged(boatLogPtr->getReadyUntil());
+    at_engineHoursBeginOfDuty_doubleSpinBox_valueChanged(boatLogPtr->getEngineHoursInitial());
+    at_engineHoursEndOfDuty_doubleSpinBox_valueChanged(boatLogPtr->getEngineHoursFinal());
+    at_fuelAfterDrives_spinBox_valueChanged(ui->fuelAfterDrives_spinBox->value());
+    at_fuelEndOfDuty_spinBox_valueChanged(boatLogPtr->getFuelFinal());
+    at_boatDriveBegin_timeEdit_timeChanged(ui->boatDriveBegin_timeEdit->time());
+    at_boatDriveEnd_timeEdit_timeChanged(ui->boatDriveEnd_timeEdit->time());
+    at_boatHoursCarryHours_spinBox_valueChanged(boatLogPtr->getBoatMinutesCarry() / 60);
+    at_boatHoursCarryMinutes_spinBox_valueChanged(boatLogPtr->getBoatMinutesCarry() % 60);
 
-    on_rescueOperationSpinBoxValueChanged(report.getRescueOperationCtr(Report::RescueOperation::_MORTAL_DANGER_INVOLVED),
-                                          Report::RescueOperation::_MORTAL_DANGER_INVOLVED);
+    at_rescueOperationSpinBoxValueChanged(report.getRescueOperationCtr(Report::RescueOperation::MortalDangerInvolved),
+                                          Report::RescueOperation::MortalDangerInvolved);
 
     //Reset unsaved changes switches
     setUnappliedBoatDriveChanges(false);
@@ -777,7 +937,7 @@ void ReportWindow::saveReport(const QString& pFileName)
     if (unappliedBoatDriveChanges)
     {
         if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
-            on_applyBoatDriveChanges_pushButton_pressed();
+            at_applyBoatDriveChanges_pushButton_pressed();
         else
         {
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
@@ -925,7 +1085,7 @@ void ReportWindow::exportReportToFileName(const QString& pFileName, const bool p
     if (unappliedBoatDriveChanges)
     {
         if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
-            on_applyBoatDriveChanges_pushButton_pressed();
+            at_applyBoatDriveChanges_pushButton_pressed();
         else
         {
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
@@ -1061,14 +1221,14 @@ void ReportWindow::exportReport(const bool pOpenPDF)
 /*!
  * \brief Export to automatic or manual file name depending on setting.
  *
- * Exports the report via on_exportFile_action_triggered(), if report file name empty or automatic export
+ * Exports the report via at_exportFile_action_triggered(), if report file name empty or automatic export
  * shall always ask for file name (a setting). Otherwise the report is exported via exportReportToFileName() to an
  * automatically chosen file name (report file name with extension replaced by ".pdf"; asks before replacing existing file).
  */
 void ReportWindow::autoExport()
 {
     if (SettingsCache::getBoolSetting("app_export_autoOnSave_askForFileName") || report.getFileName() == "")
-        on_exportFile_action_triggered();
+        at_exportFile_action_triggered();
     else
     {
         //Use report save file name with extension replaced by ".pdf"
@@ -1165,7 +1325,7 @@ bool ReportWindow::checkInvalidValues()
             return false;
     }
 
-    if (report.getBeginTime().secsTo(report.getEndTime()) < 0)
+    if (report.getBeginTime().secsTo(report.getEndTime()) < 0 && !report.getEndsOnNextDayConfirmed())
     {
         QMessageBox msgBox(QMessageBox::Warning, "Ungültige Dienst-Zeiten",
                            "Dienst-Ende liegt vor Dienst-Beginn.\nTrotzdem fortfahren?",
@@ -1178,6 +1338,9 @@ bool ReportWindow::checkInvalidValues()
 
     for (const QString& tIdent : report.getPersonnel())
     {
+        if (report.getEndsOnNextDayConfirmed())
+            break;
+
         if (report.getPersonBeginTime(tIdent).secsTo(report.getPersonEndTime(tIdent)) < 0)
         {
             QMessageBox msgBox(QMessageBox::Warning, "Ungültige Personal-Zeiten", "Personal-Dienstzeit-Ende für \"" +
@@ -1193,7 +1356,8 @@ bool ReportWindow::checkInvalidValues()
 
     if (!SettingsCache::getBoolSetting("app_boatLog_disabled")) //Do not warn about boat log contents if boat log is disabled
     {
-        if (boatLogPtr->getReadyUntil() != QTime(0, 0) && boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getReadyUntil()) < 0)
+        if (boatLogPtr->getReadyUntil() != QTime(0, 0) && boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getReadyUntil()) < 0 &&
+                !report.getEndsOnNextDayConfirmed())
         {
             QMessageBox msgBox(QMessageBox::Warning, "Ungültiger Boots-Bereitschaftszeitraum",
                                "Boots-Einsatzbereitschafts-Ende liegt vor Boots-Einsatzbereitschafts-Beginn.\nTrotzdem fortfahren?",
@@ -1217,6 +1381,7 @@ bool ReportWindow::checkInvalidValues()
 
         int driveIdx = 0;
         QTime latestEndTime;
+        bool dateWrapOccured = false;   //If duty ends on next day, max. one drive can have begin time before previous drive's end time.
 
         for (const BoatDrive& tDrive : boatLogPtr->getDrives())
         {
@@ -1242,7 +1407,7 @@ bool ReportWindow::checkInvalidValues()
                     return false;
             }
 
-            if (tDrive.getBeginTime().secsTo(tDrive.getEndTime()) < 0)
+            if (tDrive.getBeginTime().secsTo(tDrive.getEndTime()) < 0 && !report.getEndsOnNextDayConfirmed())
             {
                 QMessageBox msgBox(QMessageBox::Warning, "Ungültige Bootsfahrt-Zeiten", "Fahrt-Ende von Bootsfahrt #" +
                                    QString::number(driveIdx+1) + " liegt vor Fahrt-Beginn.\nTrotzdem fortfahren?",
@@ -1257,14 +1422,22 @@ bool ReportWindow::checkInvalidValues()
             {
                 if (latestEndTime.secsTo(tDrive.getBeginTime()) < 0)
                 {
-                    QMessageBox msgBox(QMessageBox::Warning, "Ungültige Bootsfahrt-Zeiten",
-                                       "Fahrt-Beginn von Bootsfahrt #" + QString::number(driveIdx+1) + " liegt vor Fahrt-Ende "
-                                       "von Bootsfahrt #" + QString::number(driveIdx) + ".\nTrotzdem fortfahren?",
-                                       QMessageBox::Abort | QMessageBox::Yes, this);
-                    msgBox.setDefaultButton(QMessageBox::Abort);
+                    if (!report.getEndsOnNextDayConfirmed() || dateWrapOccured)
+                    {
+                        QMessageBox msgBox(QMessageBox::Warning, "Ungültige Bootsfahrt-Zeiten",
+                                           "Fahrt-Beginn von Bootsfahrt #" + QString::number(driveIdx+1) + " liegt vor Fahrt-Ende "
+                                           "von Bootsfahrt #" + QString::number(driveIdx) + ".\nTrotzdem fortfahren?",
+                                           QMessageBox::Abort | QMessageBox::Yes, this);
+                        msgBox.setDefaultButton(QMessageBox::Abort);
 
-                    if (msgBox.exec() != QMessageBox::Yes)
-                        return false;
+                        if (msgBox.exec() != QMessageBox::Yes)
+                            return false;
+                    }
+                    else
+                    {
+                        //Ignore warning message this time, but set flag because this should happen maximally once
+                        dateWrapOccured = true;
+                    }
                 }
             }
             latestEndTime = tDrive.getEndTime();
@@ -1275,10 +1448,10 @@ bool ReportWindow::checkInvalidValues()
 
     for (const auto& it : report.getResources())
     {
-        if (it.second.first.secsTo(it.second.second) < 0)
+        if (it.second.first.secsTo(it.second.second) < 0 && !report.getEndsOnNextDayConfirmed())
         {
-            QMessageBox msgBox(QMessageBox::Warning, "Einsatzfahrzeuge",
-                               "Fahrzeug-Abfahrtszeit für \"" + it.first + "\" liegt vor Fahrzeug-Ankunftszeit.\nTrotzdem fortfahren?",
+            QMessageBox msgBox(QMessageBox::Warning, "Fahrzeuge / Ressourcen",
+                               "Ende für \"" + it.first + "\" liegt vor Beginn.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
             msgBox.setDefaultButton(QMessageBox::Abort);
 
@@ -1474,7 +1647,8 @@ bool ReportWindow::checkImplausibleValues()
                 return false;
         }
 
-        if (boatLogPtr->getReadyUntil() == QTime(0, 0) && boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getReadyUntil()) < 0)
+        if (boatLogPtr->getReadyUntil() == QTime(0, 0) && boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getReadyUntil()) < 0 &&
+                !report.getEndsOnNextDayConfirmed())
         {
             QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeitraum",
                                "Boots-Einsatzbereitschafts-Ende liegt vor Boots-Einsatzbereitschafts-Beginn.\nTrotzdem fortfahren?",
@@ -1496,7 +1670,8 @@ bool ReportWindow::checkImplausibleValues()
         }
 
         if (boatLogPtr->getDrivesCount() > 0 &&
-                boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getDrives().front().get().getBeginTime()) < 0)
+                boatLogPtr->getReadyFrom().secsTo(boatLogPtr->getDrives().front().get().getBeginTime()) < 0 &&
+                !report.getEndsOnNextDayConfirmed())
         {
             QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeitraum",
                                "Fahrt-Beginn der ersten Bootsfahrt liegt vor Boots-Einsatzbereitschafts-Beginn.\nTrotzdem fortfahren?",
@@ -1508,7 +1683,8 @@ bool ReportWindow::checkImplausibleValues()
         }
 
         if (boatLogPtr->getDrivesCount() > 0 &&
-                boatLogPtr->getDrives().back().get().getEndTime().secsTo(boatLogPtr->getReadyUntil()) < 0)
+                boatLogPtr->getDrives().back().get().getEndTime().secsTo(boatLogPtr->getReadyUntil()) < 0 &&
+                !report.getEndsOnNextDayConfirmed())
         {
             QMessageBox msgBox(QMessageBox::Warning, "Boots-Bereitschaftszeitraum",
                                "Boots-Einsatzbereitschafts-Ende liegt vor Fahrt-Ende der letzten Bootsfahrt.\nTrotzdem fortfahren?",
@@ -1520,13 +1696,13 @@ bool ReportWindow::checkImplausibleValues()
         }
     }
 
-    if (personWithFunctionPresent(Person::Function::_FUD) && report.getAssignmentNumber() == "")
+    if (personWithFunctionPresent(Person::Function::Fud) && report.getAssignmentNumber() == "")
     {
         QString tFUDPersonNames;
 
         for (const QString& tIdent : report.getPersonnel())
         {
-            if (report.getPersonFunction(tIdent) == Person::Function::_FUD)
+            if (report.getPersonFunction(tIdent) == Person::Function::Fud)
             {
                 if (tFUDPersonNames != "")
                     tFUDPersonNames.append(", ");
@@ -1549,8 +1725,8 @@ bool ReportWindow::checkImplausibleValues()
     {
         if (it.second.second == it.second.first)
         {
-            QMessageBox msgBox(QMessageBox::Warning, "Einsatzfahrzeuge",
-                               "Fahrzeug-Abfahrtszeit für \"" + it.first + "\" gleich Fahrzeug-Ankunftszeit.\nTrotzdem fortfahren?",
+            QMessageBox msgBox(QMessageBox::Warning, "Fahrzeuge / Ressourcen",
+                               "Ende für \"" + it.first + "\" gleich Beginn.\nTrotzdem fortfahren?",
                                QMessageBox::Abort | QMessageBox::Yes, this);
             msgBox.setDefaultButton(QMessageBox::Abort);
 
@@ -1559,7 +1735,7 @@ bool ReportWindow::checkImplausibleValues()
         }
     }
 
-    if (!personWithFunctionPresent(Person::Function::_WF) && !personWithFunctionPresent(Person::Function::_SL))
+    if (!personWithFunctionPresent(Person::Function::Wf) && !personWithFunctionPresent(Person::Function::Sl))
     {
         QMessageBox msgBox(QMessageBox::Warning, "Stationsleitung",
                            "Kein Wachführer oder Stationsleiter eingetragen.\nTrotzdem fortfahren?",
@@ -1570,14 +1746,14 @@ bool ReportWindow::checkImplausibleValues()
             return false;
     }
 
-    if ((personWithFunctionPresent(Person::Function::_WF) && personWithFunctionPresent(Person::Function::_SL)) ||
-            countPersonsWithFunction(Person::Function::_WF) > 1 || countPersonsWithFunction(Person::Function::_SL) > 1)
+    if ((personWithFunctionPresent(Person::Function::Wf) && personWithFunctionPresent(Person::Function::Sl)) ||
+            countPersonsWithFunction(Person::Function::Wf) > 1 || countPersonsWithFunction(Person::Function::Sl) > 1)
     {
         QString tSLPersonNames;
 
         for (const QString& tIdent : report.getPersonnel())
         {
-            if (report.getPersonFunction(tIdent) == Person::Function::_WF || report.getPersonFunction(tIdent) == Person::Function::_SL)
+            if (report.getPersonFunction(tIdent) == Person::Function::Wf || report.getPersonFunction(tIdent) == Person::Function::Sl)
             {
                 if (tSLPersonNames != "")
                     tSLPersonNames.append(", ");
@@ -1778,7 +1954,7 @@ void ReportWindow::updatePersonnelHours()
  *
  * Tries to restore the previous selection based on the selected persons' identifiers. \p pAddToSelection
  * is appended to this restored selection. If a person's identifier has changed between two updates (see
- * for instance on_personQualifications_pushButton_pressed()) then this person cannot be automatically
+ * for instance at_personQualifications_pushButton_pressed()) then this person cannot be automatically
  * selected. If the new identifier is known use \p pAddToSelection to also select those persons again.
  *
  * \param pAddToSelection Select persons with these identifiers in addition to the restored selection.
@@ -1787,7 +1963,9 @@ void ReportWindow::updatePersonnelTable(std::vector<QString> pAddToSelection)
 {
     std::set<QString> tSelectedIdents;
 
-    for (QString& tIdent : getSelectedPersons())
+    std::vector<QString> tSelectedPersons = getSelectedPersons();
+
+    for (QString& tIdent : tSelectedPersons)
         tSelectedIdents.insert(std::move(tIdent));
 
     for (QString& tIdent : pAddToSelection)
@@ -1891,13 +2069,12 @@ void ReportWindow::updateBoatDrivesTable()
 
         if (tDrive.getPurpose().trimmed() == "" || tDrive.getBoatman() == "" ||
             (tDrive.crewSize() == 0 && !tDrive.getNoCrewConfirmed()) ||
-            tDrive.getBeginTime().secsTo(tDrive.getEndTime()) <= 0 || (!firstDrive && latestEndTime.secsTo(tDrive.getBeginTime()) < 0))
+            tDrive.getBeginTime().secsTo(tDrive.getEndTime()) == 0 ||
+            (tDrive.getBeginTime().secsTo(tDrive.getEndTime()) < 0 && !report.getEndsOnNextDayConfirmed()) ||
+            (!firstDrive && latestEndTime.secsTo(tDrive.getBeginTime()) < 0 && !report.getEndsOnNextDayConfirmed()))
         {
             driveDataIncomplete = true;
         }
-
-        if (firstDrive)
-            firstDrive = false;
 
         latestEndTime = tDrive.getEndTime();
 
@@ -1908,6 +2085,9 @@ void ReportWindow::updateBoatDrivesTable()
                                                                               tDrive.getEndTime().toString("hh:mm") +
                                                                               "] " + (driveDataIncomplete ? "TO" "DO " : "") +
                                                                               "- " + tDrive.getPurpose()));
+
+        if (firstDrive)     // cppcheck-suppress duplicateConditionalAssign
+            firstDrive = false;
 
         ++rowCount;
     }
@@ -1923,7 +2103,7 @@ void ReportWindow::updateBoatDrivesTable()
  * \brief Update the list of persons selectable as boatman or crew member.
  *
  * Remembers selected boatman and sets it again after combo box was updated.
- * Because this would normally trigger on_boatDriveBoatman_comboBox_currentTextChanged(), which would in
+ * Because this would normally trigger at_boatDriveBoatman_comboBox_currentTextChanged(), which would in
  * turn change the unapplied boat drive changes state, the corresponding signal will be temporarily blocked.
  */
 void ReportWindow::updateBoatDriveAvailablePersons()
@@ -2047,12 +2227,12 @@ void ReportWindow::applyBoatDriveChanges(const int pRow)
         }
 
         if (Person::isOtherIdent(tIdent))
-            tDrive.addExtCrewMember(tIdent, Person::BoatFunction::_EXT, tLastName, tFirstName);
+            tDrive.addExtCrewMember(tIdent, Person::BoatFunction::Ext, tLastName, tFirstName);
         else
             tDrive.addCrewMember(tIdent, tBoatFunction);
     }
 
-    tDrive.setNoCrewConfirmed(ui->noBoatCrew_checkBox->isChecked());
+    tDrive.setNoCrewConfirmed(Aux::checkedFromCheckState(ui->noBoatCrew_checkBox->checkState()));
 
     setUnappliedBoatDriveChanges(false);
     setUnsavedChanges();
@@ -2088,7 +2268,7 @@ void ReportWindow::insertBoatCrewTableRow(const Person& pPerson, const Person::B
  * The time edits are disabled, if (trimmed) \p pName is empty.
  *
  * Note: Connects a number of slots to widgets' signals, which can/will be
- * disconnected again by one of those slots, on_resourceRemovePushButtonPressed().
+ * disconnected again by one of those slots, at_resourceRemovePushButtonPressed().
  *
  * \param pName Radio call name of the resource.
  * \param pBeginTime Begin of use time.
@@ -2127,23 +2307,23 @@ void ReportWindow::addResourcesTableRow(const QString pName, const QTime pBeginT
     std::vector<QMetaObject::Connection> connections {
         connect(tPushButton, &QPushButton::pressed, this,
                 [this, tPushButton]() -> void {
-                    this->on_resourceRemovePushButtonPressed(tPushButton);
+                    this->at_resourceRemovePushButtonPressed(tPushButton);
                 }),
         connect(tLineEdit, &QLineEdit::textEdited, this,
                 [this, tPushButton](const QString&) -> void {
-                    this->on_resourceLineEditTextEdited(tPushButton);
+                    this->at_resourceLineEditTextEdited(tPushButton);
                 }),
         connect(tLineEdit, &QLineEdit::returnPressed, this,
                 [this, tPushButton]() -> void {
-                    this->on_resourceLineEditReturnPressed(tPushButton);
+                    this->at_resourceLineEditReturnPressed(tPushButton);
                 }),
         connect(tBeginTimeEdit, &QTimeEdit::timeChanged, this,
                 [this, tPushButton]() -> void {
-                    this->on_resourceTimeEditTimeChanged(tPushButton);
+                    this->at_resourceTimeEditTimeChanged(tPushButton);
                 }),
         connect(tEndTimeEdit, &QTimeEdit::timeChanged, this,
                 [this, tPushButton]() -> void {
-                    this->on_resourceTimeEditTimeChanged(tPushButton);
+                    this->at_resourceTimeEditTimeChanged(tPushButton);
                 })
     };
 
@@ -2151,7 +2331,7 @@ void ReportWindow::addResourcesTableRow(const QString pName, const QTime pBeginT
     usedResourcesTableRows.push_back({tPushButton, tLineEdit, tBeginTimeEdit, tEndTimeEdit, tLabel, std::move(connections)});
 
     //Update leaving time edit color
-    on_resourceTimeEditTimeChanged(tPushButton);
+    at_resourceTimeEditTimeChanged(tPushButton);
 }
 
 //
@@ -2458,7 +2638,7 @@ QString ReportWindow::personIdentFromLabel(const QString& pLabel) const
  * \param pValue New number.
  * \param pRescue Type of rescue operation.
  */
-void ReportWindow::on_rescueOperationSpinBoxValueChanged(const int pValue, const Report::RescueOperation pRescue)
+void ReportWindow::at_rescueOperationSpinBoxValueChanged(const int pValue, const Report::RescueOperation pRescue)
 {
     report.setRescueOperationCtr(pRescue, pValue);
     setUnsavedChanges();
@@ -2473,9 +2653,9 @@ void ReportWindow::on_rescueOperationSpinBoxValueChanged(const int pValue, const
 
     int tNumRescues = 0;
 
-    for (auto it : report.getRescueOperationCtrs())
+    for (const auto& it : report.getRescueOperationCtrs())
     {
-        if (it.first == Report::RescueOperation::_MORTAL_DANGER_INVOLVED)
+        if (it.first == Report::RescueOperation::MortalDangerInvolved)
             continue;
 
         tNumRescues += it.second;
@@ -2483,7 +2663,7 @@ void ReportWindow::on_rescueOperationSpinBoxValueChanged(const int pValue, const
 
     for (const auto& it : rescuesTableRows)
     {
-        if (it.first == Report::RescueOperation::_MORTAL_DANGER_INVOLVED)
+        if (it.first == Report::RescueOperation::MortalDangerInvolved)
         {
             it.second.spinBox->setMaximum(tNumRescues);
             break;
@@ -2498,7 +2678,7 @@ void ReportWindow::on_rescueOperationSpinBoxValueChanged(const int pValue, const
  *
  * \param pDocFile Path to the document-
  */
-void ReportWindow::on_openDocumentPushButtonPressed(const QString& pDocFile)
+void ReportWindow::at_openDocumentPushButtonPressed(const QString& pDocFile)
 {
     if (!QFileInfo::exists(pDocFile))
     {
@@ -2520,11 +2700,11 @@ void ReportWindow::on_openDocumentPushButtonPressed(const QString& pDocFile)
  *
  * If the row is the last remaining row, the row will not be removed but instead the resource's
  * name field will be reset (such that new resources can still be added). The effect on the
- * report resources list stays the same (see also on_resourceLineEditTextEdited()).
+ * report resources list stays the same (see also at_resourceLineEditTextEdited()).
  *
  * \param pRemoveRowButton "Remove row" button of the row that is to be removed (no index available).
  */
-void ReportWindow::on_resourceRemovePushButtonPressed(const QPushButton *const pRemoveRowButton)
+void ReportWindow::at_resourceRemovePushButtonPressed(const QPushButton *const pRemoveRowButton)
 {
     for (auto it = usedResourcesTableRows.begin(); it != usedResourcesTableRows.end(); ++it)
     {
@@ -2533,7 +2713,7 @@ void ReportWindow::on_resourceRemovePushButtonPressed(const QPushButton *const p
             if (usedResourcesTableRows.size() < 2)  //Keep one empty row, just remove name (resource list then updated below)
             {
                 (*it).resourceNameLineEdit->setText("");
-                on_resourceLineEditTextEdited(pRemoveRowButton);
+                at_resourceLineEditTextEdited(pRemoveRowButton);
 
                 //Can skip update step below (called by slot already)
                 return;
@@ -2580,7 +2760,7 @@ void ReportWindow::on_resourceRemovePushButtonPressed(const QPushButton *const p
  *
  * \param pRemoveRowButton "Remove row" button of the edited row (no index available).
  */
-void ReportWindow::on_resourceLineEditTextEdited(const QPushButton *const pRemoveRowButton)
+void ReportWindow::at_resourceLineEditTextEdited(const QPushButton *const pRemoveRowButton)
 {
     for (const auto& row : usedResourcesTableRows)
     {
@@ -2609,7 +2789,7 @@ void ReportWindow::on_resourceLineEditTextEdited(const QPushButton *const pRemov
 
             updateReportResourcesList();
 
-            on_resourceTimeEditTimeChanged(pRemoveRowButton);
+            at_resourceTimeEditTimeChanged(pRemoveRowButton);
 
             return;
         }
@@ -2626,7 +2806,7 @@ void ReportWindow::on_resourceLineEditTextEdited(const QPushButton *const pRemov
  *
  * \param pRemoveRowButton "Remove row" button of the row in which 'return' was pressed (no index available).
  */
-void ReportWindow::on_resourceLineEditReturnPressed(const QPushButton *const pRemoveRowButton)
+void ReportWindow::at_resourceLineEditReturnPressed(const QPushButton *const pRemoveRowButton)
 {
     for (auto it = usedResourcesTableRows.begin(); it != usedResourcesTableRows.end(); ++it)
     {
@@ -2653,7 +2833,7 @@ void ReportWindow::on_resourceLineEditReturnPressed(const QPushButton *const pRe
  *
  * \param pRemoveRowButton "Remove row" button of the edited row (no index available).
  */
-void ReportWindow::on_resourceTimeEditTimeChanged(const QPushButton *const pRemoveRowButton)
+void ReportWindow::at_resourceTimeEditTimeChanged(const QPushButton *const pRemoveRowButton)
 {
     for (const auto& row : usedResourcesTableRows)
     {
@@ -2663,8 +2843,18 @@ void ReportWindow::on_resourceTimeEditTimeChanged(const QPushButton *const pRemo
             {
                 updateReportResourcesList();
 
-                if (row.endTimeEdit->isEnabled() && row.beginTimeEdit->time().secsTo(row.endTimeEdit->time()) <= 0)
+                if (row.endTimeEdit->isEnabled() && (
+                            (row.beginTimeEdit->time().secsTo(row.endTimeEdit->time()) == 0) ||
+                            (row.beginTimeEdit->time().secsTo(row.endTimeEdit->time()) < 0 && !report.getEndsOnNextDayConfirmed())
+                            ))
+                {
                     row.endTimeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+                }
+                else if (row.endTimeEdit->isEnabled() &&
+                         row.beginTimeEdit->time().secsTo(row.endTimeEdit->time()) < 0 && report.getEndsOnNextDayConfirmed())
+                {
+                    row.endTimeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
+                }
                 else
                     row.endTimeEdit->setStyleSheet("");
             }
@@ -2679,7 +2869,7 @@ void ReportWindow::on_resourceTimeEditTimeChanged(const QPushButton *const pRemo
 /*!
  * \brief Update the time displayed in every tab.
  */
-void ReportWindow::on_updateClocksTimerTimeout()
+void ReportWindow::at_updateClocksTimerTimeout()
 {
     QString timeText = QTime::currentTime().toString("hh:mm:ss");
 
@@ -2695,7 +2885,7 @@ void ReportWindow::on_updateClocksTimerTimeout()
  *
  * Only calls autoSave() if there are unsaved changes.
  */
-void ReportWindow::on_autoSaveTimerTimeout()
+void ReportWindow::at_autoSaveTimerTimeout()
 {
     if (unsavedChanges)
         autoSave();
@@ -2710,7 +2900,7 @@ void ReportWindow::on_autoSaveTimerTimeout()
  * The previous selection is appended to if \e more \e than one row
  * was already selected and is replaced by the new selection otherwise.
  */
-void ReportWindow::on_findPersonShortcutActivated()
+void ReportWindow::at_findPersonShortcutActivated()
 {
     //Should not trigger selection from random UI locations
     if (!ui->personLastName_lineEdit->hasFocus() && !ui->personFirstName_lineEdit->hasFocus())
@@ -2738,7 +2928,7 @@ void ReportWindow::on_findPersonShortcutActivated()
 /*!
  * \brief Show message box explaining that export failed.
  */
-void ReportWindow::on_exportFailed()
+void ReportWindow::at_exportFailed()
 {
     QMessageBox(QMessageBox::Warning, "Exportieren fehlgeschlagen", "Fehler beim Exportieren!", QMessageBox::Ok, this).exec();
 }
@@ -2749,12 +2939,12 @@ void ReportWindow::on_exportFailed()
  * \brief Save the report to (the same) file.
  *
  * Saves the report to the current report file name (see saveReport()).
- * Asks for a file name, if this is empty (see on_saveFileAs_action_triggered()).
+ * Asks for a file name, if this is empty (see at_saveFileAs_action_triggered()).
  */
-void ReportWindow::on_saveFile_action_triggered()
+void ReportWindow::at_saveFile_action_triggered()
 {
     if (report.getFileName() == "")
-        on_saveFileAs_action_triggered();
+        at_saveFileAs_action_triggered();
     else
         saveReport(report.getFileName());
 }
@@ -2765,7 +2955,7 @@ void ReportWindow::on_saveFile_action_triggered()
  * Asks for a file name and saves the report to this file.
  * See also saveReport().
  */
-void ReportWindow::on_saveFileAs_action_triggered()
+void ReportWindow::at_saveFileAs_action_triggered()
 {
     QFileDialog fileDialog(this, "Wachbericht speichern", "", "Wachberichte (*.wbr)");
     fileDialog.setDefaultSuffix("wbr");
@@ -2807,7 +2997,7 @@ void ReportWindow::on_saveFileAs_action_triggered()
  * Asks for a file name and exports the report to this file.
  * See also exportReport().
  */
-void ReportWindow::on_exportFile_action_triggered()
+void ReportWindow::at_exportFile_action_triggered()
 {
     exportReport();
 }
@@ -2819,7 +3009,7 @@ void ReportWindow::on_exportFile_action_triggered()
  * Opens the resulting PDF file afterwards.
  * See also exportReport().
  */
-void ReportWindow::on_exportAndOpenFile_action_triggered()
+void ReportWindow::at_exportAndOpenFile_action_triggered()
 {
     exportReport(true);
 }
@@ -2830,7 +3020,7 @@ void ReportWindow::on_exportAndOpenFile_action_triggered()
  * Asks for an old report file name and loads the report's carryovers from this old report (see Report::loadCarryovers()).
  * Updates the changed widget contents.
  */
-void ReportWindow::on_loadCarries_action_triggered()
+void ReportWindow::at_loadCarries_action_triggered()
 {
     QString tFileName = QFileDialog::getOpenFileName(this, "[Überträge laden] Letzten Wachbericht öffnen", "", "Wachberichte (*.wbr)");
 
@@ -2860,12 +3050,12 @@ void ReportWindow::on_loadCarries_action_triggered()
  *
  * Emits the signal openAnotherReportRequested() with "" as file name argument.
  *
- * See also StartupWindow::on_openAnotherReportRequested(), which may be connected to the
+ * See also StartupWindow::at_openAnotherReportRequested(), which may be connected to the
  * signal in order to actually create the new report and show it in a different report window.
  */
-void ReportWindow::on_newReport_action_triggered()
+void ReportWindow::at_newReport_action_triggered()
 {
-    emit openAnotherReportRequested("");
+    emit openAnotherReportRequested("");    // cppcheck-suppress shadowFunction symbolName=openAnotherReportRequested
 }
 
 /*!
@@ -2873,12 +3063,12 @@ void ReportWindow::on_newReport_action_triggered()
  *
  * Emits the signal openAnotherReportRequested() with "" as file name argument and 'true' as the second, boolean argument.
  *
- * See also StartupWindow::on_openAnotherReportRequested(), which may be connected to the signal
+ * See also StartupWindow::at_openAnotherReportRequested(), which may be connected to the signal
  * in order to actually ask for a file name, open the report and show it in a different report window.
  */
-void ReportWindow::on_openReport_action_triggered()
+void ReportWindow::at_openReport_action_triggered()
 {
-    emit openAnotherReportRequested("", true);
+    emit openAnotherReportRequested("", true);  // cppcheck-suppress shadowFunction symbolName=openAnotherReportRequested
 }
 
 /*!
@@ -2886,7 +3076,7 @@ void ReportWindow::on_openReport_action_triggered()
  *
  * See also closeEvent().
  */
-void ReportWindow::on_close_action_triggered()
+void ReportWindow::at_close_action_triggered()
 {
     close();
 }
@@ -2896,7 +3086,7 @@ void ReportWindow::on_close_action_triggered()
  *
  * This value is used for PDFExporter::exportPDF() by exportReportToFileName().
  */
-void ReportWindow::on_editPersonnelTableSplit_action_triggered()
+void ReportWindow::at_editPersonnelTableSplit_action_triggered()
 {
     bool ok = false;
 
@@ -2912,7 +3102,7 @@ void ReportWindow::on_editPersonnelTableSplit_action_triggered()
  *
  * This value is used for PDFExporter::exportPDF() by exportReportToFileName().
  */
-void ReportWindow::on_editBoatDrivesTableSplit_action_triggered()
+void ReportWindow::at_editBoatDrivesTableSplit_action_triggered()
 {
     bool ok = false;
 
@@ -2933,7 +3123,7 @@ void ReportWindow::on_editBoatDrivesTableSplit_action_triggered()
  * \param year New displayed year.
  * \param month New displayed month.
  */
-void ReportWindow::on_reportTab_calendarWidget_currentPageChanged(const int year, const int month)
+void ReportWindow::at_reportTab_calendarWidget_currentPageChanged(const int year, const int month)
 {
     ui->boatTab_calendarWidget->setCurrentPage(year, month);
     ui->rescueTab_calendarWidget->setCurrentPage(year, month);
@@ -2942,9 +3132,9 @@ void ReportWindow::on_reportTab_calendarWidget_currentPageChanged(const int year
 /*!
  * \brief Synchronize the calendar widgets of every tab.
  *
- * \copydetails on_reportTab_calendarWidget_currentPageChanged()
+ * \copydetails at_reportTab_calendarWidget_currentPageChanged()
  */
-void ReportWindow::on_boatTab_calendarWidget_currentPageChanged(const int year, const int month)
+void ReportWindow::at_boatTab_calendarWidget_currentPageChanged(const int year, const int month)
 {
     ui->reportTab_calendarWidget->setCurrentPage(year, month);
     ui->rescueTab_calendarWidget->setCurrentPage(year, month);
@@ -2953,9 +3143,9 @@ void ReportWindow::on_boatTab_calendarWidget_currentPageChanged(const int year, 
 /*!
  * \brief Synchronize the calendar widgets of every tab.
  *
- * \copydetails on_reportTab_calendarWidget_currentPageChanged()
+ * \copydetails at_reportTab_calendarWidget_currentPageChanged()
  */
-void ReportWindow::on_rescueTab_calendarWidget_currentPageChanged(const int year, const int month)
+void ReportWindow::at_rescueTab_calendarWidget_currentPageChanged(const int year, const int month)
 {
     ui->reportTab_calendarWidget->setCurrentPage(year, month);
     ui->boatTab_calendarWidget->setCurrentPage(year, month);
@@ -2966,7 +3156,7 @@ void ReportWindow::on_rescueTab_calendarWidget_currentPageChanged(const int year
  *
  * Sets the selected date of the other two widgets to this widget's selected date.
  */
-void ReportWindow::on_reportTab_calendarWidget_selectionChanged()
+void ReportWindow::at_reportTab_calendarWidget_selectionChanged()
 {
     ui->boatTab_calendarWidget->setSelectedDate(ui->reportTab_calendarWidget->selectedDate());
     ui->rescueTab_calendarWidget->setSelectedDate(ui->reportTab_calendarWidget->selectedDate());
@@ -2975,9 +3165,9 @@ void ReportWindow::on_reportTab_calendarWidget_selectionChanged()
 /*!
  * \brief Synchronize the calendar widgets of every tab.
  *
- * \copydetails on_reportTab_calendarWidget_selectionChanged()
+ * \copydetails at_reportTab_calendarWidget_selectionChanged()
  */
-void ReportWindow::on_boatTab_calendarWidget_selectionChanged()
+void ReportWindow::at_boatTab_calendarWidget_selectionChanged()
 {
     ui->reportTab_calendarWidget->setSelectedDate(ui->boatTab_calendarWidget->selectedDate());
     ui->rescueTab_calendarWidget->setSelectedDate(ui->boatTab_calendarWidget->selectedDate());
@@ -2986,9 +3176,9 @@ void ReportWindow::on_boatTab_calendarWidget_selectionChanged()
 /*!
  * \brief Synchronize the calendar widgets of every tab.
  *
- * \copydetails on_reportTab_calendarWidget_selectionChanged()
+ * \copydetails at_reportTab_calendarWidget_selectionChanged()
  */
-void ReportWindow::on_rescueTab_calendarWidget_selectionChanged()
+void ReportWindow::at_rescueTab_calendarWidget_selectionChanged()
 {
     ui->reportTab_calendarWidget->setSelectedDate(ui->rescueTab_calendarWidget->selectedDate());
     ui->boatTab_calendarWidget->setSelectedDate(ui->rescueTab_calendarWidget->selectedDate());
@@ -3006,7 +3196,7 @@ void ReportWindow::on_rescueTab_calendarWidget_selectionChanged()
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void ReportWindow::on_reportNumberDecr_radioButton_toggled(const bool checked)
+void ReportWindow::at_reportNumberDecr_radioButton_toggled(const bool checked)
 {
     if (checked)
     {
@@ -3026,7 +3216,7 @@ void ReportWindow::on_reportNumberDecr_radioButton_toggled(const bool checked)
  *
  * \param checked Button checked (i.e. pressed)?
  */
-void ReportWindow::on_reportNumberIncr_radioButton_toggled(const bool checked)
+void ReportWindow::at_reportNumberIncr_radioButton_toggled(const bool checked)
 {
     if (checked)
     {
@@ -3047,7 +3237,7 @@ void ReportWindow::on_reportNumberIncr_radioButton_toggled(const bool checked)
  *
  * \param arg1 Label representing the selected station.
  */
-void ReportWindow::on_station_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_station_comboBox_currentTextChanged(const QString& arg1)
 {
     if (arg1 != "")
         report.setStation(Aux::stationIdentFromLabel(arg1));
@@ -3085,7 +3275,7 @@ void ReportWindow::on_station_comboBox_currentTextChanged(const QString& arg1)
  *
  * \param arg1 New radio call name.
  */
-void ReportWindow::on_stationRadioCallName_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_stationRadioCallName_comboBox_currentTextChanged(const QString& arg1)
 {
     report.setRadioCallName(arg1);
     setUnsavedChanges();
@@ -3098,7 +3288,7 @@ void ReportWindow::on_stationRadioCallName_comboBox_currentTextChanged(const QSt
  *
  * \param arg1 New duty purpose as label.
  */
-void ReportWindow::on_dutyPurpose_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_dutyPurpose_comboBox_currentTextChanged(const QString& arg1)
 {
     report.setDutyPurpose(Report::labelToDutyPurpose(arg1));
     setUnsavedChanges();
@@ -3111,7 +3301,7 @@ void ReportWindow::on_dutyPurpose_comboBox_currentTextChanged(const QString& arg
  *
  * \param arg1 New duty purpose comment.
  */
-void ReportWindow::on_dutyPurposeComment_lineEdit_textEdited(const QString& arg1)
+void ReportWindow::at_dutyPurposeComment_lineEdit_textEdited(const QString& arg1)
 {
     report.setDutyPurposeComment(arg1);
     setUnsavedChanges();
@@ -3124,7 +3314,7 @@ void ReportWindow::on_dutyPurposeComment_lineEdit_textEdited(const QString& arg1
  *
  * \param date New date.
  */
-void ReportWindow::on_reportDate_dateEdit_dateChanged(const QDate& date)
+void ReportWindow::at_reportDate_dateEdit_dateChanged(const QDate& date)
 {
     report.setDate(date);
     setUnsavedChanges();
@@ -3142,20 +3332,34 @@ void ReportWindow::on_reportDate_dateEdit_dateChanged(const QDate& date)
  *
  * \param time New begin time.
  */
-void ReportWindow::on_dutyTimesBegin_timeEdit_timeChanged(const QTime& time)
+void ReportWindow::at_dutyTimesBegin_timeEdit_timeChanged(const QTime& time)
 {
     report.setBeginTime(time);
     setUnsavedChanges();
 
-    if (time.secsTo(ui->dutyTimesEnd_timeEdit->time()) <= 0)
+    if (time.secsTo(ui->dutyTimesEnd_timeEdit->time()) == 0 ||
+            (time.secsTo(ui->dutyTimesEnd_timeEdit->time()) < 0 && !report.getEndsOnNextDayConfirmed()))
     {
         ui->dutyTimesBegin_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
         ui->dutyTimesEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+    }
+    else if (time.secsTo(ui->dutyTimesEnd_timeEdit->time()) < 0 && report.getEndsOnNextDayConfirmed())
+    {
+        ui->dutyTimesBegin_timeEdit->setStyleSheet("");
+        ui->dutyTimesEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
     }
     else
     {
         ui->dutyTimesBegin_timeEdit->setStyleSheet("");
         ui->dutyTimesEnd_timeEdit->setStyleSheet("");
+    }
+
+    if (time.secsTo(ui->dutyTimesEnd_timeEdit->time()) < 0)
+        ui->endOnNextDay_checkBox->setVisible(true);
+    else
+    {
+        ui->endOnNextDay_checkBox->setCheckState(Aux::checkStateFromChecked(false));
+        ui->endOnNextDay_checkBox->setVisible(false);
     }
 
     //Use the new time as new default personnel arrival time
@@ -3179,20 +3383,34 @@ void ReportWindow::on_dutyTimesBegin_timeEdit_timeChanged(const QTime& time)
  *
  * \param time New end time.
  */
-void ReportWindow::on_dutyTimesEnd_timeEdit_timeChanged(const QTime& time)
+void ReportWindow::at_dutyTimesEnd_timeEdit_timeChanged(const QTime& time)
 {
     report.setEndTime(time);
     setUnsavedChanges();
 
-    if (ui->dutyTimesBegin_timeEdit->time().secsTo(time) <= 0)
+    if (ui->dutyTimesBegin_timeEdit->time().secsTo(time) == 0 ||
+            (ui->dutyTimesBegin_timeEdit->time().secsTo(time) < 0 && !report.getEndsOnNextDayConfirmed()))
     {
         ui->dutyTimesBegin_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
         ui->dutyTimesEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+    }
+    else if (ui->dutyTimesBegin_timeEdit->time().secsTo(time) < 0 && report.getEndsOnNextDayConfirmed())
+    {
+        ui->dutyTimesBegin_timeEdit->setStyleSheet("");
+        ui->dutyTimesEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
     }
     else
     {
         ui->dutyTimesBegin_timeEdit->setStyleSheet("");
         ui->dutyTimesEnd_timeEdit->setStyleSheet("");
+    }
+
+    if (ui->dutyTimesBegin_timeEdit->time().secsTo(time) < 0)
+        ui->endOnNextDay_checkBox->setVisible(true);
+    else
+    {
+        ui->endOnNextDay_checkBox->setCheckState(Aux::checkStateFromChecked(false));
+        ui->endOnNextDay_checkBox->setVisible(false);
     }
 
     //Use the new time as new default personnel leaving time
@@ -3205,13 +3423,89 @@ void ReportWindow::on_dutyTimesEnd_timeEdit_timeChanged(const QTime& time)
 }
 
 /*!
+ * \brief Set if the duty end time refers to the next day.
+ *
+ * Confirms that the duty end time (if smaller than the begin time) must be considered to be on the next day,
+ * if the check box state changed to checked. Revokes this confirmation otherwise.
+ *
+ * Note: This has no effect on the calculation of any time intervals as these are automatically corrected for negative
+ * overflows anyway (i.e. every time interval must refer to a time span < 24h in any case). However, the confirmation
+ * disables warning messages and changes affected widgets' highlighting about any end times being smaller than
+ * begin times, which might apply but do not necessarily apply in case of the duty ending on the next day.
+ *
+ * Sets setUnsavedChanges().
+ *
+ * \param arg1 Check box check state.
+ */
+void ReportWindow::at_endOnNextDay_checkBox_stateChanged(int arg1)
+{
+    bool checked = Aux::checkedFromCheckState(static_cast<Qt::CheckState>(arg1));
+
+    report.setEndsOnNextDayConfirmed(checked);
+
+    //Fix widget highlighting
+
+    at_dutyTimesBegin_timeEdit_timeChanged(report.getBeginTime());
+    at_dutyTimesEnd_timeEdit_timeChanged(report.getEndTime());
+
+    at_personTimeBegin_timeEdit_timeChanged(ui->personTimeBegin_timeEdit->time());
+    at_personTimeEnd_timeEdit_timeChanged(ui->personTimeEnd_timeEdit->time());
+
+    at_boatReadyFrom_timeEdit_timeChanged(boatLogPtr->getReadyFrom());
+    at_boatReadyUntil_timeEdit_timeChanged(boatLogPtr->getReadyUntil());
+
+    bool keepDriveChangesUnchanged = false;
+
+    if (unappliedBoatDriveChanges)
+    {
+        if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
+            at_applyBoatDriveChanges_pushButton_pressed();
+        else
+        {
+            QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
+                               "Nicht übernommene Änderungen in ausgewählter Bootsfahrt.\nÜbernehmen/Verwerfen?",
+                               QMessageBox::Abort | QMessageBox::Apply | QMessageBox::Discard, this);
+            msgBox.setDefaultButton(QMessageBox::Apply);
+
+            int button = msgBox.exec();
+
+            if (button == QMessageBox::Apply)
+                at_applyBoatDriveChanges_pushButton_pressed();
+            else if (button == QMessageBox::Discard)
+                at_discardBoatDriveChanges_pushButton_pressed();
+            else
+                keepDriveChangesUnchanged = true;
+        }
+    }
+
+    if (keepDriveChangesUnchanged)  //Fallback if auto-apply not set and user "panics": just fix current drive's times highlighting;
+    {                               //current and other drives might remain with wrong drives table cell texts until a table update
+        bool tChanges = unappliedBoatDriveChanges;
+        at_boatDriveBegin_timeEdit_timeChanged(ui->boatDriveBegin_timeEdit->time());
+        at_boatDriveEnd_timeEdit_timeChanged(ui->boatDriveEnd_timeEdit->time());
+        setUnappliedBoatDriveChanges(tChanges);
+
+        QMessageBox(QMessageBox::Information, "Fahrten-Update unvollständig",
+                    "Die Texte in der Bootsfahrten-Tabelle wurden nicht aktualisiert und könnten nun fehlerhaft sein! "
+                    "Zum aktualisieren z.B. die Änderungen übernehmen oder eine neue Fahrt hinzufügen.", QMessageBox::Ok, this).exec();
+    }
+    else
+        updateBoatDrivesTable();
+
+    for (const auto& row : usedResourcesTableRows)
+        at_resourceTimeEditTimeChanged(row.removeRowPushButton);
+
+    setUnsavedChanges();
+}
+
+/*!
  * \brief Set the report comments.
  *
  * Sets the report comments to plain text edit's plain text.
  *
  * Sets setUnsavedChanges().
  */
-void ReportWindow::on_reportComments_plainTextEdit_textChanged()
+void ReportWindow::at_reportComments_plainTextEdit_textChanged()
 {
     report.setComments(ui->reportComments_plainTextEdit->toPlainText());
     setUnsavedChanges();
@@ -3226,7 +3520,7 @@ void ReportWindow::on_reportComments_plainTextEdit_textChanged()
  *
  * \param arg1 New temperature in degrees Celsius.
  */
-void ReportWindow::on_temperatureAir_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_temperatureAir_spinBox_valueChanged(const int arg1)
 {
     report.setAirTemperature(arg1);
     setUnsavedChanges();
@@ -3244,7 +3538,7 @@ void ReportWindow::on_temperatureAir_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 New temperature in degrees Celsius.
  */
-void ReportWindow::on_temperatureWater_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_temperatureWater_spinBox_valueChanged(const int arg1)
 {
     report.setWaterTemperature(arg1);
     setUnsavedChanges();
@@ -3262,7 +3556,7 @@ void ReportWindow::on_temperatureWater_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 New precipitation type as label.
  */
-void ReportWindow::on_precipitation_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_precipitation_comboBox_currentTextChanged(const QString& arg1)
 {
     report.setPrecipitation(Aux::labelToPrecipitation(arg1));
     setUnsavedChanges();
@@ -3275,7 +3569,7 @@ void ReportWindow::on_precipitation_comboBox_currentTextChanged(const QString& a
  *
  * \param arg1 New cloudiness level as label.
  */
-void ReportWindow::on_cloudiness_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_cloudiness_comboBox_currentTextChanged(const QString& arg1)
 {
     report.setCloudiness(Aux::labelToCloudiness(arg1));
     setUnsavedChanges();
@@ -3284,21 +3578,21 @@ void ReportWindow::on_cloudiness_comboBox_currentTextChanged(const QString& arg1
 /*!
  * \brief Set the report wind strength.
  *
- * Resets the wind direction to unknown (Aux::WindDirection::_UNKNOWN) if wind strength is set to zero (Aux::WindStrength::_CALM).
+ * Resets the wind direction to unknown (Aux::WindDirection::Unknown) if wind strength is set to zero (Aux::WindStrength::Calm).
  *
  * Sets setUnsavedChanges().
  *
  * \param arg1 New wind strength as label.
  */
-void ReportWindow::on_windStrength_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_windStrength_comboBox_currentTextChanged(const QString& arg1)
 {
     report.setWindStrength(Aux::labelToWindStrength(arg1));
     setUnsavedChanges();
 
-    if (Aux::labelToWindStrength(arg1) == Aux::WindStrength::_CALM)
+    if (Aux::labelToWindStrength(arg1) == Aux::WindStrength::Calm)
     {
         ui->windDirection_comboBox->setCurrentIndex(ui->windDirection_comboBox->findText(
-                                                        Aux::windDirectionToLabel(Aux::WindDirection::_UNKNOWN)));
+                                                        Aux::windDirectionToLabel(Aux::WindDirection::Unknown)));
     }
 }
 
@@ -3310,7 +3604,7 @@ void ReportWindow::on_windStrength_comboBox_currentTextChanged(const QString& ar
  *
  * \param pos Position of the context menu request in the widget's coordinate system.
  */
-void ReportWindow::on_windStrength_comboBox_customContextMenuRequested(const QPoint& pos)
+void ReportWindow::at_windStrength_comboBox_customContextMenuRequested(const QPoint& pos)
 {
     const static std::map<int, std::pair<QString, QString>> windStrengthExplanations {
         { 0, {"Keine Luftbewegung.",
@@ -3360,7 +3654,7 @@ void ReportWindow::on_windStrength_comboBox_customContextMenuRequested(const QPo
  *
  * \param arg1 New wind strength as label.
  */
-void ReportWindow::on_windDirection_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_windDirection_comboBox_currentTextChanged(const QString& arg1)
 {
     report.setWindDirection(Aux::labelToWindDirection(arg1));
     setUnsavedChanges();
@@ -3373,7 +3667,7 @@ void ReportWindow::on_windDirection_comboBox_currentTextChanged(const QString& a
  *
  * Sets the report weather comments to plain text edit's plain text.
  */
-void ReportWindow::on_weatherComments_plainTextEdit_textChanged()
+void ReportWindow::at_weatherComments_plainTextEdit_textChanged()
 {
     report.setWeatherComments(ui->weatherComments_plainTextEdit->toPlainText());
     setUnsavedChanges();
@@ -3388,12 +3682,12 @@ void ReportWindow::on_weatherComments_plainTextEdit_textChanged()
  *
  * \param arg1 New number of operation protocols.
  */
-void ReportWindow::on_operationProtocolsCtr_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_operationProtocolsCtr_spinBox_valueChanged(const int arg1)
 {
     report.setOperationProtocolsCtr(arg1);
     setUnsavedChanges();
 
-    ui->operationProtocols_checkBox->setChecked(arg1 > 0);
+    ui->operationProtocols_checkBox->setCheckState(Aux::checkStateFromChecked(arg1 > 0));
 }
 
 /*!
@@ -3403,12 +3697,12 @@ void ReportWindow::on_operationProtocolsCtr_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 New number of patient records.
  */
-void ReportWindow::on_patientRecordsCtr_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_patientRecordsCtr_spinBox_valueChanged(const int arg1)
 {
     report.setPatientRecordsCtr(arg1);
     setUnsavedChanges();
 
-    ui->patientRecords_checkBox->setChecked(arg1 > 0);
+    ui->patientRecords_checkBox->setCheckState(Aux::checkStateFromChecked(arg1 > 0));
 }
 
 /*!
@@ -3418,12 +3712,12 @@ void ReportWindow::on_patientRecordsCtr_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 New number of radio call logs.
  */
-void ReportWindow::on_radioCallLogsCtr_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_radioCallLogsCtr_spinBox_valueChanged(const int arg1)
 {
     report.setRadioCallLogsCtr(arg1);
     setUnsavedChanges();
 
-    ui->radioCallLogs_checkBox->setChecked(arg1 > 0);
+    ui->radioCallLogs_checkBox->setCheckState(Aux::checkStateFromChecked(arg1 > 0));
 }
 
 /*!
@@ -3433,7 +3727,7 @@ void ReportWindow::on_radioCallLogsCtr_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 New list of other enclosures.
  */
-void ReportWindow::on_otherEnclosures_lineEdit_textEdited(const QString& arg1)
+void ReportWindow::at_otherEnclosures_lineEdit_textEdited(const QString& arg1)
 {
     QString tEnclosures;
 
@@ -3460,7 +3754,7 @@ void ReportWindow::on_otherEnclosures_lineEdit_textEdited(const QString& arg1)
  *
  * \param arg1 New list of other enclosures.
  */
-void ReportWindow::on_otherEnclosures_lineEdit_textChanged(const QString& arg1)
+void ReportWindow::at_otherEnclosures_lineEdit_textChanged(const QString& arg1)
 {
     QString tEnclosures;
 
@@ -3479,7 +3773,7 @@ void ReportWindow::on_otherEnclosures_lineEdit_textChanged(const QString& arg1)
 
     ui->otherEnclosures_label->setText(tEnclosures);
 
-    ui->otherEnclosures_checkBox->setChecked(tEnclosures != "");
+    ui->otherEnclosures_checkBox->setCheckState(Aux::checkStateFromChecked(tEnclosures != ""));
 
     ui->otherEnclosures_lineEdit->setToolTip(arg1);
 }
@@ -3491,7 +3785,7 @@ void ReportWindow::on_otherEnclosures_lineEdit_textChanged(const QString& arg1)
  *
  * See checkPersonInputs() and updatePersonNameCompleters().
  */
-void ReportWindow::on_personLastName_lineEdit_textChanged(const QString&)
+void ReportWindow::at_personLastName_lineEdit_textChanged(const QString&)
 {
     checkPersonInputs();
 
@@ -3503,7 +3797,7 @@ void ReportWindow::on_personLastName_lineEdit_textChanged(const QString&)
  *
  * See checkPersonInputs() and updatePersonNameCompleters().
  */
-void ReportWindow::on_personFirstName_lineEdit_textChanged(const QString&)
+void ReportWindow::at_personFirstName_lineEdit_textChanged(const QString&)
 {
     checkPersonInputs();
 
@@ -3513,14 +3807,14 @@ void ReportWindow::on_personFirstName_lineEdit_textChanged(const QString&)
 /*!
  * \brief Add the selected person to the report personnel list.
  *
- * See on_addPerson_pushButton_pressed().
+ * See at_addPerson_pushButton_pressed().
  *
  * Does not do anything if the line edit's completer popup is still open.
  */
-void ReportWindow::on_personFirstName_lineEdit_returnPressed()
+void ReportWindow::at_personFirstName_lineEdit_returnPressed()
 {
     if (ui->addPerson_pushButton->isEnabled() && !ui->personFirstName_lineEdit->completer()->popup()->isVisible())
-        on_addPerson_pushButton_pressed();
+        at_addPerson_pushButton_pressed();
 }
 
 /*!
@@ -3528,13 +3822,13 @@ void ReportWindow::on_personFirstName_lineEdit_returnPressed()
  *
  * Inserts every function the selected new person is qualified for into the function combo box.
  *
- * The highest-priority function is always pre-selected, except for Person::Function::_WF
- * (only if Person::Function::_WF not already assigned) and Person::Function::_SL
- * (only if neither Person::Function::_WF nor Person::Function::_SL already assigned).
+ * The highest-priority function is always pre-selected, except for Person::Function::Wf
+ * (only if Person::Function::Wf not already assigned) and Person::Function::Sl
+ * (only if neither Person::Function::Wf nor Person::Function::Sl already assigned).
  *
  * \param arg1 Identifier of the person to be added.
  */
-void ReportWindow::on_personIdent_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_personIdent_comboBox_currentTextChanged(const QString& arg1)
 {
     ui->personFunction_comboBox->clear();
 
@@ -3573,14 +3867,14 @@ void ReportWindow::on_personIdent_comboBox_currentTextChanged(const QString& arg
     //person with '_WF' present and do not pre-select '_SL' if already person with '_SL' or '_WF' present;
     //use that Person::Function is sorted by priority and that Person::iterateFunctions() works in order of priority
 
-    bool skipWf = personWithFunctionPresent(Person::Function::_WF);
-    bool skipWfSl = skipWf || personWithFunctionPresent(Person::Function::_SL);
+    bool skipWf = personWithFunctionPresent(Person::Function::Wf);
+    bool skipWfSl = skipWf || personWithFunctionPresent(Person::Function::Sl);
 
-    Person::Function tDefaultFunction = Person::Function::_PR;
+    Person::Function tDefaultFunction = Person::Function::Pr;
 
     for (Person::Function tFunction : availableFunctions)
     {
-        if ((tFunction == Person::Function::_WF && skipWf) || (tFunction == Person::Function::_SL && skipWfSl))
+        if ((tFunction == Person::Function::Wf && skipWf) || (tFunction == Person::Function::Sl && skipWfSl))
             continue;
 
         tDefaultFunction = tFunction;
@@ -3595,7 +3889,7 @@ void ReportWindow::on_personIdent_comboBox_currentTextChanged(const QString& arg
  *
  * Sets the current duty begin time as begin time for to be added personnel.
  */
-void ReportWindow::on_setNewPersonTimeBegin_pushButton_pressed()
+void ReportWindow::at_setNewPersonTimeBegin_pushButton_pressed()
 {
     ui->personTimeBegin_timeEdit->setTime(report.getBeginTime());
 }
@@ -3605,9 +3899,44 @@ void ReportWindow::on_setNewPersonTimeBegin_pushButton_pressed()
  *
  * Rounds current time to next quarter and sets this time as begin time for to be added personnel.
  */
-void ReportWindow::on_setNewPersonTimeBeginNow_pushButton_pressed()
+void ReportWindow::at_setNewPersonTimeBeginNow_pushButton_pressed()
 {
     ui->personTimeBegin_timeEdit->setTime(Aux::roundQuarterHour(QTime::currentTime()));
+}
+
+/*!
+ * \brief Update highlighting of new person begin and end time edits.
+ *
+ * \param time New begin time used for adding new persons.
+ */
+void ReportWindow::at_personTimeBegin_timeEdit_timeChanged(const QTime& time)
+{
+    if (time.secsTo(ui->personTimeEnd_timeEdit->time()) == 0 ||
+            (time.secsTo(ui->personTimeEnd_timeEdit->time()) < 0 && !report.getEndsOnNextDayConfirmed()))
+    {
+        ui->personTimeBegin_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+        ui->personTimeEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+    }
+    else if (time.secsTo(ui->personTimeEnd_timeEdit->time()) < 0 && report.getEndsOnNextDayConfirmed())
+    {
+        ui->personTimeBegin_timeEdit->setStyleSheet("");
+        ui->personTimeEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
+    }
+    else
+    {
+        ui->personTimeBegin_timeEdit->setStyleSheet("");
+        ui->personTimeEnd_timeEdit->setStyleSheet("");
+    }
+}
+
+/*!
+ * \brief Update highlighting of new person begin and end time edits.
+ *
+ * See at_personTimeBegin_timeEdit_timeChanged().
+ */
+void ReportWindow::at_personTimeEnd_timeEdit_timeChanged(const QTime&)
+{
+    at_personTimeBegin_timeEdit_timeChanged(ui->personTimeBegin_timeEdit->time());
 }
 
 /*!
@@ -3615,7 +3944,7 @@ void ReportWindow::on_setNewPersonTimeBeginNow_pushButton_pressed()
  *
  * Rounds current time to next quarter and sets this time as end time for to be added personnel.
  */
-void ReportWindow::on_setNewPersonTimeEndNow_pushButton_pressed()
+void ReportWindow::at_setNewPersonTimeEndNow_pushButton_pressed()
 {
     ui->personTimeEnd_timeEdit->setTime(Aux::roundQuarterHour(QTime::currentTime()));
 }
@@ -3625,7 +3954,7 @@ void ReportWindow::on_setNewPersonTimeEndNow_pushButton_pressed()
  *
  * Sets the current duty end time as end time for to be added personnel.
  */
-void ReportWindow::on_setNewPersonTimeEnd_pushButton_pressed()
+void ReportWindow::at_setNewPersonTimeEnd_pushButton_pressed()
 {
     ui->personTimeEnd_timeEdit->setTime(report.getEndTime());
 }
@@ -3640,7 +3969,7 @@ void ReportWindow::on_setNewPersonTimeEnd_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if person is added.
  */
-void ReportWindow::on_addPerson_pushButton_pressed()
+void ReportWindow::at_addPerson_pushButton_pressed()
 {
     std::vector<Person> tPersons;
     DatabaseCache::getPersons(tPersons, ui->personLastName_lineEdit->text(), ui->personFirstName_lineEdit->text());
@@ -3703,20 +4032,20 @@ void ReportWindow::on_addPerson_pushButton_pressed()
  * Shows PersonnelEditorDialog with name fields preset to the names entered in this window's person name fields.
  * The created external person is added to the personnel list, with begin/end times set to the current times of
  * the corresponding widgets. The personnel function and times can then be chosen via the UpdateReportPersonEntryDialog.
- * The highest-priority function (except for Person::Function::_WF and Person::Function::_SL) is pre-selected.
+ * The highest-priority function (except for Person::Function::Wf and Person::Function::Sl) is pre-selected.
  *
  * Then updates the personnel table (see updatePersonnelTable()) and also calls updateBoatDriveAvailablePersons().
  *
  * Sets setUnsavedChanges(), if person is added.
  */
-void ReportWindow::on_addExtPerson_pushButton_pressed()
+void ReportWindow::at_addExtPerson_pushButton_pressed()
 {
     QString tLastName = ui->personLastName_lineEdit->text().trimmed();
     QString tFirstName = ui->personFirstName_lineEdit->text().trimmed();
 
     Person tPerson(tLastName, tFirstName, "", Person::Qualifications(""), true);
 
-    PersonnelEditorDialog editorDialog(tPerson, PersonnelEditorDialog::PersonType::_EXTERNAL, false, this);
+    PersonnelEditorDialog editorDialog(tPerson, PersonnelEditorDialog::PersonType::External, false, this);
 
     if (editorDialog.exec() != QDialog::Accepted)
         return;
@@ -3770,11 +4099,11 @@ void ReportWindow::on_addExtPerson_pushButton_pressed()
     //Pre-select highest-priority function that is available, but do not pre-select '_WF' or '_SL' for external personnel;
     //use that Person::Function is sorted by priority and that Person::iterateFunctions() works in order of priority
 
-    Person::Function tDefaultFunction = Person::Function::_PR;
+    Person::Function tDefaultFunction = Person::Function::Pr;
 
     for (Person::Function tFunction : availableFunctions)
     {
-        if (tFunction != Person::Function::_WF && tFunction != Person::Function::_SL)
+        if (tFunction != Person::Function::Wf && tFunction != Person::Function::Sl)
         {
             tDefaultFunction = tFunction;
             break;
@@ -3815,7 +4144,7 @@ void ReportWindow::on_addExtPerson_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if update dialog is accepted for at least one person.
  */
-void ReportWindow::on_updatePerson_pushButton_pressed()
+void ReportWindow::at_updatePerson_pushButton_pressed()
 {
     for (QString tIdent : getSelectedPersons())
     {
@@ -3845,7 +4174,7 @@ void ReportWindow::on_updatePerson_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if any person was removed.
  */
-void ReportWindow::on_removePerson_pushButton_pressed()
+void ReportWindow::at_removePerson_pushButton_pressed()
 {
     for (QString tIdent : getSelectedPersons())
     {
@@ -3886,7 +4215,7 @@ void ReportWindow::on_removePerson_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if any person was selected (i.e. its time changed).
  */
-void ReportWindow::on_setPersonTimeBegin_pushButton_pressed()
+void ReportWindow::at_setPersonTimeBegin_pushButton_pressed()
 {
     for (QString tIdent : getSelectedPersons())
     {
@@ -3906,7 +4235,7 @@ void ReportWindow::on_setPersonTimeBegin_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if any person was selected (i.e. its time changed).
  */
-void ReportWindow::on_setPersonTimeEnd_pushButton_pressed()
+void ReportWindow::at_setPersonTimeEnd_pushButton_pressed()
 {
     for (QString tIdent : getSelectedPersons())
     {
@@ -3927,7 +4256,7 @@ void ReportWindow::on_setPersonTimeEnd_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if any person was selected (i.e. its time changed).
  */
-void ReportWindow::on_setPersonTimeBeginNow_pushButton_pressed()
+void ReportWindow::at_setPersonTimeBeginNow_pushButton_pressed()
 {
     for (QString tIdent : getSelectedPersons())
     {
@@ -3948,7 +4277,7 @@ void ReportWindow::on_setPersonTimeBeginNow_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if any person was selected (i.e. its time changed).
  */
-void ReportWindow::on_setPersonTimeEndNow_pushButton_pressed()
+void ReportWindow::at_setPersonTimeEndNow_pushButton_pressed()
 {
     for (QString tIdent : getSelectedPersons())
     {
@@ -3975,7 +4304,7 @@ void ReportWindow::on_setPersonTimeEndNow_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if the qualifications of any external person were changed.
  */
-void ReportWindow::on_personQualifications_pushButton_pressed()
+void ReportWindow::at_personQualifications_pushButton_pressed()
 {
     //Remember all changed external person identifiers so that personnel table selection can be properly restored
     std::vector<QString> changedIdentifiers;
@@ -3985,8 +4314,8 @@ void ReportWindow::on_personQualifications_pushButton_pressed()
         Person tOldPerson = report.getPerson(tOldIdent);
 
         PersonnelEditorDialog::PersonType tPersonType = Person::isInternalIdent(tOldIdent) ?
-                                                            PersonnelEditorDialog::PersonType::_INTERNAL :
-                                                            PersonnelEditorDialog::PersonType::_EXTERNAL;
+                                                            PersonnelEditorDialog::PersonType::Internal :
+                                                            PersonnelEditorDialog::PersonType::External;
 
         PersonnelEditorDialog editDialog(tOldPerson, tPersonType, true, this);
 
@@ -3995,7 +4324,7 @@ void ReportWindow::on_personQualifications_pushButton_pressed()
             continue;
 
         //Only change external persons' qualifications; skip to next person otherwise
-        if (tPersonType != PersonnelEditorDialog::PersonType::_EXTERNAL)
+        if (tPersonType != PersonnelEditorDialog::PersonType::External)
             continue;
 
         Person tNewPerson = editDialog.getPerson();
@@ -4077,11 +4406,11 @@ void ReportWindow::on_personQualifications_pushButton_pressed()
             //Pre-select highest-priority function that is available, but do not pre-select '_WF' or '_SL' for external personnel;
             //use that Person::Function is sorted by priority and that Person::iterateFunctions() works in order of priority
 
-            Person::Function tDefaultFunction = Person::Function::_PR;
+            Person::Function tDefaultFunction = Person::Function::Pr;
 
             for (Person::Function tFunction : availableFunctions)
             {
-                if (tFunction != Person::Function::_WF && tFunction != Person::Function::_SL)
+                if (tFunction != Person::Function::Wf && tFunction != Person::Function::Sl)
                 {
                     tDefaultFunction = tFunction;
                     break;
@@ -4153,16 +4482,16 @@ void ReportWindow::on_personQualifications_pushButton_pressed()
 
             //Avoid redundant function change notifications below if unapplied changes do not include a changed crew member function
             bool changedBoatFunction = false;
-            Person::BoatFunction tOldAppliedBoatFunction {Person::BoatFunction::_OTHER};
-            Person::BoatFunction tNewAppliedBoatFunction {Person::BoatFunction::_OTHER};
+            Person::BoatFunction tOldAppliedBoatFunction {Person::BoatFunction::Other};
+            Person::BoatFunction tNewAppliedBoatFunction {Person::BoatFunction::Other};
 
-            std::map<QString, Person::BoatFunction> tCrew = tDrive.crew();
+            const std::map<QString, Person::BoatFunction>& tCrew = tDrive.crew();
 
             //Search for old person in drive's crew
             if (tCrew.find(tOldIdent) != tCrew.end())
             {
                 //Keep old boat function if this is possible, change it otherwise (see below)
-                Person::BoatFunction tOldBoatFunction = tCrew[tOldIdent];
+                Person::BoatFunction tOldBoatFunction = tCrew.at(tOldIdent);
                 Person::BoatFunction tNewBoatFunction = tOldBoatFunction;
 
                 //Adjust boat function if changed qualifications do not allow old function anymore
@@ -4170,7 +4499,7 @@ void ReportWindow::on_personQualifications_pushButton_pressed()
                 {
                     //Change to highest-priority function that is available with the changed qualifications
 
-                    tNewBoatFunction = Person::BoatFunction::_PR;
+                    tNewBoatFunction = Person::BoatFunction::Pr;
 
                     for (Person::BoatFunction tBoatFunction : availableBoatFunctions)
                     {
@@ -4213,7 +4542,7 @@ void ReportWindow::on_personQualifications_pushButton_pressed()
                         {
                             //Change to highest-priority function that is available with the changed qualifications
 
-                            Person::BoatFunction tNewTableFunction = Person::BoatFunction::_PR;
+                            Person::BoatFunction tNewTableFunction = Person::BoatFunction::Pr;
 
                             for (Person::BoatFunction tBoatFunction : availableBoatFunctions)
                             {
@@ -4254,17 +4583,17 @@ void ReportWindow::on_personQualifications_pushButton_pressed()
     //updated manually above; otherwise can simply reload the drive display for the same drive
     if (!unappliedBoatDriveChanges)
     {
-        on_boatDrives_tableWidget_currentCellChanged(ui->boatDrives_tableWidget->currentRow(), 0,
+        at_boatDrives_tableWidget_currentCellChanged(ui->boatDrives_tableWidget->currentRow(), 0,
                                                      ui->boatDrives_tableWidget->currentRow(), 0);
     }
 }
 
 /*!
- * \brief See on_updatePerson_pushButton_pressed().
+ * \brief See at_updatePerson_pushButton_pressed().
  */
-void ReportWindow::on_personnel_tableWidget_cellDoubleClicked(int, int)
+void ReportWindow::at_personnel_tableWidget_cellDoubleClicked(int, int)
 {
-    on_updatePerson_pushButton_pressed();
+    at_updatePerson_pushButton_pressed();
 }
 
 //
@@ -4274,7 +4603,7 @@ void ReportWindow::on_personnel_tableWidget_cellDoubleClicked(int, int)
  *
  * See updateTotalPersonnelHours().
  */
-void ReportWindow::on_personnelHoursHours_spinBox_valueChanged(int)
+void ReportWindow::at_personnelHoursHours_spinBox_valueChanged(int)
 {
     updateTotalPersonnelHours();
 }
@@ -4284,7 +4613,7 @@ void ReportWindow::on_personnelHoursHours_spinBox_valueChanged(int)
  *
  * See updateTotalPersonnelHours().
  */
-void ReportWindow::on_personnelHoursMinutes_spinBox_valueChanged(int)
+void ReportWindow::at_personnelHoursMinutes_spinBox_valueChanged(int)
 {
     updateTotalPersonnelHours();
 }
@@ -4298,7 +4627,7 @@ void ReportWindow::on_personnelHoursMinutes_spinBox_valueChanged(int)
  *
  * \param arg1 New carry hours value.
  */
-void ReportWindow::on_personnelHoursCarryHours_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_personnelHoursCarryHours_spinBox_valueChanged(const int arg1)
 {
     report.setPersonnelMinutesCarry(arg1 * 60 + ui->personnelHoursCarryMinutes_spinBox->value());
     setUnsavedChanges();
@@ -4326,7 +4655,7 @@ void ReportWindow::on_personnelHoursCarryHours_spinBox_valueChanged(const int ar
  *
  * \param arg1 New carry minutes value.
  */
-void ReportWindow::on_personnelHoursCarryMinutes_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_personnelHoursCarryMinutes_spinBox_valueChanged(const int arg1)
 {
     report.setPersonnelMinutesCarry(ui->personnelHoursCarryHours_spinBox->value() * 60 + arg1);
     setUnsavedChanges();
@@ -4358,7 +4687,7 @@ void ReportWindow::on_personnelHoursCarryMinutes_spinBox_valueChanged(const int 
  *
  * \param arg1 Name of the selected boat.
  */
-void ReportWindow::on_boat_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_boat_comboBox_currentTextChanged(const QString& arg1)
 {
     boatLogPtr->setBoat(arg1);
     setUnsavedChanges();
@@ -4392,7 +4721,7 @@ void ReportWindow::on_boat_comboBox_currentTextChanged(const QString& arg1)
  *
  * \param arg1 New radio call name.
  */
-void ReportWindow::on_boatRadioCallName_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_boatRadioCallName_comboBox_currentTextChanged(const QString& arg1)
 {
     boatLogPtr->setRadioCallName(arg1);
     setUnsavedChanges();
@@ -4405,13 +4734,13 @@ void ReportWindow::on_boatRadioCallName_comboBox_currentTextChanged(const QStrin
  *
  * \param arg1 Check box check state.
  */
-void ReportWindow::on_boatSlippedBeginOfDuty_checkBox_stateChanged(const int arg1)
+void ReportWindow::at_boatSlippedBeginOfDuty_checkBox_stateChanged(const int arg1)
 {
-    bool checked = (arg1 == Qt::CheckState::Checked);
+    bool checked = Aux::checkedFromCheckState(static_cast<Qt::CheckState>(arg1));
 
     boatLogPtr->setSlippedInitial(checked);
 
-    if (!checked && ui->boatSlippedEndOfDuty_checkBox->isChecked())
+    if (!checked && Aux::checkedFromCheckState(ui->boatSlippedEndOfDuty_checkBox->checkState()))
     {
         QPalette palette = ui->boatSlippedBeginOfDuty_checkBox->palette();
         palette.setColor(QPalette::Base, Qt::yellow);
@@ -4420,7 +4749,7 @@ void ReportWindow::on_boatSlippedBeginOfDuty_checkBox_stateChanged(const int arg
     else
         ui->boatSlippedBeginOfDuty_checkBox->setPalette(QApplication::style()->standardPalette());
 
-    if (checked && !ui->boatSlippedEndOfDuty_checkBox->isChecked())
+    if (checked && !Aux::checkedFromCheckState(ui->boatSlippedEndOfDuty_checkBox->checkState()))
     {
         QPalette palette = ui->boatSlippedEndOfDuty_checkBox->palette();
         palette.setColor(QPalette::Base, Qt::yellow);
@@ -4439,13 +4768,13 @@ void ReportWindow::on_boatSlippedBeginOfDuty_checkBox_stateChanged(const int arg
  *
  * \param arg1 Check box check state.
  */
-void ReportWindow::on_boatSlippedEndOfDuty_checkBox_stateChanged(const int arg1)
+void ReportWindow::at_boatSlippedEndOfDuty_checkBox_stateChanged(const int arg1)
 {
-    bool checked = (arg1 == Qt::CheckState::Checked);
+    bool checked = Aux::checkedFromCheckState(static_cast<Qt::CheckState>(arg1));
 
     boatLogPtr->setSlippedFinal(checked);
 
-    if (!checked && ui->boatSlippedBeginOfDuty_checkBox->isChecked())
+    if (!checked && Aux::checkedFromCheckState(ui->boatSlippedBeginOfDuty_checkBox->checkState()))
     {
         QPalette palette = ui->boatSlippedEndOfDuty_checkBox->palette();
         palette.setColor(QPalette::Base, Qt::yellow);
@@ -4454,7 +4783,7 @@ void ReportWindow::on_boatSlippedEndOfDuty_checkBox_stateChanged(const int arg1)
     else
         ui->boatSlippedEndOfDuty_checkBox->setPalette(QApplication::style()->standardPalette());
 
-    if (checked && !ui->boatSlippedBeginOfDuty_checkBox->isChecked())
+    if (checked && !Aux::checkedFromCheckState(ui->boatSlippedBeginOfDuty_checkBox->checkState()))
     {
         QPalette palette = ui->boatSlippedBeginOfDuty_checkBox->palette();
         palette.setColor(QPalette::Base, Qt::yellow);
@@ -4473,7 +4802,7 @@ void ReportWindow::on_boatSlippedEndOfDuty_checkBox_stateChanged(const int arg1)
  *
  * \param time New time.
  */
-void ReportWindow::on_boatReadyFrom_timeEdit_timeChanged(const QTime& time)
+void ReportWindow::at_boatReadyFrom_timeEdit_timeChanged(const QTime& time)
 {
     boatLogPtr->setReadyFrom(time);
     setUnsavedChanges();
@@ -4483,8 +4812,13 @@ void ReportWindow::on_boatReadyFrom_timeEdit_timeChanged(const QTime& time)
     else
         ui->boatReadyFrom_timeEdit->setStyleSheet("");
 
-    if (time.secsTo(ui->boatReadyUntil_timeEdit->time()) <= 0)
+    if (time.secsTo(ui->boatReadyUntil_timeEdit->time()) == 0 ||
+            (time.secsTo(ui->boatReadyUntil_timeEdit->time()) < 0 && !report.getEndsOnNextDayConfirmed()))
+    {
         ui->boatReadyUntil_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+    }
+    else if (time.secsTo(ui->boatReadyUntil_timeEdit->time()) < 0 && report.getEndsOnNextDayConfirmed())
+        ui->boatReadyUntil_timeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
     else
         ui->boatReadyUntil_timeEdit->setStyleSheet("");
 }
@@ -4496,13 +4830,18 @@ void ReportWindow::on_boatReadyFrom_timeEdit_timeChanged(const QTime& time)
  *
  * \param time New time.
  */
-void ReportWindow::on_boatReadyUntil_timeEdit_timeChanged(const QTime& time)
+void ReportWindow::at_boatReadyUntil_timeEdit_timeChanged(const QTime& time)
 {
     boatLogPtr->setReadyUntil(time);
     setUnsavedChanges();
 
-    if (ui->boatReadyFrom_timeEdit->time().secsTo(time) <= 0)
+    if (ui->boatReadyFrom_timeEdit->time().secsTo(time) == 0 ||
+            (ui->boatReadyFrom_timeEdit->time().secsTo(time) < 0 && !report.getEndsOnNextDayConfirmed()))
+    {
         ui->boatReadyUntil_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+    }
+    else if (ui->boatReadyFrom_timeEdit->time().secsTo(time) < 0 && report.getEndsOnNextDayConfirmed())
+        ui->boatReadyUntil_timeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
     else
         ui->boatReadyUntil_timeEdit->setStyleSheet("");
 }
@@ -4516,7 +4855,7 @@ void ReportWindow::on_boatReadyUntil_timeEdit_timeChanged(const QTime& time)
  *
  * Sets report boat comments to plain text edit's plain text.
  */
-void ReportWindow::on_boatComments_plainTextEdit_textChanged()
+void ReportWindow::at_boatComments_plainTextEdit_textChanged()
 {
     boatLogPtr->setComments(ui->boatComments_plainTextEdit->toPlainText());
     setUnsavedChanges();
@@ -4531,7 +4870,7 @@ void ReportWindow::on_boatComments_plainTextEdit_textChanged()
  *
  * \param arg1 New engine hours.
  */
-void ReportWindow::on_engineHoursBeginOfDuty_doubleSpinBox_valueChanged(const double arg1)
+void ReportWindow::at_engineHoursBeginOfDuty_doubleSpinBox_valueChanged(const double arg1)
 {
     boatLogPtr->setEngineHoursInitial(arg1);
     setUnsavedChanges();
@@ -4556,7 +4895,7 @@ void ReportWindow::on_engineHoursBeginOfDuty_doubleSpinBox_valueChanged(const do
  *
  * \param arg1 New engine hours.
  */
-void ReportWindow::on_engineHoursEndOfDuty_doubleSpinBox_valueChanged(const double arg1)
+void ReportWindow::at_engineHoursEndOfDuty_doubleSpinBox_valueChanged(const double arg1)
 {
     boatLogPtr->setEngineHoursFinal(arg1);
     setUnsavedChanges();
@@ -4578,7 +4917,7 @@ void ReportWindow::on_engineHoursEndOfDuty_doubleSpinBox_valueChanged(const doub
  *
  * \param arg1 Fuel added at begin of duty in liters.
  */
-void ReportWindow::on_fuelBeginOfDuty_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_fuelBeginOfDuty_spinBox_valueChanged(const int arg1)
 {
     boatLogPtr->setFuelInitial(arg1);
     setUnsavedChanges();
@@ -4591,7 +4930,7 @@ void ReportWindow::on_fuelBeginOfDuty_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 Fuel added after drives in liters.
  */
-void ReportWindow::on_fuelAfterDrives_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_fuelAfterDrives_spinBox_valueChanged(const int arg1)
 {
     if (ui->fuelEndOfDuty_spinBox->value() == 0)
     {
@@ -4613,7 +4952,7 @@ void ReportWindow::on_fuelAfterDrives_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 Fuel added at end of duty in liters.
  */
-void ReportWindow::on_fuelEndOfDuty_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_fuelEndOfDuty_spinBox_valueChanged(const int arg1)
 {
     boatLogPtr->setFuelFinal(arg1);
     setUnsavedChanges();
@@ -4648,7 +4987,7 @@ void ReportWindow::on_fuelEndOfDuty_spinBox_valueChanged(const int arg1)
  * \param currentRow Number of newly selected drive (or -1).
  * \param previousRow Number of previously selected drive (or -1).
  */
-void ReportWindow::on_boatDrives_tableWidget_currentCellChanged(const int currentRow, int, const int previousRow, int)
+void ReportWindow::at_boatDrives_tableWidget_currentCellChanged(const int currentRow, int, const int previousRow, int)
 {
     if (unappliedBoatDriveChanges)
     {
@@ -4687,7 +5026,7 @@ void ReportWindow::on_boatDrives_tableWidget_currentCellChanged(const int curren
         ui->boatDriveBoatman_comboBox->setCurrentIndex(-1);
         ui->boatDriveComments_plainTextEdit->setPlainText(0);
         ui->boatCrew_tableWidget->setRowCount(0);
-        ui->noBoatCrew_checkBox->setChecked(false);
+        ui->noBoatCrew_checkBox->setCheckState(Aux::checkStateFromChecked(false));
     }
     else
     {
@@ -4737,9 +5076,9 @@ void ReportWindow::on_boatDrives_tableWidget_currentCellChanged(const int curren
 
         //Get boat drive crew
 
-        std::map<QString, Person::BoatFunction> tCrew = tDrive.crew();
+        const std::map<QString, Person::BoatFunction>& tCrew = tDrive.crew();
 
-        ui->noBoatCrew_checkBox->setChecked(tCrew.size() == 0 && tDrive.getNoCrewConfirmed());
+        ui->noBoatCrew_checkBox->setCheckState(Aux::checkStateFromChecked(tCrew.size() == 0 && tDrive.getNoCrewConfirmed()));
 
         std::vector<Person> tCrewPersons;
         for (const auto& it : tCrew)
@@ -4766,8 +5105,8 @@ void ReportWindow::on_boatDrives_tableWidget_currentCellChanged(const int curren
             insertBoatCrewTableRow(tPerson, tCrew.at(tPerson.getIdent()));
     }
 
-    on_boatDriveEnd_timeEdit_timeChanged(ui->boatDriveEnd_timeEdit->time());
-    on_boatDriveBoatman_comboBox_currentTextChanged(ui->boatDriveBoatman_comboBox->currentText());
+    at_boatDriveEnd_timeEdit_timeChanged(ui->boatDriveEnd_timeEdit->time());
+    at_boatDriveBoatman_comboBox_currentTextChanged(ui->boatDriveBoatman_comboBox->currentText());
 
     setUnappliedBoatDriveChanges(false);
 }
@@ -4784,12 +5123,12 @@ void ReportWindow::on_boatDrives_tableWidget_currentCellChanged(const int curren
  *
  * Sets setUnsavedChanges(), if drive was added.
  */
-void ReportWindow::on_addBoatDrive_pushButton_pressed()
+void ReportWindow::at_addBoatDrive_pushButton_pressed()
 {
     if (unappliedBoatDriveChanges)
     {
         if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
-            on_applyBoatDriveChanges_pushButton_pressed();
+            at_applyBoatDriveChanges_pushButton_pressed();
         else
         {
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
@@ -4830,7 +5169,7 @@ void ReportWindow::on_addBoatDrive_pushButton_pressed()
  *
  * Then updates the boat drives table (see updateBoatDrivesTable()).
  */
-void ReportWindow::on_removeBoatDrive_pushButton_pressed()
+void ReportWindow::at_removeBoatDrive_pushButton_pressed()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -4871,7 +5210,7 @@ void ReportWindow::on_removeBoatDrive_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if drives were swapped.
  */
-void ReportWindow::on_moveBoatDriveUp_pushButton_pressed()
+void ReportWindow::at_moveBoatDriveUp_pushButton_pressed()
 {
     int tSelectedRow = ui->boatDrives_tableWidget->currentRow();
 
@@ -4884,7 +5223,7 @@ void ReportWindow::on_moveBoatDriveUp_pushButton_pressed()
     if (unappliedBoatDriveChanges)
     {
         if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
-            on_applyBoatDriveChanges_pushButton_pressed();
+            at_applyBoatDriveChanges_pushButton_pressed();
         else
         {
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
@@ -4917,7 +5256,7 @@ void ReportWindow::on_moveBoatDriveUp_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if drives were swapped.
  */
-void ReportWindow::on_moveBoatDriveDown_pushButton_pressed()
+void ReportWindow::at_moveBoatDriveDown_pushButton_pressed()
 {
     int tSelectedRow = ui->boatDrives_tableWidget->currentRow();
 
@@ -4930,7 +5269,7 @@ void ReportWindow::on_moveBoatDriveDown_pushButton_pressed()
     if (unappliedBoatDriveChanges)
     {
         if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
-            on_applyBoatDriveChanges_pushButton_pressed();
+            at_applyBoatDriveChanges_pushButton_pressed();
         else
         {
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
@@ -4958,7 +5297,7 @@ void ReportWindow::on_moveBoatDriveDown_pushButton_pressed()
  *
  * Sets the boat drive begin time edit's time to the current time rounded to the nearest quarter.
  */
-void ReportWindow::on_setBoatDriveTimeBeginNow_pushButton_pressed()
+void ReportWindow::at_setBoatDriveTimeBeginNow_pushButton_pressed()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -4971,7 +5310,7 @@ void ReportWindow::on_setBoatDriveTimeBeginNow_pushButton_pressed()
  *
  * Sets the boat drive end time edit's time to the current time rounded to the nearest quarter.
  */
-void ReportWindow::on_setBoatDriveTimeEndNow_pushButton_pressed()
+void ReportWindow::at_setBoatDriveTimeEndNow_pushButton_pressed()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -4993,7 +5332,7 @@ void ReportWindow::on_setBoatDriveTimeEndNow_pushButton_pressed()
  *
  * Sets setUnsavedChanges(), if drive was added.
  */
-void ReportWindow::on_splitBoatDrive_pushButton_pressed()
+void ReportWindow::at_splitBoatDrive_pushButton_pressed()
 {
     int tSelectedRow = ui->boatDrives_tableWidget->currentRow();
 
@@ -5003,7 +5342,7 @@ void ReportWindow::on_splitBoatDrive_pushButton_pressed()
     if (unappliedBoatDriveChanges)
     {
         if (SettingsCache::getBoolSetting("app_reportWindow_autoApplyBoatDriveChanges"))
-            on_applyBoatDriveChanges_pushButton_pressed();
+            at_applyBoatDriveChanges_pushButton_pressed();
         else
         {
             QMessageBox msgBox(QMessageBox::Question, "Nicht übernommene Änderungen",
@@ -5053,7 +5392,7 @@ void ReportWindow::on_splitBoatDrive_pushButton_pressed()
  * Applies the drive data to the drive corresponding to the currently selected boat drives table row.
  * See applyBoatDriveChanges().
  */
-void ReportWindow::on_applyBoatDriveChanges_pushButton_pressed()
+void ReportWindow::at_applyBoatDriveChanges_pushButton_pressed()
 {
     applyBoatDriveChanges(ui->boatDrives_tableWidget->currentRow());
 }
@@ -5063,14 +5402,14 @@ void ReportWindow::on_applyBoatDriveChanges_pushButton_pressed()
  *
  * Resets setUnappliedBoatDriveChanges().
  */
-void ReportWindow::on_discardBoatDriveChanges_pushButton_pressed()
+void ReportWindow::at_discardBoatDriveChanges_pushButton_pressed()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
 
     setUnappliedBoatDriveChanges(false);
 
-    on_boatDrives_tableWidget_currentCellChanged(ui->boatDrives_tableWidget->currentRow(), 0,
+    at_boatDrives_tableWidget_currentCellChanged(ui->boatDrives_tableWidget->currentRow(), 0,
                                                  ui->boatDrives_tableWidget->currentRow(), 0);
 }
 
@@ -5081,7 +5420,7 @@ void ReportWindow::on_discardBoatDriveChanges_pushButton_pressed()
  *
  * Sets setUnappliedBoatDriveChanges(), if a boat drive selected.
  */
-void ReportWindow::on_boatDrivePurpose_comboBox_currentTextChanged(const QString&)
+void ReportWindow::at_boatDrivePurpose_comboBox_currentTextChanged(const QString&)
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -5096,15 +5435,20 @@ void ReportWindow::on_boatDrivePurpose_comboBox_currentTextChanged(const QString
  *
  * \param time New boat drive begin time.
  */
-void ReportWindow::on_boatDriveBegin_timeEdit_timeChanged(const QTime& time)
+void ReportWindow::at_boatDriveBegin_timeEdit_timeChanged(const QTime& time)
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
 
     setUnappliedBoatDriveChanges();
 
-    if (time.secsTo(ui->boatDriveEnd_timeEdit->time()) <= 0)
+    if (time.secsTo(ui->boatDriveEnd_timeEdit->time()) == 0 ||
+            (time.secsTo(ui->boatDriveEnd_timeEdit->time()) < 0 && !report.getEndsOnNextDayConfirmed()))
+    {
         ui->boatDriveEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+    }
+    else if (time.secsTo(ui->boatDriveEnd_timeEdit->time()) < 0 && report.getEndsOnNextDayConfirmed())
+        ui->boatDriveEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
     else
         ui->boatDriveEnd_timeEdit->setStyleSheet("");
 }
@@ -5116,7 +5460,7 @@ void ReportWindow::on_boatDriveBegin_timeEdit_timeChanged(const QTime& time)
  *
  * \param time New boat drive end time.
  */
-void ReportWindow::on_boatDriveEnd_timeEdit_timeChanged(const QTime& time)
+void ReportWindow::at_boatDriveEnd_timeEdit_timeChanged(const QTime& time)
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
     {
@@ -5126,8 +5470,13 @@ void ReportWindow::on_boatDriveEnd_timeEdit_timeChanged(const QTime& time)
 
     setUnappliedBoatDriveChanges();
 
-    if (ui->boatDriveBegin_timeEdit->time().secsTo(time) <= 0)
+    if (ui->boatDriveBegin_timeEdit->time().secsTo(time) == 0 ||
+            (ui->boatDriveBegin_timeEdit->time().secsTo(time) < 0 && !report.getEndsOnNextDayConfirmed()))
+    {
         ui->boatDriveEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: red; }");
+    }
+    else if (ui->boatDriveBegin_timeEdit->time().secsTo(time) < 0 && report.getEndsOnNextDayConfirmed())
+        ui->boatDriveEnd_timeEdit->setStyleSheet("QTimeEdit { background-color: yellow; }");
     else
         ui->boatDriveEnd_timeEdit->setStyleSheet("");
 }
@@ -5137,7 +5486,7 @@ void ReportWindow::on_boatDriveEnd_timeEdit_timeChanged(const QTime& time)
  *
  * Sets setUnappliedBoatDriveChanges(), if a boat drive selected.
  */
-void ReportWindow::on_boatDriveFuel_spinBox_valueChanged(int)
+void ReportWindow::at_boatDriveFuel_spinBox_valueChanged(int)
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -5158,7 +5507,7 @@ void ReportWindow::on_boatDriveFuel_spinBox_valueChanged(int)
  *
  * \param arg1 Person label of new boatman.
  */
-void ReportWindow::on_boatDriveBoatman_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_boatDriveBoatman_comboBox_currentTextChanged(const QString& arg1)
 {
     //Remember selected person's identifier in case labels change on update (e.g. ambiguous person added)
     if (arg1 != "")
@@ -5208,7 +5557,7 @@ void ReportWindow::on_boatDriveBoatman_comboBox_currentTextChanged(const QString
  *
  * Sets setUnappliedBoatDriveChanges(), if a boat drive selected.
  */
-void ReportWindow::on_boatDriveComments_plainTextEdit_textChanged()
+void ReportWindow::at_boatDriveComments_plainTextEdit_textChanged()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -5221,7 +5570,7 @@ void ReportWindow::on_boatDriveComments_plainTextEdit_textChanged()
  *
  * \param arg1 Person label of potential new crew member.
  */
-void ReportWindow::on_boatCrewMember_comboBox_currentTextChanged(const QString& arg1)
+void ReportWindow::at_boatCrewMember_comboBox_currentTextChanged(const QString& arg1)
 {
     ui->boatCrewMemberFunction_comboBox->clear();
 
@@ -5259,7 +5608,7 @@ void ReportWindow::on_boatCrewMember_comboBox_currentTextChanged(const QString& 
  *
  * Sets setUnappliedBoatDriveChanges() if a person was added or the person's function was changed.
  */
-void ReportWindow::on_addBoatCrewMember_pushButton_pressed()
+void ReportWindow::at_addBoatCrewMember_pushButton_pressed()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -5308,7 +5657,7 @@ void ReportWindow::on_addBoatCrewMember_pushButton_pressed()
         insertBoatCrewTableRow(report.getPerson(tIdent),
                                Person::labelToBoatFunction(ui->boatCrewMemberFunction_comboBox->currentText()));
 
-        ui->noBoatCrew_checkBox->setChecked(false);
+        ui->noBoatCrew_checkBox->setCheckState(Aux::checkStateFromChecked(false));
     }
 
     if (!personIsCrewMember || changedCrewMemberFunction)
@@ -5325,22 +5674,22 @@ void ReportWindow::on_addBoatCrewMember_pushButton_pressed()
  *
  * Shows PersonnelEditorDialog in order to enter the name of a person that is *not* part of the duty personnel but
  * will be a crew member for the current drive anyway. The person is then added to the displayed crew member table
- * (with fixed, special function Person::BoatFunction::_EXT). If an *external* crew member with the same name was
+ * (with fixed, special function Person::BoatFunction::Ext). If an *external* crew member with the same name was
  * already added before then the person will be nevertheless added, using a suffix added to its identifier.
  *
  * Sets setUnappliedBoatDriveChanges() if a person was added.
  *
  * Note: Here, the term "external" (not part of personnel) is used differently than in
- * on_addExtPerson_pushButton_pressed() (part of personnel but not in local database).
+ * at_addExtPerson_pushButton_pressed() (part of personnel but not in local database).
  */
-void ReportWindow::on_addExtBoatCrewMember_pushButton_pressed()
+void ReportWindow::at_addExtBoatCrewMember_pushButton_pressed()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
 
     Person tPerson = Person::dummyPerson();
 
-    PersonnelEditorDialog editorDialog(tPerson, PersonnelEditorDialog::PersonType::_OTHER, false, this);
+    PersonnelEditorDialog editorDialog(tPerson, PersonnelEditorDialog::PersonType::Other, false, this);
 
     if (editorDialog.exec() != QDialog::Accepted)
         return;
@@ -5376,9 +5725,9 @@ void ReportWindow::on_addExtBoatCrewMember_pushButton_pressed()
         }
     }
 
-    insertBoatCrewTableRow(tPerson, Person::BoatFunction::_EXT);
+    insertBoatCrewTableRow(tPerson, Person::BoatFunction::Ext);
 
-    ui->noBoatCrew_checkBox->setChecked(false);
+    ui->noBoatCrew_checkBox->setCheckState(Aux::checkStateFromChecked(false));
 
     setUnappliedBoatDriveChanges();
 
@@ -5395,7 +5744,7 @@ void ReportWindow::on_addExtBoatCrewMember_pushButton_pressed()
  *
  * Sets setUnappliedBoatDriveChanges(), if a person was removed.
  */
-void ReportWindow::on_removeBoatCrewMember_pushButton_pressed()
+void ReportWindow::at_removeBoatCrewMember_pushButton_pressed()
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
@@ -5418,12 +5767,12 @@ void ReportWindow::on_removeBoatCrewMember_pushButton_pressed()
  *
  * \param arg1 Check box check state.
  */
-void ReportWindow::on_noBoatCrew_checkBox_stateChanged(const int arg1)
+void ReportWindow::at_noBoatCrew_checkBox_stateChanged(const int arg1)
 {
     if (ui->boatDrives_tableWidget->currentRow() == -1)
         return;
 
-    if (arg1 == Qt::CheckState::Checked)
+    if (Aux::checkedFromCheckState(static_cast<Qt::CheckState>(arg1)))
         ui->boatCrew_tableWidget->setRowCount(0);
 
     setUnappliedBoatDriveChanges();
@@ -5436,7 +5785,7 @@ void ReportWindow::on_noBoatCrew_checkBox_stateChanged(const int arg1)
  *
  * See updateTotalBoatHours().
  */
-void ReportWindow::on_boatHoursHours_spinBox_valueChanged(int)
+void ReportWindow::at_boatHoursHours_spinBox_valueChanged(int)
 {
     updateTotalBoatHours();
 }
@@ -5446,7 +5795,7 @@ void ReportWindow::on_boatHoursHours_spinBox_valueChanged(int)
  *
  * See updateTotalBoatHours().
  */
-void ReportWindow::on_boatHoursMinutes_spinBox_valueChanged(int)
+void ReportWindow::at_boatHoursMinutes_spinBox_valueChanged(int)
 {
     updateTotalBoatHours();
 }
@@ -5460,7 +5809,7 @@ void ReportWindow::on_boatHoursMinutes_spinBox_valueChanged(int)
  *
  * \param arg1 New carry hours value.
  */
-void ReportWindow::on_boatHoursCarryHours_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_boatHoursCarryHours_spinBox_valueChanged(const int arg1)
 {
     boatLogPtr->setBoatMinutesCarry(arg1 * 60 + ui->boatHoursCarryMinutes_spinBox->value());
     setUnsavedChanges();
@@ -5488,7 +5837,7 @@ void ReportWindow::on_boatHoursCarryHours_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 New carry minutes value.
  */
-void ReportWindow::on_boatHoursCarryMinutes_spinBox_valueChanged(const int arg1)
+void ReportWindow::at_boatHoursCarryMinutes_spinBox_valueChanged(const int arg1)
 {
     boatLogPtr->setBoatMinutesCarry(ui->boatHoursCarryHours_spinBox->value() * 60 + arg1);
     setUnsavedChanges();
@@ -5516,7 +5865,7 @@ void ReportWindow::on_boatHoursCarryMinutes_spinBox_valueChanged(const int arg1)
  *
  * \param arg1 New assignment number.
  */
-void ReportWindow::on_assignmentNumber_lineEdit_textEdited(const QString& arg1)
+void ReportWindow::at_assignmentNumber_lineEdit_textEdited(const QString& arg1)
 {
     report.setAssignmentNumber(arg1);
     setUnsavedChanges();
@@ -5529,7 +5878,7 @@ void ReportWindow::on_assignmentNumber_lineEdit_textEdited(const QString& arg1)
  *
  * Removes all rows of the timestamps table.
  */
-void ReportWindow::on_clearTimestamps_pushButton_pressed()
+void ReportWindow::at_clearTimestamps_pushButton_pressed()
 {
     ui->timestamps_tableWidget->setRowCount(0);
 }
@@ -5542,7 +5891,7 @@ void ReportWindow::on_clearTimestamps_pushButton_pressed()
  * If the rescue tab (which contains the table) is not selected already (i.e. slot was
  * triggered by the shortcut), the rescue tab is selected and focus moved to the table widget.
  */
-void ReportWindow::on_addTimestamp_pushButton_pressed()
+void ReportWindow::at_addTimestamp_pushButton_pressed()
 {
     int tNewRowNumber = ui->timestamps_tableWidget->rowCount();
 

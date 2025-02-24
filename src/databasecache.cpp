@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 //  This file is part of Wachdienst-Manager, a program to manage DLRG watch duty reports.
-//  Copyright (C) 2021–2024 M. Frohne
+//  Copyright (C) 2021–2025 M. Frohne
 //
 //  Wachdienst-Manager is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published
@@ -28,6 +28,7 @@
 #include <QtSql/QSqlQuery>
 
 #include <iostream>
+#include <utility>
 
 //Initialize static class members
 
@@ -431,7 +432,7 @@ bool DatabaseCache::setSetting(const QString& pSetting, const QString& pValue)
  *
  * \return Map of available stations (see Aux::Station) with (unique) integer IDs as keys.
  */
-std::map<int, Aux::Station> DatabaseCache::stations()
+const std::map<int, Aux::Station>& DatabaseCache::stations()
 {
     return stationsMap;
 }
@@ -441,7 +442,7 @@ std::map<int, Aux::Station> DatabaseCache::stations()
  *
  * \return Map of available boats (see Aux::Boat) with (unique) integer IDs as keys.
  */
-std::map<int, Aux::Boat> DatabaseCache::boats()
+const std::map<int, Aux::Boat>& DatabaseCache::boats()
 {
     return boatsMap;
 }

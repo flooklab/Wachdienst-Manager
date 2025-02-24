@@ -2,8 +2,8 @@
 <Package>
     <DisplayName>Wachdienst-Manager</DisplayName>
     <Description>Installiert den Wachdienst-Manager.</Description>
-    <Version>1.5.0</Version>
-    <ReleaseDate>2024-04-27</ReleaseDate>
+    <Version>1.6.0</Version>
+    <ReleaseDate>2025-02-23</ReleaseDate>
     <Licenses>
         <License name="GNU Affero General Public License Agreement" file="LICENSE.txt" />
     </Licenses>
